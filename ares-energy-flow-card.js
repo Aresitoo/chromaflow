@@ -127,7 +127,7 @@ class AresEnergyFlowCard extends HTMLElement {
         .canvas-area {
           position: relative;
           width: 100%;
-          height: 215px;
+          height: 232px;
           background: transparent;
           border: none;
           overflow: hidden;
@@ -190,7 +190,7 @@ class AresEnergyFlowCard extends HTMLElement {
         <div class="content">
           <!-- Flow Canvas Area -->
           <div class="canvas-area">
-            <svg id="flow-svg" class="flow-svg" viewBox="0 0 400 215">
+            <svg id="flow-svg" class="flow-svg" viewBox="0 0 400 232">
               <defs>
                 <linearGradient id="flowSolarHome" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="#ffd54f" />
@@ -216,17 +216,17 @@ class AresEnergyFlowCard extends HTMLElement {
 
               <!-- Blueprint background rails -->
               <path id="rail-solar-home" d="M 130 70 C 193 70, 207 38, 270 38" fill="none" stroke="#00e5ff" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
-              <path id="rail-solar-tesla" d="M 130 80 C 193 80, 207 108, 270 108" fill="none" stroke="#b388ff" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
-              <path id="rail-solar-grid" d="M 130 90 C 193 90, 207 178, 270 178" fill="none" stroke="#00e676" stroke-width="2.4" opacity="0.15" stroke-linecap="round" />
-              <path id="rail-grid-home" d="M 130 168 C 193 168, 207 48, 270 48" fill="none" stroke="#ff7043" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
-              <path id="rail-grid-tesla" d="M 130 178 C 193 178, 207 118, 270 118" fill="none" stroke="#b388ff" stroke-width="2.0" opacity="0.12" stroke-linecap="round" />
+              <path id="rail-solar-tesla" d="M 130 80 C 193 80, 207 110, 270 110" fill="none" stroke="#b388ff" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
+              <path id="rail-solar-grid" d="M 130 90 C 193 90, 207 193, 270 193" fill="none" stroke="#00e676" stroke-width="2.4" opacity="0.15" stroke-linecap="round" />
+              <path id="rail-grid-home" d="M 130 176 C 193 176, 207 48, 270 48" fill="none" stroke="#ff7043" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
+              <path id="rail-grid-tesla" d="M 130 186 C 193 186, 207 120, 270 120" fill="none" stroke="#b388ff" stroke-width="2.0" opacity="0.12" stroke-linecap="round" />
 
               <!-- Active Animated Pulse Paths -->
               <path id="flow-solar-home" class="flow-path" d="M 130 70 C 193 70, 207 38, 270 38" stroke="url(#flowSolarHome)" stroke-width="3" style="filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.7)); display: none;"></path>
-              <path id="flow-solar-tesla" class="flow-path" d="M 130 80 C 193 80, 207 108, 270 108" stroke="url(#flowSolarTesla)" stroke-width="3.2" style="filter: drop-shadow(0 0 3px rgba(179, 136, 255, 0.7)); display: none;"></path>
-              <path id="flow-solar-grid" class="flow-path" d="M 130 90 C 193 90, 207 178, 270 178" stroke="url(#flowSolarGrid)" stroke-width="3.8" style="filter: drop-shadow(0 0 3.5px rgba(0, 230, 118, 0.75)); display: none;"></path>
-              <path id="flow-grid-home" class="flow-path" d="M 130 168 C 193 168, 207 48, 270 48" stroke="url(#flowGridHome)" stroke-width="2.8" style="filter: drop-shadow(0 0 3px rgba(255, 112, 67, 0.65)); display: none;"></path>
-              <path id="flow-grid-tesla" class="flow-path" d="M 130 178 C 193 178, 207 118, 270 118" stroke="url(#flowGridTesla)" stroke-width="3.0" style="filter: drop-shadow(0 0 3px rgba(179, 136, 255, 0.7)); display: none;"></path>
+              <path id="flow-solar-tesla" class="flow-path" d="M 130 80 C 193 80, 207 110, 270 110" stroke="url(#flowSolarTesla)" stroke-width="3.2" style="filter: drop-shadow(0 0 3px rgba(179, 136, 255, 0.7)); display: none;"></path>
+              <path id="flow-solar-grid" class="flow-path" d="M 130 90 C 193 90, 207 193, 270 193" stroke="url(#flowSolarGrid)" stroke-width="3.8" style="filter: drop-shadow(0 0 3.5px rgba(0, 230, 118, 0.75)); display: none;"></path>
+              <path id="flow-grid-home" class="flow-path" d="M 130 176 C 193 176, 207 48, 270 48" stroke="url(#flowGridHome)" stroke-width="2.8" style="filter: drop-shadow(0 0 3px rgba(255, 112, 67, 0.65)); display: none;"></path>
+              <path id="flow-grid-tesla" class="flow-path" d="M 130 186 C 193 186, 207 120, 270 120" stroke="url(#flowGridTesla)" stroke-width="3.0" style="filter: drop-shadow(0 0 3px rgba(179, 136, 255, 0.7)); display: none;"></path>
             </svg>
 
             <!-- Node 1: Solar Source -->
@@ -246,7 +246,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 2: Utility Grid Import -->
-            <div id="node-grid" class="node" style="left: 6px; bottom: 8px; width: 124px; background: rgba(255, 112, 67, 0.04); border: 1.5px solid rgba(255, 112, 67, 0.3); padding: 5px 8px;">
+            <div id="node-grid" class="node" style="left: 6px; bottom: 6px; width: 124px; background: rgba(255, 112, 67, 0.04); border: 1.5px solid rgba(255, 112, 67, 0.3); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
                 <div style="font-size: 11px; font-weight: 800; color: #ff7043; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🏭</span>
@@ -259,7 +259,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 3: Home Base Consumer -->
-            <div id="node-home" class="node" style="right: 6px; top: 8px; width: 124px; background: rgba(0, 229, 255, 0.08); border: 1.5px solid #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.15); padding: 5px 8px;">
+            <div id="node-home" class="node" style="right: 6px; top: 6px; width: 124px; background: rgba(0, 229, 255, 0.08); border: 1.5px solid #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.15); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
                 <div style="font-size: 11px; font-weight: 800; color: #00e5ff; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🏠</span>
@@ -272,7 +272,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 4: Tesla EV Consumer -->
-            <div id="node-tesla" class="node" style="right: 6px; top: 76px; width: 124px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 8px;">
+            <div id="node-tesla" class="node" style="right: 6px; top: 84px; width: 124px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
                 <div style="font-size: 11px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🚗</span>
@@ -285,7 +285,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 5: Grid Out (Export) -->
-            <div id="node-export" class="node" style="right: 6px; bottom: 8px; width: 124px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid rgba(0, 230, 118, 0.25); padding: 5px 8px;">
+            <div id="node-export" class="node" style="right: 6px; bottom: 6px; width: 124px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid rgba(0, 230, 118, 0.25); padding: 5px 8px;">
               <div style="font-size: 11px; font-weight: 800; color: #00e676; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                 <span style="font-size: 12px; line-height: 1;">🏭</span>
                 <span>Grid Out</span>
