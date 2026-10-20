@@ -1,0 +1,63 @@
+# ==============================================================================
+# AresLab Real-Time Energy Flow & Autarky Scorecard Card
+# Example Lovelace Configurations
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Standard Configuration (Recommended)
+# ------------------------------------------------------------------------------
+type: custom:ares-energy-flow-card
+# Contracted Power Guard: Set to your contracted utility ceiling (in kW).
+# The card will glow amber at 85% of this value, and flash crimson at 100%+.
+contract_power_limit_kw: 4.2
+contract_warning_pct: 0.85
+
+# Max expected system power envelope (in kW) used to dynamically scale flow speeds:
+max_expected_power_kw: 7.5
+
+# Display Solcast PV Forecast pill and progress bar in the Solar box:
+show_solar_forecast: true
+
+# Custom title for the EV / Wallbox consumer node:
+ev_name: "Tesla"
+
+# Entity mappings:
+entities:
+  # Solar Photovoltaic:
+  solar_power: sensor.solar_power                      # Live Solar generation (Watts)
+  solar_daily_yield: sensor.solar_daily_yield          # Today's Solar generation (kWh)
+
+  # Grid Import / Export:
+  # For grid_power, provide a sensor where positive = import (from grid) and negative = export (to grid).
+  grid_power: sensor.grid_power                        # Live net grid power (Watts)
+  grid_daily_import: sensor.grid_daily_import_energy   # Today's Grid import (kWh)
+  grid_daily_export: sensor.grid_daily_export_energy   # Today's Grid export (kWh)
+
+  # Electric Vehicle / High-Load Consumer:
+  ev_power: sensor.ev_charging_power                   # Live EV charging power (Watts)
+  ev_charging: binary_sensor.ev_charging               # EV charging active state (on/off)
+  ev_daily_energy: sensor.ev_daily_energy              # Today's EV energy consumed (kWh)
+
+  # Optional Solar Forecast (Solcast):
+  solcast_today: sensor.solcast_pv_forecast_forecast_today                 # Estimated total today (kWh)
+  solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today   # Estimated remaining today (kWh)
+
+# ------------------------------------------------------------------------------
+# 2. Minimal Configuration (Using Default Sensor Names)
+# ------------------------------------------------------------------------------
+# type: custom:ares-energy-flow-card
+
+# ------------------------------------------------------------------------------
+# 3. Solar Installation Without Solcast (Core Energy Features Only)
+# ------------------------------------------------------------------------------
+# type: custom:ares-energy-flow-card
+# contract_power_limit_kw: 5.5
+# show_solar_forecast: false    # Automatically hides the forecast badge & progress bar
+# entities:
+#   solar_power: sensor.envoy_current_power_production
+#   solar_daily_yield: sensor.envoy_today_s_energy_production
+#   grid_power: sensor.shelly_em_grid_power
+#   grid_daily_import: sensor.shelly_em_grid_energy_imported
+#   grid_daily_export: sensor.shelly_em_grid_energy_returned
+#   ev_power: sensor.wallbox_power
+#   ev_daily_energy: sensor.wallbox_daily_energy
