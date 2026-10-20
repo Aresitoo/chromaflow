@@ -170,17 +170,18 @@ class AresEnergyFlowCard extends HTMLElement {
           transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         .node-pwr {
-          font-size: 14px;
+          font-size: 17.5px;
           font-weight: 900;
           color: #ffffff;
           line-height: 1.1;
           margin-top: 2px;
+          font-variant-numeric: tabular-nums;
         }
         .node-kwh {
-          font-size: 8px;
+          font-size: 9.5px;
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.55);
-          margin-top: 1px;
+          color: rgba(255, 255, 255, 0.6);
+          margin-top: 1.5px;
         }
       </style>
 
@@ -229,13 +230,13 @@ class AresEnergyFlowCard extends HTMLElement {
             </svg>
 
             <!-- Node 1: Solar Source -->
-            <div id="node-solar" class="node" style="left: 12px; top: 48px; width: 118px; background: rgba(255, 213, 79, 0.04); border: 1.5px solid rgba(255, 213, 79, 0.3); padding: 5px 8px;">
+            <div id="node-solar" class="node" style="left: 6px; top: 44px; width: 124px; background: rgba(255, 213, 79, 0.04); border: 1.5px solid rgba(255, 213, 79, 0.3); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 9.5px; font-weight: 800; color: #ffd54f; display: flex; align-items: center; gap: 4px;">
+                <div style="font-size: 11px; font-weight: 800; color: #ffd54f; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 13px; line-height: 1;">☀️</span>
                   <span>Solar</span>
                 </div>
-                <span id="badge-solar-forecast" style="font-size: 7px; font-weight: 700; color: #ffd54f; background: rgba(255, 213, 79, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 213, 79, 0.3);">-- kWh EST</span>
+                <span id="badge-solar-forecast" style="font-size: 7.5px; font-weight: 700; color: #ffd54f; background: rgba(255, 213, 79, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 213, 79, 0.3);">-- kWh EST</span>
               </div>
               <div id="pwr-solar" class="node-pwr">0 W</div>
               <div id="kwh-solar" class="node-kwh">0,00 kWh today</div>
@@ -245,47 +246,47 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 2: Utility Grid Import -->
-            <div id="node-grid" class="node" style="left: 12px; bottom: 12px; width: 118px; background: rgba(255, 112, 67, 0.04); border: 1.5px solid rgba(255, 112, 67, 0.3); padding: 5px 8px;">
+            <div id="node-grid" class="node" style="left: 6px; bottom: 8px; width: 124px; background: rgba(255, 112, 67, 0.04); border: 1.5px solid rgba(255, 112, 67, 0.3); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 9.5px; font-weight: 800; color: #ff7043; display: flex; align-items: center; gap: 4px;">
+                <div style="font-size: 11px; font-weight: 800; color: #ff7043; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🏭</span>
                   <span>Grid In</span>
                 </div>
-                <span id="badge-grid-guard" style="font-size: 7px; font-weight: 800; color: #ff7043; background: rgba(255, 112, 67, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 112, 67, 0.3); display: none;">4.2 kW MAX</span>
+                <span id="badge-grid-guard" style="font-size: 7.5px; font-weight: 800; color: #ff7043; background: rgba(255, 112, 67, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 112, 67, 0.3); display: none;">4.2 kW MAX</span>
               </div>
               <div id="pwr-grid" class="node-pwr">0 W</div>
               <div id="kwh-grid" class="node-kwh">0,00 kWh imported</div>
             </div>
 
             <!-- Node 3: Home Base Consumer -->
-            <div id="node-home" class="node" style="right: 12px; top: 12px; width: 118px; background: rgba(0, 229, 255, 0.08); border: 1.5px solid #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.15); padding: 5px 8px;">
+            <div id="node-home" class="node" style="right: 6px; top: 8px; width: 124px; background: rgba(0, 229, 255, 0.08); border: 1.5px solid #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.15); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 9.5px; font-weight: 800; color: #00e5ff; display: flex; align-items: center; gap: 4px;">
+                <div style="font-size: 11px; font-weight: 800; color: #00e5ff; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🏠</span>
                   <span>Home</span>
                 </div>
-                <span id="badge-home" style="font-size: 7px; font-weight: 700; color: #00e5ff; background: rgba(0, 229, 255, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(0, 229, 255, 0.3);">100% SOLAR</span>
+                <span id="badge-home" style="font-size: 7.5px; font-weight: 700; color: #00e5ff; background: rgba(0, 229, 255, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(0, 229, 255, 0.3);">100% SOLAR</span>
               </div>
               <div id="pwr-home" class="node-pwr">0 W</div>
               <div id="kwh-home" class="node-kwh">0,00 kWh solar</div>
             </div>
 
             <!-- Node 4: Tesla EV Consumer -->
-            <div id="node-tesla" class="node" style="right: 12px; top: 80px; width: 118px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 8px;">
+            <div id="node-tesla" class="node" style="right: 6px; top: 76px; width: 124px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 9.5px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 4px;">
+                <div style="font-size: 11px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🚗</span>
                   <span id="lbl-tesla">${this._config.ev_name || "Tesla"}</span>
                 </div>
-                <span id="badge-tesla" style="font-size: 7px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 3.5px; border-radius: 4px;">IDLE</span>
+                <span id="badge-tesla" style="font-size: 7.5px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 3.5px; border-radius: 4px;">IDLE</span>
               </div>
               <div id="pwr-tesla" class="node-pwr">0 W</div>
               <div id="kwh-tesla" class="node-kwh">0,00 kWh charged</div>
             </div>
 
             <!-- Node 5: Grid Out (Export) -->
-            <div id="node-export" class="node" style="right: 12px; bottom: 12px; width: 118px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid rgba(0, 230, 118, 0.25); padding: 5px 8px;">
-              <div style="font-size: 9.5px; font-weight: 800; color: #00e676; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+            <div id="node-export" class="node" style="right: 6px; bottom: 8px; width: 124px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid rgba(0, 230, 118, 0.25); padding: 5px 8px;">
+              <div style="font-size: 11px; font-weight: 800; color: #00e676; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                 <span style="font-size: 12px; line-height: 1;">🏭</span>
                 <span>Grid Out</span>
               </div>
@@ -298,49 +299,49 @@ class AresEnergyFlowCard extends HTMLElement {
           <div style="height: 1px; background: rgba(255, 255, 255, 0.08); margin: 4px 0 2px;"></div>
 
           <!-- Merged Autarky Scorecard Section -->
-          <div style="display: flex; gap: 14px; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 12px 14px;">
+          <div style="display: flex; gap: 12px; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 12px 14px;">
             
-            <!-- Left Concentric SVG Rings (Inner clear diameter 54px; wide clearance for center text) -->
-            <div style="position: relative; width: 120px; height: 120px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-              <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
+            <!-- Left Concentric SVG Rings (Inner clear diameter 68.5px; top aligned with SOLAR SELF-CONSUMED) -->
+            <div style="position: relative; width: 144px; height: 144px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+              <svg width="144" height="144" viewBox="0 0 144 144" style="transform: rotate(-90deg);">
                 <!-- Outer Ring: Solar Self-Consumed (#00e676) -->
-                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(0, 230, 118, 0.15)" stroke-width="6" />
-                <circle id="ring-autarky" cx="60" cy="60" r="50" fill="none" stroke="#00e676" stroke-width="6" stroke-linecap="round"
-                        stroke-dasharray="314.16" stroke-dashoffset="157.08" style="transition: stroke-dashoffset 0.6s ease;" />
+                <circle cx="72" cy="72" r="64" fill="none" stroke="rgba(0, 230, 118, 0.15)" stroke-width="7.5" />
+                <circle id="ring-autarky" cx="72" cy="72" r="64" fill="none" stroke="#00e676" stroke-width="7.5" stroke-linecap="round"
+                        stroke-dasharray="402.12" stroke-dashoffset="201.06" style="transition: stroke-dashoffset 0.6s ease;" />
                 
                 <!-- Middle Ring: Utility Grid Reliance (#ff7043) -->
-                <circle cx="60" cy="60" r="40" fill="none" stroke="rgba(255, 112, 67, 0.15)" stroke-width="6" />
-                <circle id="ring-import" cx="60" cy="60" r="40" fill="none" stroke="#ff7043" stroke-width="6" stroke-linecap="round"
-                        stroke-dasharray="251.33" stroke-dashoffset="125.66" style="transition: stroke-dashoffset 0.6s ease;" />
+                <circle cx="72" cy="72" r="51" fill="none" stroke="rgba(255, 112, 67, 0.15)" stroke-width="7.5" />
+                <circle id="ring-import" cx="72" cy="72" r="51" fill="none" stroke="#ff7043" stroke-width="7.5" stroke-linecap="round"
+                        stroke-dasharray="320.44" stroke-dashoffset="160.22" style="transition: stroke-dashoffset 0.6s ease;" />
                 
                 <!-- Inner Ring: Grid Out (#ffd54f) -->
-                <circle cx="60" cy="60" r="30" fill="none" stroke="rgba(255, 213, 79, 0.15)" stroke-width="6" />
-                <circle id="ring-export" cx="60" cy="60" r="30" fill="none" stroke="#ffd54f" stroke-width="6" stroke-linecap="round"
-                        stroke-dasharray="188.50" stroke-dashoffset="94.25" style="transition: stroke-dashoffset 0.6s ease;" />
+                <circle cx="72" cy="72" r="38" fill="none" stroke="rgba(255, 213, 79, 0.15)" stroke-width="7.5" />
+                <circle id="ring-export" cx="72" cy="72" r="38" fill="none" stroke="#ffd54f" stroke-width="7.5" stroke-linecap="round"
+                        stroke-dasharray="238.76" stroke-dashoffset="119.38" style="transition: stroke-dashoffset 0.6s ease;" />
               </svg>
-              <div style="position: absolute; text-align: center; pointer-events: none; width: 50px;">
-                <div id="autarky-center-pct" style="font-size: 18px; font-weight: 900; color: #ffffff; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
-                <div style="font-size: 7.5px; font-weight: 800; color: #00e676; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px;">AUTARKY</div>
-                <div style="font-size: 6.5px; color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;">Grid-Free</div>
+              <div style="position: absolute; text-align: center; pointer-events: none; width: 64px;">
+                <div id="autarky-center-pct" style="font-size: 22px; font-weight: 900; color: #ffffff; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
+                <div style="font-size: 8.5px; font-weight: 800; color: #00e676; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;">AUTARKY</div>
+                <div style="font-size: 7.5px; color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;">Grid-Free</div>
               </div>
             </div>
 
-            <!-- Right 3 Rows (Strict Tabular Alignment, 0px left margin) -->
+            <!-- Right 3 Rows (Strict Tabular Alignment, 0px left margin, Enhanced Typography) -->
             <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
               
               <!-- Row 1: Solar Self-Consumed (Emerald) -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: 9px; font-weight: 800; color: #00e676; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">SOLAR SELF-CONSUMED</span>
-                  <span id="row-autarky-pct" style="font-size: 14px; font-weight: 900; color: #00e676; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span style="font-size: 10.5px; font-weight: 800; color: #00e676; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">SOLAR SELF-CONSUMED</span>
+                  <span id="row-autarky-pct" style="font-size: 16px; font-weight: 900; color: #00e676; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span id="row-solar-kwh" style="font-size: 13px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
-                    0,00 <span style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; 100% Free</span>
+                  <span id="row-solar-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
+                    0,00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; 100% Free</span>
                   </span>
-                  <span style="font-size: 7.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
+                  <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
                 </div>
-                <div style="width: 100%; height: 3.5px; border-radius: 2px; background: rgba(0, 230, 118, 0.16); overflow: hidden; margin-top: 2px;">
+                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(0, 230, 118, 0.16); overflow: hidden; margin-top: 2px;">
                   <div id="bar-solar-self-consumed" style="width: 0%; height: 100%; background: #00e676; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
@@ -348,16 +349,16 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 2: Utility Grid Reliance (Coral/Orange) -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: 9px; font-weight: 800; color: #ff7043; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">UTILITY GRID RELIANCE</span>
-                  <span id="row-import-pct" style="font-size: 14px; font-weight: 900; color: #ff7043; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span style="font-size: 10.5px; font-weight: 800; color: #ff7043; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">UTILITY GRID RELIANCE</span>
+                  <span id="row-import-pct" style="font-size: 16px; font-weight: 900; color: #ff7043; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span id="row-import-kwh" style="font-size: 13px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
-                    0,00 <span style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Night/Backup</span>
+                  <span id="row-import-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
+                    0,00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Night/Backup</span>
                   </span>
-                  <span style="font-size: 7.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
+                  <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
                 </div>
-                <div style="width: 100%; height: 3.5px; border-radius: 2px; background: rgba(255, 112, 67, 0.16); overflow: hidden; margin-top: 2px;">
+                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 112, 67, 0.16); overflow: hidden; margin-top: 2px;">
                   <div id="bar-import" style="width: 0%; height: 100%; background: #ff7043; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
@@ -365,16 +366,16 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 3: Exported to Grid (Amber/Gold) -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: 9px; font-weight: 800; color: #ffd54f; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">EXPORTED TO GRID</span>
-                  <span id="row-export-pct" style="font-size: 14px; font-weight: 900; color: #ffd54f; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span style="font-size: 10.5px; font-weight: 800; color: #ffd54f; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">EXPORTED TO GRID</span>
+                  <span id="row-export-pct" style="font-size: 16px; font-weight: 900; color: #ffd54f; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span id="row-export-kwh" style="font-size: 13px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
-                    0,00 <span style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Clean Surplus</span>
+                  <span id="row-export-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
+                    0,00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Clean Surplus</span>
                   </span>
-                  <span style="font-size: 7.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF SOLAR</span>
+                  <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF SOLAR</span>
                 </div>
-                <div style="width: 100%; height: 3.5px; border-radius: 2px; background: rgba(255, 213, 79, 0.16); overflow: hidden; margin-top: 2px;">
+                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 213, 79, 0.16); overflow: hidden; margin-top: 2px;">
                   <div id="bar-export" style="width: 0%; height: 100%; background: #ffd54f; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
@@ -692,9 +693,9 @@ class AresEnergyFlowCard extends HTMLElement {
     el.nodeExport.style.boxShadow = liveExportW > 15 ? '0 0 12px rgba(0, 230, 118, 0.25)' : 'none';
 
     // Apply autarky scorecard updates (3 Rings: Solar Autarky, Grid Reliance, Export)
-    const c1 = 314.16;
-    const c2 = 251.33;
-    const c3 = 188.50;
+    const c1 = 402.12;
+    const c2 = 320.44;
+    const c3 = 238.76;
 
     const off1 = c1 - (c1 * (autarkyPct / 100));
     const off2 = c2 - (c2 * (importPct / 100));
@@ -708,17 +709,17 @@ class AresEnergyFlowCard extends HTMLElement {
 
     // Row 1: Solar Self-Consumed
     el.rowAutarkyPct.textContent = `${Math.round(autarkyPct)}%`;
-    el.rowSolarKwh.innerHTML = `${fmtKwh(solarSelfConsumed)} <span style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; 100% Free</span>`;
+    el.rowSolarKwh.innerHTML = `${fmtKwh(solarSelfConsumed)} <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; 100% Free</span>`;
     el.barSolarSelfConsumed.style.width = `${autarkyPct}%`;
 
     // Row 2: Utility Grid Reliance
     el.rowImportPct.textContent = `${Math.round(importPct)}%`;
-    el.rowImportKwh.innerHTML = `${fmtKwh(importKwh)} <span style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Night/Backup</span>`;
+    el.rowImportKwh.innerHTML = `${fmtKwh(importKwh)} <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Night/Backup</span>`;
     el.barImport.style.width = `${importPct}%`;
 
     // Row 3: Exported to Grid
     el.rowExportPct.textContent = `${Math.round(exportPct)}%`;
-    el.rowExportKwh.innerHTML = `${fmtKwh(exportKwh)} <span style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Clean Surplus</span>`;
+    el.rowExportKwh.innerHTML = `${fmtKwh(exportKwh)} <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Clean Surplus</span>`;
     el.barExport.style.width = `${exportPct}%`;
 
     // Dynamic animation speeds (GPU accelerated, continuous scaling, zero jumps via Web Animations API)
