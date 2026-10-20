@@ -12,7 +12,7 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 ## 📸 Visual Overview
 
 <p align="center">
-  <img src="assets/energy_flow_card_preview.png" width="85%" alt="AresLab Real-Time Energy Flow & Autarky Scorecard Preview" />
+  <img src="assets/energy_flow_card.png" width="85%" alt="Home Assistant Real-Time Energy Flow & Autarky Scorecard Preview" />
 </p>
 
 ---
