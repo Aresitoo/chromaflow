@@ -7,6 +7,9 @@
 # 1. Standard Configuration (Recommended)
 # ------------------------------------------------------------------------------
 type: custom:ares-energy-flow-card
+# Color Palette Theme: 'solar' (default) or 'fitness' (Apple Activity ring inspired crimson/lime/cyan)
+palette: solar
+
 # Contracted Power Guard: Set to your contracted utility ceiling (in kW).
 # The card will glow amber at 85% of this value, and flash crimson at 100%+.
 contract_power_limit_kw: 4.2
@@ -61,3 +64,12 @@ entities:
 #   grid_daily_export: sensor.shelly_em_grid_energy_returned
 #   ev_power: sensor.wallbox_power
 #   ev_daily_energy: sensor.wallbox_daily_energy
+
+# ------------------------------------------------------------------------------
+# 4. Fitness Activity Palette Theme (Crimson Red / Apple Lime / Electric Cyan)
+# ------------------------------------------------------------------------------
+# type: custom:ares-energy-flow-card
+# palette: fitness
+# contract_power_limit_kw: 4.2
+# ev_name: "Tesla"
+
