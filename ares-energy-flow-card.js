@@ -11,6 +11,29 @@ class AresEnergyFlowCard extends HTMLElement {
     this._currentW = 0;
   }
 
+  static getStubConfig() {
+    return {
+      contract_power_limit_kw: 4.2,
+      contract_warning_pct: 0.85,
+      max_expected_power_kw: 7.5,
+      show_solar_forecast: true,
+      ev_name: 'Tesla',
+      entities: {
+        solar_power: 'sensor.solar_power',
+        solar_daily_yield: 'sensor.solar_daily_yield',
+        grid_power: 'sensor.grid_power',
+        grid_daily_import: 'sensor.grid_daily_import_energy',
+        grid_daily_export: 'sensor.grid_daily_export_energy',
+        grid_export_power: 'sensor.grid_export_power',
+        ev_power: 'sensor.ev_charging_power',
+        ev_charging: 'binary_sensor.ev_charging',
+        ev_daily_energy: 'sensor.ev_daily_energy',
+        solcast_today: 'sensor.solcast_pv_forecast_forecast_today',
+        solcast_remaining: 'sensor.solcast_pv_forecast_forecast_remaining_today'
+      }
+    };
+  }
+
   setConfig(config) {
     this._config = Object.assign({
       contract_power_limit_kw: 4.2,
