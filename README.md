@@ -12,7 +12,7 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 ## 📸 Live Animated Preview
 
 <p align="center">
-  <img src="assets/energy_flow_live.webp?v=1" width="85%" alt="Home Assistant Real-Time Energy Flow & Autarky Scorecard Live Animation" />
+  <img src="assets/energy_flow_live.webp?v=3" width="85%" alt="Home Assistant Real-Time Energy Flow & Autarky Scorecard Live Animation" />
 </p>
 
 ---
