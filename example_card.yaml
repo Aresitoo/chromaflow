@@ -4,11 +4,10 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 1. Standard Configuration (Recommended)
+# 1. Standard Configuration with EV / Electric Vehicle (Default)
 # ------------------------------------------------------------------------------
 type: custom:ares-energy-flow-card
-# Color Palette Theme: 'solar' (default) or 'fitness' (Apple Activity ring inspired crimson/lime/cyan)
-palette: solar
+palette: solar                         # 'solar' (default) or 'fitness'
 
 # Contracted Power Guard: Set to your contracted utility ceiling (in kW).
 # The card will glow amber at 85% of this value, and flash crimson at 100%+.
@@ -45,13 +44,47 @@ entities:
   solcast_today: sensor.solcast_pv_forecast_forecast_today                 # Estimated total today (kWh)
   solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today   # Estimated remaining today (kWh)
 
-# ------------------------------------------------------------------------------
-# 2. Minimal Configuration (Using Default Sensor Names)
-# ------------------------------------------------------------------------------
-# type: custom:ares-energy-flow-card
 
 # ------------------------------------------------------------------------------
-# 3. Solar Installation Without Solcast (Core Energy Features Only)
+# 2. Home Battery / BESS Configuration (Tesla Powerwall, Enphase, SolarEdge, etc.)
+# ------------------------------------------------------------------------------
+# In this mode, the middle slot transforms into a bidirectional Home Battery (BESS)
+# with live State-of-Charge (SoC %) progress bar and animated discharge directly into Home.
+#
+# type: custom:ares-energy-flow-card
+# palette: solar
+# device_type: battery                 # Activates BESS Battery mode (replaces EV slot)
+# battery_name: "Powerwall"            # Custom label (e.g., 'Powerwall', 'BESS', 'Enphase')
+# contract_power_limit_kw: 4.2
+# max_expected_power_kw: 7.5
+# show_solar_forecast: true
+# entities:
+#   solar_power: sensor.solar_power
+#   solar_daily_yield: sensor.solar_daily_yield
+#   grid_power: sensor.grid_power
+#   grid_daily_import: sensor.grid_daily_import_energy
+#   grid_daily_export: sensor.grid_daily_export_energy
+#   # Battery Storage Sensors:
+#   battery_power: sensor.battery_power                      # Live Watts (positive = charge, negative = discharge)
+#   battery_soc: sensor.battery_state_of_charge              # State of charge percentage (0-100%)
+#   battery_daily_charge: sensor.battery_daily_charge_energy # Today's energy charged into battery (kWh)
+#   battery_daily_discharge: sensor.battery_daily_discharge_energy # Today's energy supplied from battery (kWh)
+#   # Optional Solar Forecast:
+#   solcast_today: sensor.solcast_pv_forecast_forecast_today
+#   solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today
+
+
+# ------------------------------------------------------------------------------
+# 3. Fitness Activity Palette Theme (Crimson Red / Apple Lime / Electric Cyan)
+# ------------------------------------------------------------------------------
+# type: custom:ares-energy-flow-card
+# palette: fitness
+# contract_power_limit_kw: 4.2
+# ev_name: "Tesla"
+
+
+# ------------------------------------------------------------------------------
+# 4. Solar Installation Without Solcast (Core Energy Features Only)
 # ------------------------------------------------------------------------------
 # type: custom:ares-energy-flow-card
 # contract_power_limit_kw: 5.5
@@ -64,12 +97,3 @@ entities:
 #   grid_daily_export: sensor.shelly_em_grid_energy_returned
 #   ev_power: sensor.wallbox_power
 #   ev_daily_energy: sensor.wallbox_daily_energy
-
-# ------------------------------------------------------------------------------
-# 4. Fitness Activity Palette Theme (Crimson Red / Apple Lime / Electric Cyan)
-# ------------------------------------------------------------------------------
-# type: custom:ares-energy-flow-card
-# palette: fitness
-# contract_power_limit_kw: 4.2
-# ev_name: "Tesla"
-
