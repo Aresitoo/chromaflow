@@ -305,7 +305,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 3: Home Base Consumer -->
-            <div id="node-home" class="node" style="right: 6px; top: 6px; width: 124px; background: rgba(0, 229, 255, 0.08); border: 1.5px solid #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.15); padding: 5px 8px;">
+            <div id="node-home" class="node" style="right: 3px; top: 6px; width: 127px; background: rgba(0, 229, 255, 0.08); border: 1.5px solid #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.15); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
                 <div style="font-size: 11px; font-weight: 800; color: #00e5ff; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🏠</span>
@@ -318,13 +318,13 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 4: Tesla EV or BESS Consumer -->
-            <div id="node-tesla" class="node" style="right: 6px; top: 84px; width: 124px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 10px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 3.5px; min-width: 0; overflow: hidden;">
-                  <span id="icon-dev" style="font-size: 12px; line-height: 1; flex-shrink: 0;">${devIcon}</span>
+            <div id="node-tesla" class="node" style="right: 3px; top: 84px; width: 127px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 5.5px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 2px; white-space: nowrap;">
+                <div style="font-size: 9px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; letter-spacing: -0.25px;">
+                  <span id="icon-dev" style="font-size: 10.5px; line-height: 1; flex-shrink: 0;">${devIcon}</span>
                   <span id="lbl-dev" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${devName}</span>
                 </div>
-                <span id="badge-tesla" style="font-size: 7.5px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 3.5px; border-radius: 4px; flex-shrink: 0;">IDLE</span>
+                <span id="badge-tesla" style="font-size: 6.8px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 2px; border-radius: 3.5px; flex-shrink: 0; letter-spacing: -0.15px;">IDLE</span>
               </div>
               <div id="pwr-tesla" class="node-pwr">0 W</div>
               <div id="kwh-tesla" class="node-kwh">0,00 kWh charged</div>
@@ -334,7 +334,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 5: Grid Out (Export) -->
-            <div id="node-export" class="node" style="right: 6px; bottom: 3px; width: 124px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid ${isFitness ? 'rgba(0, 229, 255, 0.25)' : 'rgba(0, 230, 118, 0.25)'}; padding: 5px 8px;">
+            <div id="node-export" class="node" style="right: 3px; bottom: 3px; width: 127px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid ${isFitness ? 'rgba(0, 229, 255, 0.25)' : 'rgba(0, 230, 118, 0.25)'}; padding: 5px 8px;">
               <div style="font-size: 11px; font-weight: 800; color: ${isFitness ? '#00e5ff' : '#00e676'}; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                 <span style="font-size: 12px; line-height: 1;">🏭</span>
                 <span>Grid Out</span>
@@ -797,7 +797,7 @@ class AresEnergyFlowCard extends HTMLElement {
       let badgeBrd = 'rgba(255, 255, 255, 0.12)';
 
       if (isDischarging) {
-        badgeLabel = batterySoc !== null ? `${batterySoc}% DISC` : 'DISCHARGE';
+        badgeLabel = batterySoc !== null ? `${batterySoc}% DIS` : 'DISCHARGE';
         badgeCol = '#00e5ff';
         badgeBg = 'rgba(0, 229, 255, 0.15)';
         badgeBrd = 'rgba(0, 229, 255, 0.4)';
