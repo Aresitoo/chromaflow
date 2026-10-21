@@ -9,11 +9,20 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 
 ---
 
-## 📸 Visual Overview
+## 📸 Live Animated Preview
 
 <p align="center">
-  <img src="assets/energy_flow_card.png?v=2" width="85%" alt="Home Assistant Real-Time Energy Flow & Autarky Scorecard Preview" />
+  <img src="assets/energy_flow_live.webp?v=1" width="85%" alt="Home Assistant Real-Time Energy Flow & Autarky Scorecard Live Animation" />
 </p>
+
+---
+
+## 🖼️ Operational States Gallery
+
+| ☀️ Daytime Solar & Export | 🚗 Active Tesla Charging Session | 🌙 Nighttime Grid Baseline |
+| :---: | :---: | :---: |
+| <img src="assets/solar_export_view.png?v=1" width="100%" alt="Daytime Solar & Grid Export" /> | <img src="assets/tesla_charging_view.png?v=1" width="100%" alt="Tesla EV Fast Charging" /> | <img src="assets/energy_flow_card.png?v=2" width="100%" alt="Nighttime Grid Reliance" /> |
+| **Clean Solar Generation**<br>Direct self-consumption + green surplus export | **EV High-Draw Load**<br>Pulsating purple charging stream + live kW | **Night Mode & Autarky**<br>Contracted power guard + executive 3-ring summary |
 
 ---
 
