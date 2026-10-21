@@ -1,6 +1,6 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
- * High-performance, hardware-accelerated, unified flow & executive autarky dashboard.
+ * High-performance, hardware-accelerated, unified flow & executive autarky dashboard with selectable palettes.
  */
 
 class AresEnergyFlowCard extends HTMLElement {
@@ -17,25 +17,14 @@ class AresEnergyFlowCard extends HTMLElement {
       contract_warning_pct: 0.85,
       max_expected_power_kw: 7.5,
       show_solar_forecast: true,
-      ev_name: 'Tesla',
-      entities: {
-        solar_power: 'sensor.solar_power',
-        solar_daily_yield: 'sensor.solar_daily_yield',
-        grid_power: 'sensor.grid_power',
-        grid_daily_import: 'sensor.grid_daily_import_energy',
-        grid_daily_export: 'sensor.grid_daily_export_energy',
-        grid_export_power: 'sensor.grid_export_power',
-        ev_power: 'sensor.ev_charging_power',
-        ev_charging: 'binary_sensor.ev_charging',
-        ev_daily_energy: 'sensor.ev_daily_energy',
-        solcast_today: 'sensor.solcast_pv_forecast_forecast_today',
-        solcast_remaining: 'sensor.solcast_pv_forecast_forecast_remaining_today'
-      }
+      palette: 'solar', // 'solar' (default) or 'fitness'
+      ev_name: 'Tesla'
     };
   }
 
   setConfig(config) {
     this._config = Object.assign({
+      palette: 'solar',
       contract_power_limit_kw: 4.2,
       contract_warning_pct: 0.85,
       show_solar_forecast: true,
@@ -112,6 +101,18 @@ class AresEnergyFlowCard extends HTMLElement {
 
   _render() {
     this._rendered = true;
+    const isFitness = (this._config && this._config.palette === 'fitness');
+
+    // Color definitions
+    const cSolar = isFitness ? '#fa114f' : '#ffd54f';
+    const cAutarky = isFitness ? '#fa114f' : '#00e676';
+    const cAutarkyBg = isFitness ? 'rgba(250, 17, 79, 0.15)' : 'rgba(0, 230, 118, 0.15)';
+    const cGrid = isFitness ? '#a6e22e' : '#ff7043';
+    const cGridBg = isFitness ? 'rgba(166, 226, 46, 0.15)' : 'rgba(255, 112, 67, 0.15)';
+    const cExport = isFitness ? '#00e5ff' : '#ffd54f';
+    const cExportBg = isFitness ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 213, 79, 0.15)';
+    const cHome = '#00e5ff';
+    const cTesla = '#b388ff';
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -129,14 +130,14 @@ class AresEnergyFlowCard extends HTMLElement {
           border-radius: 20px;
           overflow: hidden;
           background: linear-gradient(145deg, #11141a 0%, #1a1e26 100%);
-          border: 1px solid rgba(0, 230, 118, 0.25);
+          border: 1px solid ${isFitness ? 'rgba(250, 17, 79, 0.3)' : 'rgba(0, 230, 118, 0.25)'};
           box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
           isolation: isolate;
         }
         .bg-glow {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.08) 0%, rgba(14, 17, 24, 0.98) 60%);
+          background: radial-gradient(circle at 50% 0%, ${isFitness ? 'rgba(250, 17, 79, 0.08)' : 'rgba(0, 229, 255, 0.08)'} 0%, rgba(14, 17, 24, 0.98) 60%);
           pointer-events: none;
           z-index: 0;
         }
@@ -216,23 +217,23 @@ class AresEnergyFlowCard extends HTMLElement {
             <svg id="flow-svg" class="flow-svg" viewBox="0 0 400 232">
               <defs>
                 <linearGradient id="flowSolarHome" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#ffd54f" />
+                  <stop offset="0%" stop-color="${cSolar}" />
                   <stop offset="100%" stop-color="#00e5ff" />
                 </linearGradient>
                 <linearGradient id="flowSolarTesla" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#ffd54f" />
+                  <stop offset="0%" stop-color="${cSolar}" />
                   <stop offset="100%" stop-color="#b388ff" />
                 </linearGradient>
                 <linearGradient id="flowSolarGrid" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#ffd54f" />
-                  <stop offset="100%" stop-color="#00e676" />
+                  <stop offset="0%" stop-color="${cSolar}" />
+                  <stop offset="100%" stop-color="${isFitness ? '#00e5ff' : '#00e676'}" />
                 </linearGradient>
                 <linearGradient id="flowGridHome" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#ff7043" />
+                  <stop offset="0%" stop-color="${cGrid}" />
                   <stop offset="100%" stop-color="#00e5ff" />
                 </linearGradient>
                 <linearGradient id="flowGridTesla" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#ff7043" />
+                  <stop offset="0%" stop-color="${cGrid}" />
                   <stop offset="100%" stop-color="#b388ff" />
                 </linearGradient>
               </defs>
@@ -240,8 +241,8 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Blueprint background rails -->
               <path id="rail-solar-home" d="M 130 70 C 193 70, 207 38, 270 38" fill="none" stroke="#00e5ff" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
               <path id="rail-solar-tesla" d="M 130 80 C 193 80, 207 110, 270 110" fill="none" stroke="#b388ff" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
-              <path id="rail-solar-grid" d="M 130 90 C 193 90, 207 196, 270 196" fill="none" stroke="#00e676" stroke-width="2.4" opacity="0.15" stroke-linecap="round" />
-              <path id="rail-grid-home" d="M 130 176 C 193 176, 207 48, 270 48" fill="none" stroke="#ff7043" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
+              <path id="rail-solar-grid" d="M 130 90 C 193 90, 207 196, 270 196" fill="none" stroke="${isFitness ? '#00e5ff' : '#00e676'}" stroke-width="2.4" opacity="0.15" stroke-linecap="round" />
+              <path id="rail-grid-home" d="M 130 176 C 193 176, 207 48, 270 48" fill="none" stroke="${cGrid}" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
               <path id="rail-grid-tesla" d="M 130 186 C 193 186, 207 120, 270 120" fill="none" stroke="#b388ff" stroke-width="2.0" opacity="0.12" stroke-linecap="round" />
 
               <!-- Active Animated Pulse Paths -->
@@ -255,27 +256,27 @@ class AresEnergyFlowCard extends HTMLElement {
             <!-- Node 1: Solar Source -->
             <div id="node-solar" class="node" style="left: 6px; top: 44px; width: 124px; background: rgba(255, 213, 79, 0.04); border: 1.5px solid rgba(255, 213, 79, 0.3); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 11px; font-weight: 800; color: #ffd54f; display: flex; align-items: center; gap: 4px;">
+                <div style="font-size: 11px; font-weight: 800; color: ${cSolar}; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 13px; line-height: 1;">☀️</span>
                   <span>Solar</span>
                 </div>
-                <span id="badge-solar-forecast" style="font-size: 7.5px; font-weight: 700; color: #ffd54f; background: rgba(255, 213, 79, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 213, 79, 0.3);">-- kWh EST</span>
+                <span id="badge-solar-forecast" style="font-size: 7.5px; font-weight: 700; color: ${cSolar}; background: rgba(255, 213, 79, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 213, 79, 0.3);">-- kWh EST</span>
               </div>
               <div id="pwr-solar" class="node-pwr">0 W</div>
               <div id="kwh-solar" class="node-kwh">0,00 kWh today</div>
               <div id="bar-solar-forecast-box" style="width: 100%; height: 2px; border-radius: 1px; background: rgba(255, 213, 79, 0.15); margin-top: 3px; overflow: hidden;">
-                <div id="bar-solar-forecast-fill" style="width: 0%; height: 100%; background: #ffd54f; border-radius: 1px; transition: width 0.6s ease;"></div>
+                <div id="bar-solar-forecast-fill" style="width: 0%; height: 100%; background: ${cSolar}; border-radius: 1px; transition: width 0.6s ease;"></div>
               </div>
             </div>
 
             <!-- Node 2: Utility Grid Import -->
             <div id="node-grid" class="node" style="left: 6px; bottom: 6px; width: 124px; background: rgba(255, 112, 67, 0.04); border: 1.5px solid rgba(255, 112, 67, 0.3); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 11px; font-weight: 800; color: #ff7043; display: flex; align-items: center; gap: 4px;">
+                <div style="font-size: 11px; font-weight: 800; color: ${cGrid}; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 12px; line-height: 1;">🏭</span>
                   <span>Grid In</span>
                 </div>
-                <span id="badge-grid-guard" style="font-size: 7.5px; font-weight: 800; color: #ff7043; background: rgba(255, 112, 67, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 112, 67, 0.3); display: none;">4.2 kW MAX</span>
+                <span id="badge-grid-guard" style="font-size: 7.5px; font-weight: 800; color: ${cGrid}; background: rgba(255, 112, 67, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 112, 67, 0.3); display: none;">4.2 kW MAX</span>
               </div>
               <div id="pwr-grid" class="node-pwr">0 W</div>
               <div id="kwh-grid" class="node-kwh">0,00 kWh imported</div>
@@ -308,8 +309,8 @@ class AresEnergyFlowCard extends HTMLElement {
             </div>
 
             <!-- Node 5: Grid Out (Export) -->
-            <div id="node-export" class="node" style="right: 6px; bottom: 3px; width: 124px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid rgba(0, 230, 118, 0.25); padding: 5px 8px;">
-              <div style="font-size: 11px; font-weight: 800; color: #00e676; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+            <div id="node-export" class="node" style="right: 6px; bottom: 3px; width: 124px; background: rgba(0, 230, 118, 0.04); border: 1.5px solid ${isFitness ? 'rgba(0, 229, 255, 0.25)' : 'rgba(0, 230, 118, 0.25)'}; padding: 5px 8px;">
+              <div style="font-size: 11px; font-weight: 800; color: ${isFitness ? '#00e5ff' : '#00e676'}; display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                 <span style="font-size: 12px; line-height: 1;">🏭</span>
                 <span>Grid Out</span>
               </div>
@@ -321,42 +322,42 @@ class AresEnergyFlowCard extends HTMLElement {
           <!-- Divider -->
           <div style="height: 1px; background: rgba(255, 255, 255, 0.08); margin: 4px 0 2px;"></div>
 
-          <!-- Merged Autarky Scorecard Section -->
+          <!-- Merged Autarky Scorecard Section (Original Production Ring Architecture) -->
           <div style="display: flex; gap: 12px; align-items: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 12px 14px;">
             
-            <!-- Left Concentric SVG Rings (Inner clear diameter 68.5px; top aligned with SOLAR SELF-CONSUMED) -->
+            <!-- Left Concentric SVG Rings (Original Clean Production Layout) -->
             <div style="position: relative; width: 144px; height: 144px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
               <svg width="144" height="144" viewBox="0 0 144 144" style="transform: rotate(-90deg);">
-                <!-- Outer Ring: Solar Self-Consumed (#00e676) -->
-                <circle cx="72" cy="72" r="64" fill="none" stroke="rgba(0, 230, 118, 0.15)" stroke-width="7.5" />
-                <circle id="ring-autarky" cx="72" cy="72" r="64" fill="none" stroke="#00e676" stroke-width="7.5" stroke-linecap="round"
+                <!-- Outer Ring: Solar Self-Consumed -->
+                <circle cx="72" cy="72" r="64" fill="none" stroke="${cAutarkyBg}" stroke-width="7.5" />
+                <circle id="ring-autarky" cx="72" cy="72" r="64" fill="none" stroke="${cAutarky}" stroke-width="7.5" stroke-linecap="round"
                         stroke-dasharray="402.12" stroke-dashoffset="201.06" style="transition: stroke-dashoffset 0.6s ease;" />
                 
-                <!-- Middle Ring: Utility Grid Reliance (#ff7043) -->
-                <circle cx="72" cy="72" r="51" fill="none" stroke="rgba(255, 112, 67, 0.15)" stroke-width="7.5" />
-                <circle id="ring-import" cx="72" cy="72" r="51" fill="none" stroke="#ff7043" stroke-width="7.5" stroke-linecap="round"
+                <!-- Middle Ring: Utility Grid Reliance -->
+                <circle cx="72" cy="72" r="51" fill="none" stroke="${cGridBg}" stroke-width="7.5" />
+                <circle id="ring-import" cx="72" cy="72" r="51" fill="none" stroke="${cGrid}" stroke-width="7.5" stroke-linecap="round"
                         stroke-dasharray="320.44" stroke-dashoffset="160.22" style="transition: stroke-dashoffset 0.6s ease;" />
                 
-                <!-- Inner Ring: Grid Out (#ffd54f) -->
-                <circle cx="72" cy="72" r="38" fill="none" stroke="rgba(255, 213, 79, 0.15)" stroke-width="7.5" />
-                <circle id="ring-export" cx="72" cy="72" r="38" fill="none" stroke="#ffd54f" stroke-width="7.5" stroke-linecap="round"
+                <!-- Inner Ring: Grid Out -->
+                <circle cx="72" cy="72" r="38" fill="none" stroke="${cExportBg}" stroke-width="7.5" />
+                <circle id="ring-export" cx="72" cy="72" r="38" fill="none" stroke="${cExport}" stroke-width="7.5" stroke-linecap="round"
                         stroke-dasharray="238.76" stroke-dashoffset="119.38" style="transition: stroke-dashoffset 0.6s ease;" />
               </svg>
               <div style="position: absolute; text-align: center; pointer-events: none; width: 64px;">
                 <div id="autarky-center-pct" style="font-size: 22px; font-weight: 900; color: #ffffff; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
-                <div style="font-size: 8.5px; font-weight: 800; color: #00e676; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;">AUTARKY</div>
+                <div style="font-size: 8.5px; font-weight: 800; color: ${cAutarky}; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;">AUTARKY</div>
                 <div style="font-size: 7.5px; color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;">Grid-Free</div>
               </div>
             </div>
 
-            <!-- Right 3 Rows (Strict Tabular Alignment, 0px left margin, Enhanced Typography) -->
+            <!-- Right 3 Rows -->
             <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
               
-              <!-- Row 1: Solar Self-Consumed (Emerald) -->
+              <!-- Row 1: Solar Self-Consumed -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: 10.5px; font-weight: 800; color: #00e676; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">SOLAR SELF-CONSUMED</span>
-                  <span id="row-autarky-pct" style="font-size: 16px; font-weight: 900; color: #00e676; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span style="font-size: 10.5px; font-weight: 800; color: ${cAutarky}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">SOLAR SELF-CONSUMED</span>
+                  <span id="row-autarky-pct" style="font-size: 16px; font-weight: 900; color: ${cAutarky}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-solar-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
@@ -364,16 +365,16 @@ class AresEnergyFlowCard extends HTMLElement {
                   </span>
                   <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
                 </div>
-                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(0, 230, 118, 0.16); overflow: hidden; margin-top: 2px;">
-                  <div id="bar-solar-self-consumed" style="width: 0%; height: 100%; background: #00e676; border-radius: 2px; transition: width 0.6s ease;"></div>
+                <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cAutarkyBg}; overflow: hidden; margin-top: 2px;">
+                  <div id="bar-solar-self-consumed" style="width: 0%; height: 100%; background: ${cAutarky}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
 
-              <!-- Row 2: Utility Grid Reliance (Coral/Orange) -->
+              <!-- Row 2: Utility Grid Reliance -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: 10.5px; font-weight: 800; color: #ff7043; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">UTILITY GRID RELIANCE</span>
-                  <span id="row-import-pct" style="font-size: 16px; font-weight: 900; color: #ff7043; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span style="font-size: 10.5px; font-weight: 800; color: ${cGrid}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">UTILITY GRID RELIANCE</span>
+                  <span id="row-import-pct" style="font-size: 16px; font-weight: 900; color: ${cGrid}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-import-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
@@ -381,16 +382,16 @@ class AresEnergyFlowCard extends HTMLElement {
                   </span>
                   <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
                 </div>
-                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 112, 67, 0.16); overflow: hidden; margin-top: 2px;">
-                  <div id="bar-import" style="width: 0%; height: 100%; background: #ff7043; border-radius: 2px; transition: width 0.6s ease;"></div>
+                <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cGridBg}; overflow: hidden; margin-top: 2px;">
+                  <div id="bar-import" style="width: 0%; height: 100%; background: ${cGrid}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
 
-              <!-- Row 3: Exported to Grid (Amber/Gold) -->
+              <!-- Row 3: Exported to Grid -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: 10.5px; font-weight: 800; color: #ffd54f; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">EXPORTED TO GRID</span>
-                  <span id="row-export-pct" style="font-size: 16px; font-weight: 900; color: #ffd54f; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span style="font-size: 10.5px; font-weight: 800; color: ${cExport}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;">EXPORTED TO GRID</span>
+                  <span id="row-export-pct" style="font-size: 16px; font-weight: 900; color: ${cExport}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-export-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
@@ -398,8 +399,8 @@ class AresEnergyFlowCard extends HTMLElement {
                   </span>
                   <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF SOLAR</span>
                 </div>
-                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 213, 79, 0.16); overflow: hidden; margin-top: 2px;">
-                  <div id="bar-export" style="width: 0%; height: 100%; background: #ffd54f; border-radius: 2px; transition: width 0.6s ease;"></div>
+                <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cExportBg}; overflow: hidden; margin-top: 2px;">
+                  <div id="bar-export" style="width: 0%; height: 100%; background: ${cExport}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
 
@@ -410,7 +411,7 @@ class AresEnergyFlowCard extends HTMLElement {
       </ha-card>
     `;
 
-    // Cache element references for sub-millisecond updates
+    // Cache element references
     const getEl = (id) => this.shadowRoot.getElementById(id);
     this._canvasArea = this.shadowRoot.querySelector('.canvas-area');
     this._svg = getEl('flow-svg');
@@ -474,7 +475,7 @@ class AresEnergyFlowCard extends HTMLElement {
       barExport: getEl('bar-export')
     };
 
-    // ResizeObserver for dynamic, pixel-perfect line endpoints at ANY viewport width
+    // ResizeObserver
     this._resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const w = Math.round(entry.contentRect.width);
@@ -491,8 +492,8 @@ class AresEnergyFlowCard extends HTMLElement {
 
   _updateFlowPaths(w) {
     if (!w || !this._svg) return;
-    const startX = 130; // Exactly meets right border of left column boxes (left: 12px + width: 118px)
-    const endX = w - 130; // Exactly meets left border of right column boxes (w - right: 12px - width: 118px)
+    const startX = 130;
+    const endX = w - 130;
     const cp1X = Math.round(startX + (endX - startX) * 0.45);
     const cp2X = Math.round(startX + (endX - startX) * 0.55);
 
@@ -715,10 +716,10 @@ class AresEnergyFlowCard extends HTMLElement {
     el.nodeExport.style.borderColor = liveExportW > 15 ? '#00e676' : 'rgba(0, 230, 118, 0.25)';
     el.nodeExport.style.boxShadow = liveExportW > 15 ? '0 0 12px rgba(0, 230, 118, 0.25)' : 'none';
 
-    // Apply autarky scorecard updates (3 Rings: Solar Autarky, Grid Reliance, Export)
-    const c1 = 402.12;
-    const c2 = 320.44;
-    const c3 = 238.76;
+    // Apply original production autarky scorecard math
+    const c1 = 402.12; // 2 * PI * 64
+    const c2 = 320.44; // 2 * PI * 51
+    const c3 = 238.76; // 2 * PI * 38
 
     const off1 = c1 - (c1 * (autarkyPct / 100));
     const off2 = c2 - (c2 * (importPct / 100));
@@ -752,12 +753,10 @@ class AresEnergyFlowCard extends HTMLElement {
         if (path.style.display === 'none') path.style.display = '';
         const targetRate = parseFloat((1.0 / dur).toFixed(3));
 
-        // Use Web Animations API to scale velocity continuously with ZERO timeline reset or phase stutter
         const anims = (typeof path.getAnimations === 'function') ? path.getAnimations() : [];
         if (anims && anims.length > 0) {
           anims[0].playbackRate = targetRate;
         } else {
-          // Fallback for webviews where getAnimations is pending or legacy
           const currentDur = parseFloat(path.dataset.currentDur || '0');
           if (Math.abs(dur - currentDur) > 0.15 || currentDur === 0) {
             path.dataset.currentDur = dur.toString();
@@ -782,20 +781,15 @@ class AresEnergyFlowCard extends HTMLElement {
   }
 }
 
-class AresEnergyFlowCardV2 extends AresEnergyFlowCard {}
-
-if (!customElements.get('ares-energy-flow-card')) {
+if (!customElements.get('ares-energy-flow-card-dev')) {
   customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
-}
-if (!customElements.get('ares-energy-flow-card-v2')) {
-  customElements.define('ares-energy-flow-card-v2', AresEnergyFlowCardV2);
 }
 
 window.customCards = window.customCards || [];
-const _idx = window.customCards.findIndex(c => c.type === 'ares-energy-flow-card');
-if (_idx >= 0) window.customCards.splice(_idx, 1);
+const _idxDev = window.customCards.findIndex(c => c.type === 'ares-energy-flow-card');
+if (_idxDev >= 0) window.customCards.splice(_idxDev, 1);
 window.customCards.push({
   type: 'ares-energy-flow-card',
-  name: 'AresLab Energy Flow & Autarky Card',
-  description: 'Unified real-time flow circuit and executive autarky scorecard card'
+  name: 'AresLab Energy Flow',
+  description: 'Hardware-accelerated real-time energy flow and executive autarky scorecard'
 });
