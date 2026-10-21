@@ -1,6 +1,6 @@
 /**
- * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
- * High-performance, hardware-accelerated, unified flow & executive autarky dashboard with selectable palettes.
+ * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card (DEV SANDBOX)
+ * Clean original production concentric ring architecture with selectable color palettes.
  */
 
 class AresEnergyFlowCard extends HTMLElement {
@@ -18,6 +18,8 @@ class AresEnergyFlowCard extends HTMLElement {
       max_expected_power_kw: 7.5,
       show_solar_forecast: true,
       palette: 'solar', // 'solar' (default) or 'fitness'
+      device_type: 'ev', // 'ev' (default) or 'battery' (BESS)
+      battery_name: 'BESS',
       ev_name: 'Tesla'
     };
   }
@@ -25,11 +27,13 @@ class AresEnergyFlowCard extends HTMLElement {
   setConfig(config) {
     this._config = Object.assign({
       palette: 'solar',
+      device_type: 'ev',
+      battery_name: 'BESS',
+      ev_name: 'Tesla',
       contract_power_limit_kw: 4.2,
       contract_warning_pct: 0.85,
       show_solar_forecast: true,
       max_expected_power_kw: 7.5,
-      ev_name: 'Tesla',
       entities: {}
     }, config);
 
@@ -45,6 +49,10 @@ class AresEnergyFlowCard extends HTMLElement {
       ev_power: ents.ev_power || 'sensor.ev_charging_power',
       ev_charging: ents.ev_charging || 'binary_sensor.ev_charging',
       ev_daily_energy: ents.ev_daily_energy || 'sensor.ev_daily_energy',
+      battery_power: ents.battery_power || 'sensor.battery_power',
+      battery_soc: ents.battery_soc || 'sensor.battery_soc',
+      battery_daily_charge: ents.battery_daily_charge || 'sensor.battery_daily_charge_energy',
+      battery_daily_discharge: ents.battery_daily_discharge || 'sensor.battery_daily_discharge_energy',
       solcast_today: ents.solcast_today || 'sensor.solcast_pv_forecast_forecast_today',
       solcast_remaining: ents.solcast_remaining || 'sensor.solcast_pv_forecast_forecast_remaining_today',
     };
@@ -52,8 +60,12 @@ class AresEnergyFlowCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
     }
-    if (this._el && this._el.lblTesla) {
-      this._el.lblTesla.textContent = this._config.ev_name || 'Tesla';
+    if (this._el && this._el.lblDev) {
+      const isBattery = (this._config.device_type === 'battery' || this._config.bess === true);
+      this._el.lblDev.textContent = isBattery ? (this._config.battery_name || 'BESS') : (this._config.ev_name || 'Tesla');
+      if (this._el.iconDev) {
+        this._el.iconDev.textContent = isBattery ? '🔋' : '🚗';
+      }
     }
     this._applyConfigVisibility();
   }
@@ -102,6 +114,9 @@ class AresEnergyFlowCard extends HTMLElement {
   _render() {
     this._rendered = true;
     const isFitness = (this._config && this._config.palette === 'fitness');
+    const isBattery = (this._config && (this._config.device_type === 'battery' || this._config.bess === true));
+    const devIcon = isBattery ? '🔋' : '🚗';
+    const devName = isBattery ? (this._config.battery_name || 'BESS') : (this._config.ev_name || 'Tesla');
 
     // Color definitions
     const cSolar = isFitness ? '#fa114f' : '#ffd54f';
@@ -236,6 +251,10 @@ class AresEnergyFlowCard extends HTMLElement {
                   <stop offset="0%" stop-color="${cGrid}" />
                   <stop offset="100%" stop-color="#b388ff" />
                 </linearGradient>
+                <linearGradient id="flowBatteryHome" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#b388ff" />
+                  <stop offset="100%" stop-color="#00e5ff" />
+                </linearGradient>
               </defs>
 
               <!-- Blueprint background rails -->
@@ -245,9 +264,12 @@ class AresEnergyFlowCard extends HTMLElement {
               <path id="rail-grid-home" d="M 130 176 C 193 176, 207 48, 270 48" fill="none" stroke="${cGrid}" stroke-width="2.2" opacity="0.15" stroke-linecap="round" />
               <path id="rail-grid-tesla" d="M 130 186 C 193 186, 207 120, 270 120" fill="none" stroke="#b388ff" stroke-width="2.0" opacity="0.12" stroke-linecap="round" />
 
+              <path id="rail-battery-home" d="M 270 98 C 215 98, 215 48, 270 48" fill="none" stroke="#00e5ff" stroke-width="2.2" opacity="0.15" stroke-linecap="round" style="display: ${isBattery ? '' : 'none'};" />
+
               <!-- Active Animated Pulse Paths -->
               <path id="flow-solar-home" class="flow-path" d="M 130 70 C 193 70, 207 38, 270 38" stroke="url(#flowSolarHome)" stroke-width="3" style="filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.7)); display: none;"></path>
               <path id="flow-solar-tesla" class="flow-path" d="M 130 80 C 193 80, 207 110, 270 110" stroke="url(#flowSolarTesla)" stroke-width="3.2" style="filter: drop-shadow(0 0 3px rgba(179, 136, 255, 0.7)); display: none;"></path>
+              <path id="flow-battery-home" class="flow-path" d="M 270 98 C 215 98, 215 48, 270 48" stroke="url(#flowBatteryHome)" stroke-width="3.2" style="filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.7)); display: none;"></path>
               <path id="flow-solar-grid" class="flow-path" d="M 130 90 C 193 90, 207 196, 270 196" stroke="url(#flowSolarGrid)" stroke-width="3.8" style="filter: drop-shadow(0 0 3.5px rgba(0, 230, 118, 0.75)); display: none;"></path>
               <path id="flow-grid-home" class="flow-path" d="M 130 176 C 193 176, 207 48, 270 48" stroke="url(#flowGridHome)" stroke-width="2.8" style="filter: drop-shadow(0 0 3px rgba(255, 112, 67, 0.65)); display: none;"></path>
               <path id="flow-grid-tesla" class="flow-path" d="M 130 186 C 193 186, 207 120, 270 120" stroke="url(#flowGridTesla)" stroke-width="3.0" style="filter: drop-shadow(0 0 3px rgba(179, 136, 255, 0.7)); display: none;"></path>
@@ -295,17 +317,20 @@ class AresEnergyFlowCard extends HTMLElement {
               <div id="kwh-home" class="node-kwh">0,00 kWh solar</div>
             </div>
 
-            <!-- Node 4: Tesla EV Consumer -->
+            <!-- Node 4: Tesla EV or BESS Consumer -->
             <div id="node-tesla" class="node" style="right: 6px; top: 84px; width: 124px; background: rgba(179, 136, 255, 0.04); border: 1.5px solid rgba(179, 136, 255, 0.25); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
-                <div style="font-size: 11px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 4px;">
-                  <span style="font-size: 12px; line-height: 1;">🚗</span>
-                  <span id="lbl-tesla">${this._config.ev_name || "Tesla"}</span>
+                <div style="font-size: 10px; font-weight: 800; color: #b388ff; display: flex; align-items: center; gap: 3.5px; min-width: 0; overflow: hidden;">
+                  <span id="icon-dev" style="font-size: 12px; line-height: 1; flex-shrink: 0;">${devIcon}</span>
+                  <span id="lbl-dev" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${devName}</span>
                 </div>
-                <span id="badge-tesla" style="font-size: 7.5px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 3.5px; border-radius: 4px;">IDLE</span>
+                <span id="badge-tesla" style="font-size: 7.5px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 3.5px; border-radius: 4px; flex-shrink: 0;">IDLE</span>
               </div>
               <div id="pwr-tesla" class="node-pwr">0 W</div>
               <div id="kwh-tesla" class="node-kwh">0,00 kWh charged</div>
+              <div id="bar-soc-box" style="display: ${isBattery ? 'block' : 'none'}; width: 100%; height: 2px; border-radius: 1px; background: rgba(179, 136, 255, 0.15); margin-top: 3px; overflow: hidden;">
+                <div id="bar-soc-fill" style="width: 0%; height: 100%; background: #b388ff; border-radius: 1px; transition: width 0.6s ease;"></div>
+              </div>
             </div>
 
             <!-- Node 5: Grid Out (Export) -->
@@ -437,7 +462,6 @@ class AresEnergyFlowCard extends HTMLElement {
       pwrTesla: getEl('pwr-tesla'),
       kwhTesla: getEl('kwh-tesla'),
       badgeTesla: getEl('badge-tesla'),
-      lblTesla: getEl('lbl-tesla'),
       nodeTesla: getEl('node-tesla'),
 
       pwrExport: getEl('pwr-export'),
@@ -449,12 +473,19 @@ class AresEnergyFlowCard extends HTMLElement {
       railSolarGrid: getEl('rail-solar-grid'),
       railGridHome: getEl('rail-grid-home'),
       railGridTesla: getEl('rail-grid-tesla'),
+      railBatteryHome: getEl('rail-battery-home'),
 
       flowSolarHome: getEl('flow-solar-home'),
       flowSolarTesla: getEl('flow-solar-tesla'),
+      flowBatteryHome: getEl('flow-battery-home'),
       flowSolarGrid: getEl('flow-solar-grid'),
       flowGridHome: getEl('flow-grid-home'),
       flowGridTesla: getEl('flow-grid-tesla'),
+
+      barSocBox: getEl('bar-soc-box'),
+      barSocFill: getEl('bar-soc-fill'),
+      iconDev: getEl('icon-dev'),
+      lblDev: getEl('lbl-dev'),
 
       // Scorecard elements
       ringAutarky: getEl('ring-autarky'),
@@ -507,14 +538,19 @@ class AresEnergyFlowCard extends HTMLElement {
 
     const setAttr = (el, d) => { if (el) el.setAttribute('d', d); };
 
+    const cpLoopX = Math.round(endX - 55);
+    const pBatteryHome = `M ${endX} 98 C ${cpLoopX} 98, ${cpLoopX} 48, ${endX} 48`;
+
     setAttr(this._el.railSolarHome, pSolarHome);
     setAttr(this._el.railSolarTesla, pSolarTesla);
     setAttr(this._el.railSolarGrid, pSolarGrid);
     setAttr(this._el.railGridHome, pGridHome);
     setAttr(this._el.railGridTesla, pGridTesla);
+    setAttr(this._el.railBatteryHome, pBatteryHome);
 
     setAttr(this._el.flowSolarHome, pSolarHome);
     setAttr(this._el.flowSolarTesla, pSolarTesla);
+    setAttr(this._el.flowBatteryHome, pBatteryHome);
     setAttr(this._el.flowSolarGrid, pSolarGrid);
     setAttr(this._el.flowGridHome, pGridHome);
     setAttr(this._el.flowGridTesla, pGridTesla);
@@ -552,6 +588,8 @@ class AresEnergyFlowCard extends HTMLElement {
     const exportPct = solarKwh > 0 ? Math.min(100, (exportKwh / solarKwh) * 100) : 0.0;
     const importPct = totalConsumption > 0 ? Math.min(100, (importKwh / totalConsumption) * 100) : 0.0;
 
+    const isBattery = (this._config && (this._config.device_type === 'battery' || this._config.bess === true));
+
     // Instantaneous powers (Watts)
     const solar_raw_w = parseFloat(states[this._entities.solar_power]?.state) || 0.0;
     const liveSolarW = Math.max(0, solar_raw_w);
@@ -560,18 +598,56 @@ class AresEnergyFlowCard extends HTMLElement {
     const liveImportW = grid_raw_w > 0 ? grid_raw_w : 0.0;
     const liveExportW = grid_raw_w < 0 ? Math.abs(grid_raw_w) : (parseFloat(states[this._entities.grid_export_power]?.state) || 0.0);
 
-    const liveTeslaW = parseFloat(states[this._entities.ev_power]?.state) || 0.0;
-    const isTeslaActive = liveTeslaW > 15 || isCharging;
+    let liveMiddleW = 0.0;
+    let isMiddleActive = false;
+    let isDischarging = false;
+    let batterySoc = null;
+    let middleKwh = 0.0;
+
+    if (isBattery) {
+      // Battery mode telemetry
+      if (this._config.demo_bess === 'discharging') {
+        liveMiddleW = -1400; // Demo: 1.4 kW discharging to home
+        batterySoc = 68;
+        middleKwh = 3.8;
+      } else if (this._config.demo_bess === 'charging') {
+        liveMiddleW = 1850; // Demo: 1.85 kW charging from solar
+        batterySoc = 85;
+        middleKwh = 5.2;
+      } else {
+        const pwrEnt = states[this._entities.battery_power];
+        if (pwrEnt && !isNaN(parseFloat(pwrEnt.state))) liveMiddleW = parseFloat(pwrEnt.state);
+        const socEnt = states[this._entities.battery_soc];
+        if (socEnt && !isNaN(parseFloat(socEnt.state))) batterySoc = Math.round(parseFloat(socEnt.state));
+        const kwhChargeEnt = states[this._entities.battery_daily_charge];
+        if (kwhChargeEnt && !isNaN(parseFloat(kwhChargeEnt.state))) middleKwh = parseFloat(kwhChargeEnt.state);
+        
+        isDischarging = liveMiddleW < -15;
+        if (isDischarging) {
+          const kwhDiscEnt = states[this._entities.battery_daily_discharge];
+          if (kwhDiscEnt && !isNaN(parseFloat(kwhDiscEnt.state))) middleKwh = parseFloat(kwhDiscEnt.state);
+        }
+      }
+      isDischarging = liveMiddleW < -15;
+      isMiddleActive = Math.abs(liveMiddleW) > 15;
+    } else {
+      // Standard EV mode
+      const liveEvW = parseFloat(states[this._entities.ev_power]?.state) || 0.0;
+      liveMiddleW = liveEvW;
+      isMiddleActive = liveMiddleW > 15 || isCharging;
+      middleKwh = evKwh;
+    }
 
     // Real-Time physical power distribution
     const solarToGridW = (liveSolarW > 15 && liveExportW > 15) ? Math.min(liveSolarW, liveExportW) : 0.0;
     const solarAvailableOnSiteW = Math.max(0, liveSolarW - solarToGridW);
-    const solarToTeslaW = isTeslaActive ? Math.min(solarAvailableOnSiteW, liveTeslaW) : 0.0;
-    const solarToHomeW = Math.max(0, solarAvailableOnSiteW - solarToTeslaW);
+    const solarToMiddleW = (!isDischarging && isMiddleActive) ? Math.min(solarAvailableOnSiteW, Math.max(0, liveMiddleW)) : 0.0;
+    const solarToHomeW = Math.max(0, solarAvailableOnSiteW - solarToMiddleW);
 
-    const gridToTeslaW = isTeslaActive ? Math.max(0, liveTeslaW - solarToTeslaW) : 0.0;
-    const gridToHomeW = Math.max(0, liveImportW - gridToTeslaW);
-    const liveHomeW = solarToHomeW + gridToHomeW;
+    const gridToMiddleW = (!isDischarging && isMiddleActive) ? Math.max(0, liveMiddleW - solarToMiddleW) : 0.0;
+    const gridToHomeW = Math.max(0, liveImportW - gridToMiddleW);
+    const batteryToHomeW = isDischarging ? Math.abs(liveMiddleW) : 0.0;
+    const liveHomeW = solarToHomeW + gridToHomeW + batteryToHomeW;
 
     // Helpers
     const fmtKwh = (n) => (n || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -592,24 +668,34 @@ class AresEnergyFlowCard extends HTMLElement {
     };
 
     const durSolarHome = calcDur(solarToHomeW);
-    const durSolarTesla = calcDur(solarToTeslaW);
+    const durSolarTesla = calcDur(solarToMiddleW);
+    const durBatteryHome = calcDur(batteryToHomeW);
     const durSolarGrid = calcDur(solarToGridW);
     const durGridHome = calcDur(gridToHomeW);
-    const durGridTesla = calcDur(gridToTeslaW);
+    const durGridTesla = calcDur(gridToMiddleW);
 
     // Operational badge for Home
     let homeBadgeText = 'IDLE';
     let homeBadgeColor = 'rgba(255, 255, 255, 0.4)';
     if (liveHomeW > 15) {
       if (gridToHomeW <= 15) {
-        homeBadgeText = '100% SOLAR';
-        homeBadgeColor = '#00e5ff';
-      } else if (solarToHomeW <= 15) {
+        if (batteryToHomeW > 15 && solarToHomeW <= 15) {
+          homeBadgeText = '100% BESS';
+          homeBadgeColor = '#00e5ff';
+        } else if (batteryToHomeW > 15) {
+          homeBadgeText = 'SOLAR + BESS';
+          homeBadgeColor = '#00e5ff';
+        } else {
+          homeBadgeText = '100% SOLAR';
+          homeBadgeColor = '#00e5ff';
+        }
+      } else if (solarToHomeW <= 15 && batteryToHomeW <= 15) {
         homeBadgeText = 'GRID';
         homeBadgeColor = '#ff7043';
       } else {
-        const covPct = Math.round((solarToHomeW / liveHomeW) * 100);
-        homeBadgeText = covPct + '% SOLAR';
+        const greenW = solarToHomeW + batteryToHomeW;
+        const covPct = Math.round((greenW / liveHomeW) * 100);
+        homeBadgeText = covPct + '% GREEN';
         homeBadgeColor = '#00e5ff';
       }
     }
@@ -700,15 +786,61 @@ class AresEnergyFlowCard extends HTMLElement {
       el.nodeHome.style.boxShadow = 'none';
     }
 
-    el.pwrTesla.textContent = isTeslaActive ? fmtPwr(liveTeslaW) : '0 W';
-    el.kwhTesla.textContent = `${fmtKwh(evKwh)} kWh charged`;
-    el.badgeTesla.textContent = isTeslaActive ? 'CHARGING' : 'IDLE';
-    el.badgeTesla.style.color = isTeslaActive ? '#b388ff' : 'rgba(255, 255, 255, 0.4)';
-    el.badgeTesla.style.background = isTeslaActive ? 'rgba(179, 136, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)';
-    el.badgeTesla.style.borderColor = isTeslaActive ? 'rgba(179, 136, 255, 0.4)' : 'rgba(255, 255, 255, 0.12)';
-    el.nodeTesla.style.background = isTeslaActive ? 'rgba(179, 136, 255, 0.14)' : 'rgba(179, 136, 255, 0.04)';
-    el.nodeTesla.style.borderColor = isTeslaActive ? '#b388ff' : 'rgba(179, 136, 255, 0.25)';
-    el.nodeTesla.style.boxShadow = isTeslaActive ? '0 0 12px rgba(179, 136, 255, 0.35)' : 'none';
+    if (isBattery) {
+      const absW = Math.abs(liveMiddleW);
+      el.pwrTesla.textContent = isMiddleActive ? fmtPwr(absW) : '0 W';
+      el.kwhTesla.textContent = isDischarging ? `${fmtKwh(middleKwh)} kWh supplied` : `${fmtKwh(middleKwh)} kWh stored`;
+      
+      let badgeLabel = 'STANDBY';
+      let badgeCol = 'rgba(255, 255, 255, 0.5)';
+      let badgeBg = 'rgba(255, 255, 255, 0.06)';
+      let badgeBrd = 'rgba(255, 255, 255, 0.12)';
+
+      if (isDischarging) {
+        badgeLabel = batterySoc !== null ? `${batterySoc}% DISC` : 'DISCHARGE';
+        badgeCol = '#00e5ff';
+        badgeBg = 'rgba(0, 229, 255, 0.15)';
+        badgeBrd = 'rgba(0, 229, 255, 0.4)';
+        el.nodeTesla.style.borderColor = '#00e5ff';
+        el.nodeTesla.style.boxShadow = '0 0 12px rgba(0, 229, 255, 0.35)';
+        el.nodeTesla.style.background = 'rgba(0, 229, 255, 0.08)';
+      } else if (isMiddleActive) {
+        badgeLabel = batterySoc !== null ? `${batterySoc}% CHG` : 'CHARGING';
+        badgeCol = '#b388ff';
+        badgeBg = 'rgba(179, 136, 255, 0.15)';
+        badgeBrd = 'rgba(179, 136, 255, 0.4)';
+        el.nodeTesla.style.borderColor = '#b388ff';
+        el.nodeTesla.style.boxShadow = '0 0 12px rgba(179, 136, 255, 0.35)';
+        el.nodeTesla.style.background = 'rgba(179, 136, 255, 0.14)';
+      } else {
+        badgeLabel = batterySoc !== null ? `${batterySoc}% SOC` : 'STANDBY';
+        el.nodeTesla.style.borderColor = 'rgba(179, 136, 255, 0.25)';
+        el.nodeTesla.style.boxShadow = 'none';
+        el.nodeTesla.style.background = 'rgba(179, 136, 255, 0.04)';
+      }
+
+      el.badgeTesla.textContent = badgeLabel;
+      el.badgeTesla.style.color = badgeCol;
+      el.badgeTesla.style.background = badgeBg;
+      el.badgeTesla.style.borderColor = badgeBrd;
+
+      if (el.barSocBox) el.barSocBox.style.display = 'block';
+      if (el.barSocFill && batterySoc !== null) {
+        el.barSocFill.style.width = `${Math.min(100, Math.max(0, batterySoc))}%`;
+        el.barSocFill.style.background = isDischarging ? '#00e5ff' : '#b388ff';
+      }
+    } else {
+      el.pwrTesla.textContent = isMiddleActive ? fmtPwr(liveMiddleW) : '0 W';
+      el.kwhTesla.textContent = `${fmtKwh(middleKwh)} kWh charged`;
+      el.badgeTesla.textContent = isMiddleActive ? 'CHARGING' : 'IDLE';
+      el.badgeTesla.style.color = isMiddleActive ? '#b388ff' : 'rgba(255, 255, 255, 0.4)';
+      el.badgeTesla.style.background = isMiddleActive ? 'rgba(179, 136, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)';
+      el.badgeTesla.style.borderColor = isMiddleActive ? 'rgba(179, 136, 255, 0.4)' : 'rgba(255, 255, 255, 0.12)';
+      el.nodeTesla.style.background = isMiddleActive ? 'rgba(179, 136, 255, 0.14)' : 'rgba(179, 136, 255, 0.04)';
+      el.nodeTesla.style.borderColor = isMiddleActive ? '#b388ff' : 'rgba(179, 136, 255, 0.25)';
+      el.nodeTesla.style.boxShadow = isMiddleActive ? '0 0 12px rgba(179, 136, 255, 0.35)' : 'none';
+      if (el.barSocBox) el.barSocBox.style.display = 'none';
+    }
 
     el.pwrExport.textContent = fmtPwr(liveExportW);
     el.kwhExport.textContent = `${fmtKwh(exportKwh)} kWh exported`;
@@ -775,13 +907,14 @@ class AresEnergyFlowCard extends HTMLElement {
 
     updatePath(el.flowSolarHome, durSolarHome);
     updatePath(el.flowSolarTesla, durSolarTesla);
+    updatePath(el.flowBatteryHome, durBatteryHome);
     updatePath(el.flowSolarGrid, durSolarGrid);
     updatePath(el.flowGridHome, durGridHome);
     updatePath(el.flowGridTesla, durGridTesla);
   }
 }
 
-if (!customElements.get('ares-energy-flow-card-dev')) {
+if (!customElements.get('ares-energy-flow-card')) {
   customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
 }
 
