@@ -17,12 +17,12 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 
 ---
 
-## 🖼️ Operational States Gallery
+## 🖼️ Operational States & Dual Theme Gallery
 
-| ☀️ Daytime Solar & Export | 🚗 Active Tesla Charging Session | 🌙 Nighttime Grid Baseline |
-| :---: | :---: | :---: |
-| <img src="assets/solar_export_view.png?v=1" width="100%" alt="Daytime Solar & Grid Export" /> | <img src="assets/tesla_charging_view.png?v=1" width="100%" alt="Tesla EV Fast Charging" /> | <img src="assets/energy_flow_card.png?v=2" width="100%" alt="Nighttime Grid Reliance" /> |
-| **Clean Solar Generation**<br>Direct self-consumption + green surplus export | **EV High-Draw Load**<br>Pulsating purple charging stream + live kW | **Night Mode & Autarky**<br>Contracted power guard + executive 3-ring summary |
+| ☀️ Solar Harmonized (Default) | 🏃 Fitness Activity Theme | 🚗 Tesla Active Charging | 🌙 Nighttime Grid Mode |
+| :---: | :---: | :---: | :---: |
+| <img src="assets/solar_export_view.png?v=2" width="100%" alt="Solar Harmonized Palette" /> | <img src="assets/fitness_palette_view.png?v=1" width="100%" alt="Fitness Activity Palette" /> | <img src="assets/tesla_charging_view.png?v=2" width="100%" alt="Tesla EV Fast Charging" /> | <img src="assets/energy_flow_card.png?v=2" width="100%" alt="Nighttime Grid Reliance" /> |
+| **`palette: solar`**<br>Classic solar green, warm coral grid, amber generation | **`palette: fitness`**<br>Apple Activity rings style: crimson red, apple lime, cyan | **EV High-Draw Load**<br>Pulsating purple charging stream + live kW | **Night Mode & Autarky**<br>Contracted power guard + executive 3-ring summary |
 
 ---
 
@@ -60,7 +60,16 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 
 ## 💡 How to Adapt for Your Installation
 
-### 1. Setting the Contracted Power Guard (ICP)
+### 1. Selecting Color Palette Theme (`palette`)
+The card supports two distinct aesthetic palettes:
+- **`palette: solar` (Default)**: Harmonized solar dashboard colors — `#00e676` green autarky ring, `#ff7043` warm coral grid reliance, and `#ffd54f` amber solar generation.
+- **`palette: fitness`**: Apple Fitness Activity Ring inspired theme — `#fa114f` crimson red solar & autarky, `#a6e22e` apple lime grid import, and `#00e5ff` electric cyan surplus export, with synchronized glowing flow lines and node accents.
+
+```yaml
+palette: fitness  # 'solar' (default) or 'fitness'
+```
+
+### 2. Setting the Contracted Power Guard (ICP)
 Different countries and utility contracts specify maximum simultaneous draw (for example, $3.3\text{ kW}$, $4.2\text{ kW}$, $5.5\text{ kW}$, or $6.9\text{ kW}$ in Spain / Europe).
 
 Configure `contract_power_limit_kw` to your utility contract limit:
@@ -72,19 +81,19 @@ contract_warning_pct: 0.85    # Warning amber glow threshold (default: 85%)
 - Between $85\%$ and $99\%$, the Grid node glows amber with a `${pct}% ICP` badge.
 - At $\ge 100\%$, the Grid node flashes crimson with an `OVERLOAD ${pct}%` warning.
 
-### 2. Using with or without Solar Forecast (Solcast)
+### 3. Using with or without Solar Forecast (Solcast)
 - **With Solcast / Forecast Sensors**:
   Provide your forecast sensors under `entities.solcast_today` and `entities.solcast_remaining`. The card automatically renders the frosted gold badge and live progress bar.
 - **Without Solcast (Core Energy Flow Only)**:
   Set `show_solar_forecast: false` in your YAML config. The card completely hides the forecast pill and progress bar, cleanly expanding and centering today's solar yield.
 
-### 3. Customizing the EV / Consumer Node
+### 4. Customizing the EV / Consumer Node
 By default, the EV node is labelled "Tesla". You can customize this label for any electric vehicle or heavy appliance (e.g., "Wallbox", "EV", "Heat Pump", "HVAC"):
 ```yaml
 ev_name: "Wallbox"
 ```
 
-### 4. Customizing System Power Envelope
+### 5. Customizing System Power Envelope
 The flow animation dynamically adjusts speed from leisurely idle down to high-velocity stream using logarithmic scaling. Set `max_expected_power_kw` to match your peak array size or inverter ceiling (e.g. $5.0$, $7.5$, $10.0$ kW):
 ```yaml
 max_expected_power_kw: 7.5  # Inverter peak capacity
@@ -120,6 +129,7 @@ Add the card to any Lovelace view:
 
 ```yaml
 type: custom:ares-energy-flow-card
+palette: solar              # 'solar' (default) or 'fitness'
 contract_power_limit_kw: 4.2
 contract_warning_pct: 0.85
 max_expected_power_kw: 7.5
@@ -150,6 +160,7 @@ entities:
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `type` | string | **Required** | Must be `custom:ares-energy-flow-card` |
+| `palette` | string | `'solar'` | Theme color palette: `'solar'` (harmonized green/coral/amber) or `'fitness'` (Apple Activity ring crimson/lime/cyan) |
 | `contract_power_limit_kw` | number | `4.2` | Contracted utility power limit in kW (ICP limit) |
 | `contract_warning_pct` | number | `0.85` | Ratio of contracted limit at which amber warning activates ($0.85 = 85\%$) |
 | `max_expected_power_kw` | number | `7.5` | System peak power envelope for velocity scaling ($7.5 = 7500\text{ W}$) |
