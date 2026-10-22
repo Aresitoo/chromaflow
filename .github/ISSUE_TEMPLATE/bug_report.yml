@@ -1,0 +1,45 @@
+name: 🐛 Bug Report
+description: Create a report to help us improve the card
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug report! Before opening an issue, please ensure you are on the latest release and have cleared your browser cache (Ctrl+F5).
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: card_config
+    attributes:
+      label: Your Lovelace Card Configuration (YAML)
+      description: Please paste the YAML of your card here.
+      render: yaml
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Card Version
+      description: Which version of the card are you running? (e.g. v1.1.0)
+      placeholder: v1.1.0
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant Version
+      description: Your Home Assistant version (e.g. 2024.10.x, Core, OS, Container).
+      placeholder: 2024.10.3
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots & Console Logs
+      description: If applicable, add screenshots or F12 browser console errors to help explain your problem.
