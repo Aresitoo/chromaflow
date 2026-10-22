@@ -27,16 +27,11 @@ class AresEnergyFlowCard extends HTMLElement {
   _getLocale() {
     if (this._config && this._config.number_format) {
       const nf = String(this._config.number_format).toLowerCase();
+      if (nf === 'decimal_comma' || nf === 'comma' || nf === 'de' || nf === 'es') return 'de-DE';
       if (nf === 'decimal_dot' || nf === 'dot' || nf === 'en') return 'en-US';
-      if (nf === 'decimal_comma' || nf === 'comma' || nf === 'de') return 'de-DE';
       return this._config.number_format;
     }
-    if (this._hass && this._hass.locale) {
-      if (this._hass.locale.number_format === 'decimal_dot') return 'en-US';
-      if (this._hass.locale.number_format === 'decimal_comma') return 'de-DE';
-      if (this._hass.locale.language) return this._hass.locale.language;
-    }
-    if (this._hass && this._hass.language) return this._hass.language;
+    // Standard default: full stop / dot for all non-whole numbers (e.g. 4.87 kW, 16.27 kWh)
     return 'en-US';
   }
 
