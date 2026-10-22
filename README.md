@@ -104,7 +104,7 @@ entities:
 > You don't even need to write `device_type: battery`! Simply providing `battery_power` or `battery_soc` inside your `entities:` block will automatically activate Home Battery mode!
 >
 > ⚠️ **Still seeing Tesla after updating?**
-> Home Assistant heavily caches custom frontend cards. Perform a hard browser refresh (**Ctrl + F5** / clear Home Assistant companion app frontend cache) so your browser loads the latest version (**v1.1.2**)!
+> Home Assistant heavily caches custom frontend cards. Perform a hard browser refresh (**Ctrl + F5** / clear Home Assistant companion app frontend cache) so your browser loads the latest version (**v1.1.3**)!
 
 ### 2. Selecting Color Palette Theme (`palette`)
 The card supports two distinct aesthetic palettes:
@@ -216,6 +216,8 @@ entities:
 | `contract_warning_pct` | number | `0.85` | Ratio of contracted limit at which amber warning activates ($0.85 = 85\%$) |
 | `max_expected_power_kw` | number | `7.5` | System peak power envelope for velocity scaling ($7.5 = 7500\text{ W}$) |
 | `show_solar_forecast` | boolean | `true` | Display Solcast estimate badge and progress bar |
+| `power_unit` | string | `'auto'` | Force power sensor unit (`'W'`, `'kW'`, `'MW'`). Automatically detected from sensor `unit_of_measurement` by default. |
+| `energy_unit` | string | `'auto'` | Force energy sensor unit (`'kWh'`, `'Wh'`, `'MWh'`). Automatically detected from sensor `unit_of_measurement` by default. |
 | `entities.solar_power` | string | `sensor.solar_power` | Real-time solar production in Watts |
 | `entities.solar_daily_yield` | string | `sensor.solar_daily_yield` | Cumulative solar yield today in kWh |
 | `entities.grid_power` | string | `sensor.grid_power` | Net grid power in Watts (positive = import, negative = export) |
