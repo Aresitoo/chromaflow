@@ -78,7 +78,7 @@ If you have a home battery storage system instead of an electric vehicle, set `d
 
 ```yaml
 type: custom:ares-energy-flow-card
-device_type: battery          # Activates BESS mode
+device_type: battery          # Activates BESS mode (at card root level)
 battery_name: "Powerwall"     # Custom title (e.g. "Powerwall", "BESS", "LFP Storage")
 entities:
   # ... solar and grid sensors ...
@@ -87,6 +87,13 @@ entities:
   battery_daily_charge: sensor.battery_daily_charge_energy # Today's charged kWh
   battery_daily_discharge: sensor.battery_daily_discharge_energy # Today's discharged kWh
 ```
+
+> [!TIP]
+> **Zero-Fuss Auto-Detection (v1.1.0+)**:
+> You don't even need to write `device_type: battery`! Simply providing `battery_power` or `battery_soc` inside your `entities:` block will automatically activate Home Battery mode!
+>
+> ⚠️ **Still seeing Tesla after updating?**
+> Home Assistant heavily caches custom frontend cards. Perform a hard browser refresh (**Ctrl + F5** / clear Home Assistant companion app frontend cache) so your browser loads **v1.1.0**!
 
 ### 2. Selecting Color Palette Theme (`palette`)
 The card supports two distinct aesthetic palettes:
