@@ -5,7 +5,7 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Web Animations API](https://img.shields.io/badge/Animation-Stutter--Free%20WAAPI-blueviolet.svg)
-![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
+![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg) [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
 
 ---
 
@@ -221,6 +221,18 @@ entities:
 | `entities.solcast_remaining` | string | `sensor.solcast_pv_forecast_forecast_remaining_today` | Solcast remaining forecast today in kWh |
 
 ---
+
+---
+
+## ☕ Support the Project
+
+If this card brought a smile to your Home Assistant dashboard, saved you time configuring YAML, or helped optimize your solar autarky, consider buying a coffee to support future development and maintenance!
+
+<p align="center">
+  <a href="https://buymeacoffee.com/aresitoo" target="_blank">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=aresitoo&button_colour=FFDD00&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="50">
+  </a>
+</p>
 
 ## 📄 License
 
