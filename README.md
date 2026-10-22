@@ -34,7 +34,7 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 | 🔋 Battery Discharging to Home | ⚡ Solar Charging Battery |
 | :---: | :---: |
 | <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="BESS Battery Discharging to Home" /> | <img src="assets/bess_charging_view.png?v=1" width="100%" alt="Solar Charging Home Battery" /> |
-| **`device_type: battery` (Discharging)**<br>Animated cyan pulse stream directly into Home (`flow-battery-home`). Home dynamically badges as **`100% BESS`** or **`SOLAR + BESS`** with live State-of-Charge (SoC %) bar. | **`device_type: battery` (Charging)**<br>Excess solar routed into storage with pulsating purple stream, live charge rate, stored kWh, and active `${SoC}% CHG` status. |
+| **`device_type: battery` (Discharging)**<br>Animated cyan pulse stream directly into Home (`flow-battery-home`). Home dynamically badges as **`100% BESS`** or **`SOLAR + BESS`** with a real-time SoC progress bar. | **`device_type: battery` (Charging)**<br>Excess solar routed into storage with pulsating purple stream, live charge rate, stored kWh, and active SoC charging status (e.g. `85% CHG`). |
 
 ### ☀️ Themes & EV Operational States
 | ☀️ Solar Harmonized (Default) | 🏃 Fitness Activity Theme | 🚗 Tesla Active Charging | 🌙 Nighttime Grid Mode |
@@ -48,9 +48,9 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 
 1. **Executive 3-Ring Autarky Scorecard**:
    - Concentric bold SVG activity rings displaying live energy autonomy metrics:
-     - 🟢 **Outer Ring (Autarky %)**: Percentage of today's total household energy sourced from self-produced solar.
-     - 🟡 **Middle Ring (Self-Consumed %)**: Percentage of today's solar generation directly consumed on-site.
-     - 🟠 **Inner Ring (Grid Export % / Dependency)**: Direct visual ratio of energy sent to or drawn from the grid.
+     - 🟢 **Outer Ring (Autarky)**: Percentage of today's total household energy sourced from self-produced solar.
+     - 🟡 **Middle Ring (Self-Consumption)**: Percentage of today's solar generation directly consumed on-site.
+     - 🟠 **Inner Ring (Grid Export & Reliance)**: Direct visual ratio of energy sent to or drawn from the grid.
    - High-contrast typography and clear percentage readouts designed for at-a-glance visibility across mobile companion apps and wall-mounted dashboard tablets.
 
 2. **Bidirectional Home Battery Storage (BESS)**:
@@ -71,14 +71,14 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 
 5. **Symmetrical 118px Executive Node Architecture**:
    - Perfectly balanced 118px source and consumer nodes:
-     - **☀️ Solar Box**: Live generation (Watts), today's yield (kWh), and dynamic forecast pacing.
+     - **☀️ Solar Box**: Live generation (Watts), today's yield (kWh), dedicated remaining potential line (`remaining`), and dynamic forecast progress bar.
      - **⚡ Grid Box**: Net power flow, daily import/export accumulator, and live ICP threshold alerts.
      - **🚗 EV or 🔋 BESS Box**: Configurable consumer or battery storage node with dynamic active/idle status.
      - **🏠 Home Box**: Net household power, solar/BESS fraction percentage badge, and dynamic state styling.
 
 6. **Optional Solcast PV Forecast Integration**:
-   - Frosted gold forecast badge (`XX.X kWh EST`) and micro progress bar tracking today's actual yield against the estimated target.
-   - **100% Optional**: If you don't use Solcast, simply disable it (`show_solar_forecast: false`) or omit the sensors; the card cleanly hides the badge and centers the solar metrics.
+   - Frosted gold forecast badge (e.g. `24.9 kWh EST`) and micro progress bar tracking today's actual yield against the estimated daily target.
+   - **100% Optional**: If you don't use Solcast, simply set `show_solar_forecast: false` or omit the entities. The card cleanly hides the forecast badge and remaining line.
 
 ---
 
@@ -104,7 +104,7 @@ entities:
 > You don't even need to write `device_type: battery`! Simply providing `battery_power` or `battery_soc` inside your `entities:` block will automatically activate Home Battery mode!
 >
 > ⚠️ **Still seeing Tesla after updating?**
-> Home Assistant heavily caches custom frontend cards. Perform a hard browser refresh (**Ctrl + F5** / clear Home Assistant companion app frontend cache) so your browser loads **v1.1.0**!
+> Home Assistant heavily caches custom frontend cards. Perform a hard browser refresh (**Ctrl + F5** / clear Home Assistant companion app frontend cache) so your browser loads the latest version (**v1.1.2**)!
 
 ### 2. Selecting Color Palette Theme (`palette`)
 The card supports two distinct aesthetic palettes:
@@ -125,7 +125,7 @@ contract_warning_pct: 0.85    # Warning amber glow threshold (default: 85%)
 ```
 - When net grid import is below $85\%$, the card renders a clean normal border.
 - Between $85\%$ and $99\%$, the Grid node glows amber with a `${pct}% ICP` badge.
-- At $\ge 100\%$, the Grid node flashes crimson with an `OVERLOAD ${pct}%` warning.
+- At 100% or above, the Grid node flashes crimson with an `OVERLOAD %` alarm.
 
 ### 4. Customizing the EV / Consumer Node
 In default EV mode (`device_type: ev`), you can customize the label for any electric vehicle or heavy appliance (e.g., "Wallbox", "EV", "Heat Pump", "HVAC"):
@@ -143,7 +143,7 @@ max_expected_power_kw: 7.5  # Inverter peak capacity
 
 ## 🚀 Quick Start Installation
 
-### Method 1: Manual Installation (Recommended)
+### Method 2: Manual Installation
 
 1. Download [`ares-energy-flow-card.js`](./ares-energy-flow-card.js) from this repository.
 2. Copy `ares-energy-flow-card.js` into your Home Assistant `<config>/www/` directory (e.g. via Samba, SSH, or Studio Code Server).
@@ -153,7 +153,7 @@ max_expected_power_kw: 7.5  # Inverter peak capacity
    - **Resource Type**: `JavaScript Module`
 5. Refresh your browser or companion app.
 
-### Method 2: HACS Custom Repository
+### Method 1: HACS Custom Repository (Recommended)
 
 1. Open **HACS** in Home Assistant.
 2. Click the **Three Dots (⋮)** in the top right $\rightarrow$ **Custom repositories**.
