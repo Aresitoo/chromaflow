@@ -24,38 +24,22 @@ class AresEnergyFlowCard extends HTMLElement {
     };
   }
 
-  _getLocale() {
-    if (this._config && this._config.number_format) {
-      const nf = String(this._config.number_format).toLowerCase();
-      if (nf === 'decimal_comma' || nf === 'comma' || nf === 'de' || nf === 'es') return 'de-DE';
-      if (nf === 'decimal_dot' || nf === 'dot' || nf === 'en') return 'en-US';
-      return this._config.number_format;
-    }
-    // Standard default: full stop / dot for all non-whole numbers (e.g. 4.87 kW, 16.27 kWh)
-    return 'en-US';
-  }
-
   _isBatteryMode() {
     const cfg = this._config || {};
-    const ents = (cfg.entities && typeof cfg.entities === 'object') ? cfg.entities : {};
+    const ents = cfg.entities || {};
     const rawDt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
-    const hasBatteryEntities = Boolean(
-      ents.battery_power || cfg.battery_power ||
-      ents.battery_soc || cfg.battery_soc ||
-      ents.battery_daily_charge || cfg.battery_daily_charge ||
-      ents.battery_daily_discharge || cfg.battery_daily_discharge
-    );
+    const hasBatteryEntities = Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge);
     return (rawDt === 'battery' || rawDt === 'bess' || rawDt === 'storage' || rawDt === 'powerwall' || cfg.bess === true || hasBatteryEntities);
   }
 
   _getDeviceName(isBattery) {
     const cfg = this._config || {};
-    const ents = (cfg.entities && typeof cfg.entities === 'object') ? cfg.entities : {};
+    const ents = cfg.entities || {};
     const rawDt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
     if (isBattery) {
-      return cfg.battery_name || ents.battery_name || (rawDt === 'powerwall' ? 'Powerwall' : 'BESS');
+      return cfg.battery_name || (rawDt === 'powerwall' ? 'Powerwall' : 'BESS');
     }
-    return cfg.ev_name || ents.ev_name || 'Tesla';
+    return cfg.ev_name || 'Tesla';
   }
 
   setConfig(config) {
@@ -71,27 +55,24 @@ class AresEnergyFlowCard extends HTMLElement {
       entities: {}
     }, config);
 
-    // Entity configuration mapping with clean standard fallbacks (supports nested entities: or flattened root keys)
-    const cfg = this._config || {};
-    const ents = (cfg.entities && typeof cfg.entities === 'object') ? cfg.entities : {};
-    const getEnt = (key, fallback) => ents[key] || cfg[key] || fallback;
-
+    // Entity configuration mapping with clean standard fallbacks
+    const ents = this._config.entities || {};
     this._entities = {
-      solar_power: getEnt('solar_power', 'sensor.solar_power'),
-      solar_daily_yield: getEnt('solar_daily_yield', 'sensor.solar_daily_yield'),
-      grid_power: getEnt('grid_power', 'sensor.grid_power'),
-      grid_daily_import: getEnt('grid_daily_import', 'sensor.grid_daily_import_energy'),
-      grid_daily_export: getEnt('grid_daily_export', 'sensor.grid_daily_export_energy'),
-      grid_export_power: getEnt('grid_export_power', 'sensor.grid_export_power'),
-      ev_power: getEnt('ev_power', 'sensor.ev_charging_power'),
-      ev_charging: getEnt('ev_charging', 'binary_sensor.ev_charging'),
-      ev_daily_energy: getEnt('ev_daily_energy', 'sensor.ev_daily_energy'),
-      battery_power: getEnt('battery_power', 'sensor.battery_power'),
-      battery_soc: getEnt('battery_soc', 'sensor.battery_soc'),
-      battery_daily_charge: getEnt('battery_daily_charge', 'sensor.battery_daily_charge_energy'),
-      battery_daily_discharge: getEnt('battery_daily_discharge', 'sensor.battery_daily_discharge_energy'),
-      solcast_today: getEnt('solcast_today', 'sensor.solcast_pv_forecast_forecast_today'),
-      solcast_remaining: getEnt('solcast_remaining', 'sensor.solcast_pv_forecast_forecast_remaining_today'),
+      solar_power: ents.solar_power || 'sensor.solar_power',
+      solar_daily_yield: ents.solar_daily_yield || 'sensor.solar_daily_yield',
+      grid_power: ents.grid_power || 'sensor.grid_power',
+      grid_daily_import: ents.grid_daily_import || 'sensor.grid_daily_import_energy',
+      grid_daily_export: ents.grid_daily_export || 'sensor.grid_daily_export_energy',
+      grid_export_power: ents.grid_export_power || 'sensor.grid_export_power',
+      ev_power: ents.ev_power || 'sensor.ev_charging_power',
+      ev_charging: ents.ev_charging || 'binary_sensor.ev_charging',
+      ev_daily_energy: ents.ev_daily_energy || 'sensor.ev_daily_energy',
+      battery_power: ents.battery_power || 'sensor.battery_power',
+      battery_soc: ents.battery_soc || 'sensor.battery_soc',
+      battery_daily_charge: ents.battery_daily_charge || 'sensor.battery_daily_charge_energy',
+      battery_daily_discharge: ents.battery_daily_discharge || 'sensor.battery_daily_discharge_energy',
+      solcast_today: ents.solcast_today || 'sensor.solcast_pv_forecast_forecast_today',
+      solcast_remaining: ents.solcast_remaining || 'sensor.solcast_pv_forecast_forecast_remaining_today',
     };
 
     if (this._rendered) {
@@ -309,7 +290,7 @@ class AresEnergyFlowCard extends HTMLElement {
             </svg>
 
             <!-- Node 1: Solar Source -->
-            <div id="node-solar" class="node" style="left: 6px; top: 44px; width: 124px; background: rgba(255, 213, 79, 0.04); border: 1.5px solid rgba(255, 213, 79, 0.3); padding: 5px 8px;">
+            <div id="node-solar" class="node" style="left: 6px; top: 40px; width: 124px; background: rgba(255, 213, 79, 0.04); border: 1.5px solid rgba(255, 213, 79, 0.3); padding: 5px 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; white-space: nowrap;">
                 <div style="font-size: 11px; font-weight: 800; color: ${cSolar}; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 13px; line-height: 1;">☀️</span>
@@ -318,7 +299,8 @@ class AresEnergyFlowCard extends HTMLElement {
                 <span id="badge-solar-forecast" style="font-size: 7.5px; font-weight: 700; color: ${cSolar}; background: rgba(255, 213, 79, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 213, 79, 0.3);">-- kWh EST</span>
               </div>
               <div id="pwr-solar" class="node-pwr">0 W</div>
-              <div id="kwh-solar" class="node-kwh">0,00 kWh today</div>
+              <div id="kwh-solar" class="node-kwh">0.00 kWh today</div>
+              <div id="kwh-solar-rem" style="font-size: 8px; font-weight: 700; color: ${cSolar}; margin-top: 1.5px; white-space: nowrap; display: none;">-</div>
               <div id="bar-solar-forecast-box" style="width: 100%; height: 2px; border-radius: 1px; background: rgba(255, 213, 79, 0.15); margin-top: 3px; overflow: hidden;">
                 <div id="bar-solar-forecast-fill" style="width: 0%; height: 100%; background: ${cSolar}; border-radius: 1px; transition: width 0.6s ease;"></div>
               </div>
@@ -477,6 +459,7 @@ class AresEnergyFlowCard extends HTMLElement {
     this._el = {
       pwrSolar: getEl('pwr-solar'),
       kwhSolar: getEl('kwh-solar'),
+      kwhSolarRem: getEl('kwh-solar-rem'),
       nodeSolar: getEl('node-solar'),
       badgeSolarForecast: getEl('badge-solar-forecast'),
       barSolarForecastFill: getEl('bar-solar-forecast-fill'),
@@ -691,13 +674,13 @@ class AresEnergyFlowCard extends HTMLElement {
     const liveHomeW = solarToHomeW + gridToHomeW + batteryToHomeW;
 
     // Helpers
-    const locale = this._getLocale();
-    const fmtKwh = (n) => (n || 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtKwh = (n) => (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtPwr = (w) => {
       if (w <= 0) return '0 W';
-      if (w >= 1000) return (w / 1000).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kW';
-      return Math.round(w).toLocaleString(locale) + ' W';
+      if (w >= 1000) return (w / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kW';
+      return Math.round(w) + ' W';
     };
+    const fmtDec1 = (n) => (n || 0).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
     // Calculate dynamic animation durations calibrated to max expected system power
     const maxFlowW = (this._config && (this._config.max_flow_power_w || (this._config.max_expected_power_kw ? this._config.max_expected_power_kw * 1000 : null))) || 7500;
@@ -750,14 +733,18 @@ class AresEnergyFlowCard extends HTMLElement {
     // Apply flow text updates
     const el = this._el;
     el.pwrSolar.textContent = fmtPwr(liveSolarW);
+    el.kwhSolar.textContent = `${fmtKwh(solarKwh)} kWh today`;
     if (forecastRemaining > 0) {
-      el.kwhSolar.textContent = `${fmtKwh(solarKwh)} kWh today \u2022 ${forecastRemaining.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} left`;
-    } else {
-      el.kwhSolar.textContent = `${fmtKwh(solarKwh)} kWh today`;
+      if (el.kwhSolarRem) {
+        el.kwhSolarRem.style.display = 'block';
+        el.kwhSolarRem.textContent = `${fmtDec1(forecastRemaining)} kWh remaining`;
+      }
+    } else if (el.kwhSolarRem) {
+      el.kwhSolarRem.style.display = 'none';
     }
     if (el.badgeSolarForecast) {
       if (forecastToday > 0) {
-        el.badgeSolarForecast.textContent = `${forecastToday.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh EST`;
+        el.badgeSolarForecast.textContent = `${fmtDec1(forecastToday)} kWh EST`;
         el.badgeSolarForecast.style.display = '';
       } else {
         el.badgeSolarForecast.style.display = 'none';
@@ -931,9 +918,9 @@ class AresEnergyFlowCard extends HTMLElement {
         if (anims && anims.length > 0) {
           anims[0].playbackRate = targetRate;
         } else {
-          const currentDur = parseFloat(path.dataset.currentDur || '0');
+          const currentDur = parseFloat(path._currentDur || '0');
           if (Math.abs(dur - currentDur) > 0.15 || currentDur === 0) {
-            path.dataset.currentDur = dur.toString();
+            path._currentDur = dur;
             const durStr = `${dur}s`;
             path.style.animationDuration = durStr;
             path.style.webkitAnimationDuration = durStr;
@@ -942,7 +929,7 @@ class AresEnergyFlowCard extends HTMLElement {
       } else {
         if (path.style.display !== 'none') {
           path.style.display = 'none';
-          path.dataset.currentDur = '0';
+          path._currentDur = 0;
         }
       }
     };
@@ -956,7 +943,7 @@ class AresEnergyFlowCard extends HTMLElement {
   }
 }
 
-console.info('%c ARES-ENERGY-FLOW %c v1.1.1 ',
+console.info('%c ARES-ENERGY-FLOW %c v1.1.2 ',
   'color:#fff;background:#00e5ff;font-weight:700;border-radius:3px 0 0 3px',
   'color:#00e5ff;background:#1a1d21;font-weight:700;border-radius:0 3px 3px 0');
 
