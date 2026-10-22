@@ -7,6 +7,17 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 ![Web Animations API](https://img.shields.io/badge/Animation-Stutter--Free%20WAAPI-blueviolet.svg)
 ![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg) [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
 
+<p align="center">
+  <a href="#-live-animated-preview">Live Preview</a> •
+  <a href="#%EF%B8%8F-operational-states--gallery">Gallery</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-full-configuration-reference">Configuration</a> •
+  <a href="#-support--community">Support</a> •
+  <a href="https://github.com/Aresitoo/ha-energy-flow-card/discussions">Discussions</a>
+</p>
+
+
 ---
 
 ## 📸 Live Animated Preview
@@ -224,13 +235,33 @@ entities:
 
 ---
 
-## ☕ Support the Project
+## 💪 Support & Community
 
-If this card brought a smile to your Home Assistant dashboard, saved you time configuring YAML, or helped optimize your solar autarky, consider buying a coffee to support future development and maintenance!
+`ha-energy-flow-card` is **100% free, open-source**, and built in spare time. If it saved you hours of YAML configuration, brought buttery-smooth 60fps animations to your dashboard, or helped optimize your household autarky, there are many ways you can support the project:
+
+### ⭐ Star the Repository
+The simplest and most impactful way to show support is to **star the repository on GitHub**. It increases visibility, motivates ongoing development, and helps more Home Assistant users discover the card!
+
+### 💬 Community & Discussions
+Have questions, want to show off your dashboard layout, or have ideas for new features? Join us in **[GitHub Discussions](https://github.com/Aresitoo/ha-energy-flow-card/discussions)**:
+- **💡 [Ideas & Suggestions](https://github.com/Aresitoo/ha-energy-flow-card/discussions/categories/ideas)**: Propose new flow animations or sensor support.
+- **🎨 [Show and Tell](https://github.com/Aresitoo/ha-energy-flow-card/discussions/categories/show-and-tell)**: Share screenshots of your cards and theme setups to inspire others.
+- **❓ [Q&A & Help](https://github.com/Aresitoo/ha-energy-flow-card/discussions/categories/q-a)**: Get guidance from the community on configuring tricky entities.
+
+### 🐛 Bug Reports & Feedback
+Found an unexpected glitch or rendering bug? Submit a **[Bug Report](https://github.com/Aresitoo/ha-energy-flow-card/issues/new/choose)** using our structured form. Detailed reports with YAML and logs make fixing bugs fast and painless.
+
+### ☕ Buy Me a Coffee
+If you'd like to support the project financially, buying a coffee is a wonderful way to say thank you and fuel late-night testing and new features:
 
 <p align="center">
   <a href="https://buymeacoffee.com/aresitoo" target="_blank">
-    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=aresitoo&button_colour=FFDD00&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="50">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=aresitoo&button_colour=FFDD00&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="48">
+  </a>
+</p>
+<p align="center">
+  <a href="https://buymeacoffee.com/aresitoo" target="_blank">
+    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Project-FFDD00.svg?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black&labelColor=1a1a1a" alt="Buy Me a Coffee Badge">
   </a>
 </p>
 
