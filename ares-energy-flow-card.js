@@ -24,6 +24,24 @@ class AresEnergyFlowCard extends HTMLElement {
     };
   }
 
+  _isBatteryMode() {
+    const cfg = this._config || {};
+    const ents = cfg.entities || {};
+    const rawDt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
+    const hasBatteryEntities = Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge);
+    return (rawDt === 'battery' || rawDt === 'bess' || rawDt === 'storage' || rawDt === 'powerwall' || cfg.bess === true || hasBatteryEntities);
+  }
+
+  _getDeviceName(isBattery) {
+    const cfg = this._config || {};
+    const ents = cfg.entities || {};
+    const rawDt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
+    if (isBattery) {
+      return cfg.battery_name || (rawDt === 'powerwall' ? 'Powerwall' : 'BESS');
+    }
+    return cfg.ev_name || 'Tesla';
+  }
+
   setConfig(config) {
     this._config = Object.assign({
       palette: 'solar',
@@ -57,15 +75,11 @@ class AresEnergyFlowCard extends HTMLElement {
       solcast_remaining: ents.solcast_remaining || 'sensor.solcast_pv_forecast_forecast_remaining_today',
     };
 
-    if (!this._rendered) {
+    if (this._rendered) {
       this._render();
-    }
-    if (this._el && this._el.lblDev) {
-      const isBattery = (this._config.device_type === 'battery' || this._config.bess === true);
-      this._el.lblDev.textContent = isBattery ? (this._config.battery_name || 'BESS') : (this._config.ev_name || 'Tesla');
-      if (this._el.iconDev) {
-        this._el.iconDev.textContent = isBattery ? '🔋' : '🚗';
-      }
+      if (this._hass) this._update();
+    } else {
+      this._render();
     }
     this._applyConfigVisibility();
   }
@@ -114,9 +128,9 @@ class AresEnergyFlowCard extends HTMLElement {
   _render() {
     this._rendered = true;
     const isFitness = (this._config && this._config.palette === 'fitness');
-    const isBattery = (this._config && (this._config.device_type === 'battery' || this._config.bess === true));
+    const isBattery = this._isBatteryMode();
     const devIcon = isBattery ? '🔋' : '🚗';
-    const devName = isBattery ? (this._config.battery_name || 'BESS') : (this._config.ev_name || 'Tesla');
+    const devName = this._getDeviceName(isBattery);
 
     // Color definitions
     const cSolar = isFitness ? '#fa114f' : '#ffd54f';
@@ -463,6 +477,10 @@ class AresEnergyFlowCard extends HTMLElement {
       kwhTesla: getEl('kwh-tesla'),
       badgeTesla: getEl('badge-tesla'),
       nodeTesla: getEl('node-tesla'),
+      lblDev: getEl('lbl-dev'),
+      iconDev: getEl('icon-dev'),
+      barSocBox: getEl('bar-soc-box'),
+      barSocFill: getEl('bar-soc-fill'),
 
       pwrExport: getEl('pwr-export'),
       kwhExport: getEl('kwh-export'),
@@ -588,7 +606,11 @@ class AresEnergyFlowCard extends HTMLElement {
     const exportPct = solarKwh > 0 ? Math.min(100, (exportKwh / solarKwh) * 100) : 0.0;
     const importPct = totalConsumption > 0 ? Math.min(100, (importKwh / totalConsumption) * 100) : 0.0;
 
-    const isBattery = (this._config && (this._config.device_type === 'battery' || this._config.bess === true));
+    const isBattery = this._isBatteryMode();
+    if (this._el && this._el.lblDev) {
+      this._el.lblDev.textContent = this._getDeviceName(isBattery);
+      if (this._el.iconDev) this._el.iconDev.textContent = isBattery ? '🔋' : '🚗';
+    }
 
     // Instantaneous powers (Watts)
     const solar_raw_w = parseFloat(states[this._entities.solar_power]?.state) || 0.0;
@@ -913,6 +935,10 @@ class AresEnergyFlowCard extends HTMLElement {
     updatePath(el.flowGridTesla, durGridTesla);
   }
 }
+
+console.info('%c ARES-ENERGY-FLOW %c v1.1.0 ',
+  'color:#fff;background:#00e5ff;font-weight:700;border-radius:3px 0 0 3px',
+  'color:#00e5ff;background:#1a1d21;font-weight:700;border-radius:0 3px 3px 0');
 
 if (!customElements.get('ares-energy-flow-card')) {
   customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
