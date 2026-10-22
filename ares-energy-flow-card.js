@@ -1,6 +1,6 @@
 /**
- * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card (DEV SANDBOX)
- * Clean original production concentric ring architecture with selectable color palettes.
+ * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
+ * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
  */
 
 class AresEnergyFlowCard extends HTMLElement {
@@ -28,8 +28,35 @@ class AresEnergyFlowCard extends HTMLElement {
     const cfg = this._config || {};
     const ents = cfg.entities || {};
     const rawDt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
+    if (rawDt === 'ev') return false;
     const hasBatteryEntities = Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge);
     return (rawDt === 'battery' || rawDt === 'bess' || rawDt === 'storage' || rawDt === 'powerwall' || cfg.bess === true || hasBatteryEntities);
+  }
+
+  _parsePower(ent) {
+    if (!ent || ent.state === undefined || ent.state === null || ent.state === 'unavailable' || ent.state === 'unknown') {
+      return 0.0;
+    }
+    const val = parseFloat(ent.state);
+    if (isNaN(val)) return 0.0;
+    const cfgUnit = String(this._config?.power_unit || '').toLowerCase().trim();
+    const uom = String(ent.attributes?.unit_of_measurement || cfgUnit).toLowerCase().trim();
+    if (uom === 'kw') return val * 1000.0;
+    if (uom === 'mw') return val * 1000000.0;
+    return val;
+  }
+
+  _parseEnergy(ent) {
+    if (!ent || ent.state === undefined || ent.state === null || ent.state === 'unavailable' || ent.state === 'unknown') {
+      return 0.0;
+    }
+    const val = parseFloat(ent.state);
+    if (isNaN(val)) return 0.0;
+    const cfgUnit = String(this._config?.energy_unit || '').toLowerCase().trim();
+    const uom = String(ent.attributes?.unit_of_measurement || cfgUnit).toLowerCase().trim();
+    if (uom === 'wh') return val / 1000.0;
+    if (uom === 'mwh') return val * 1000.0;
+    return val;
   }
 
   _getDeviceName(isBattery) {
@@ -581,19 +608,19 @@ class AresEnergyFlowCard extends HTMLElement {
     const states = this._hass.states;
     if (!states) return;
 
-    // Cumulative daily energies (kWh)
-    const solarKwh = parseFloat(states[this._entities.solar_daily_yield]?.state) || 0.0;
-    const exportKwh = parseFloat(states[this._entities.grid_daily_export]?.state) || 0.0;
-    const importKwh = parseFloat(states[this._entities.grid_daily_import]?.state) || 0.0;
+    // Cumulative daily energies (kWh, auto-converting Wh/MWh if present)
+    const solarKwh = this._parseEnergy(states[this._entities.solar_daily_yield]);
+    const exportKwh = this._parseEnergy(states[this._entities.grid_daily_export]);
+    const importKwh = this._parseEnergy(states[this._entities.grid_daily_import]);
 
     // Daily EV session tracking
     let evKwh = 0.0;
     const evDailySensor = states[this._entities.ev_daily_energy];
-    if (evDailySensor && !isNaN(parseFloat(evDailySensor.state))) {
-      evKwh = parseFloat(evDailySensor.state);
+    if (evDailySensor) {
+      evKwh = this._parseEnergy(evDailySensor);
     }
     const isCharging = states[this._entities.ev_charging]?.state === 'on';
-    const liveChargeEnergy = parseFloat(states[this._entities.ev_daily_energy]?.state) || 0.0;
+    const liveChargeEnergy = this._parseEnergy(states[this._entities.ev_daily_energy]);
     if (isCharging && liveChargeEnergy > 0 && evKwh === 0) {
       evKwh = liveChargeEnergy;
     }
@@ -614,13 +641,13 @@ class AresEnergyFlowCard extends HTMLElement {
       if (this._el.iconDev) this._el.iconDev.textContent = isBattery ? '🔋' : '🚗';
     }
 
-    // Instantaneous powers (Watts)
-    const solar_raw_w = parseFloat(states[this._entities.solar_power]?.state) || 0.0;
-    const liveSolarW = Math.max(0, solar_raw_w);
+    // Instantaneous powers (Watts, auto-converting kW/MW if present)
+    let solar_raw_w = this._parsePower(states[this._entities.solar_power]);
+    let liveSolarW = Math.max(0, solar_raw_w);
 
-    const grid_raw_w = parseFloat(states[this._entities.grid_power]?.state) || 0.0;
-    const liveImportW = grid_raw_w > 0 ? grid_raw_w : 0.0;
-    const liveExportW = grid_raw_w < 0 ? Math.abs(grid_raw_w) : (parseFloat(states[this._entities.grid_export_power]?.state) || 0.0);
+    let grid_raw_w = this._parsePower(states[this._entities.grid_power]);
+    let liveImportW = grid_raw_w > 0 ? grid_raw_w : 0.0;
+    let liveExportW = grid_raw_w < 0 ? Math.abs(grid_raw_w) : (this._parsePower(states[this._entities.grid_export_power]));
 
     let liveMiddleW = 0.0;
     let isMiddleActive = false;
@@ -640,23 +667,23 @@ class AresEnergyFlowCard extends HTMLElement {
         middleKwh = 5.2;
       } else {
         const pwrEnt = states[this._entities.battery_power];
-        if (pwrEnt && !isNaN(parseFloat(pwrEnt.state))) liveMiddleW = parseFloat(pwrEnt.state);
+        if (pwrEnt) liveMiddleW = this._parsePower(pwrEnt);
         const socEnt = states[this._entities.battery_soc];
         if (socEnt && !isNaN(parseFloat(socEnt.state))) batterySoc = Math.round(parseFloat(socEnt.state));
         const kwhChargeEnt = states[this._entities.battery_daily_charge];
-        if (kwhChargeEnt && !isNaN(parseFloat(kwhChargeEnt.state))) middleKwh = parseFloat(kwhChargeEnt.state);
+        if (kwhChargeEnt) middleKwh = this._parseEnergy(kwhChargeEnt);
         
         isDischarging = liveMiddleW < -15;
         if (isDischarging) {
           const kwhDiscEnt = states[this._entities.battery_daily_discharge];
-          if (kwhDiscEnt && !isNaN(parseFloat(kwhDiscEnt.state))) middleKwh = parseFloat(kwhDiscEnt.state);
+          if (kwhDiscEnt) middleKwh = this._parseEnergy(kwhDiscEnt);
         }
       }
       isDischarging = liveMiddleW < -15;
       isMiddleActive = Math.abs(liveMiddleW) > 15;
     } else {
       // Standard EV mode
-      const liveEvW = parseFloat(states[this._entities.ev_power]?.state) || 0.0;
+      const liveEvW = this._parsePower(states[this._entities.ev_power]);
       liveMiddleW = liveEvW;
       isMiddleActive = liveMiddleW > 15 || isCharging;
       middleKwh = evKwh;
@@ -726,8 +753,8 @@ class AresEnergyFlowCard extends HTMLElement {
     }
 
     // Solcast PV Forecast telemetry
-    const forecastToday = parseFloat(states[this._entities.solcast_today]?.state) || 0.0;
-    const forecastRemaining = parseFloat(states[this._entities.solcast_remaining]?.state) || 0.0;
+    const forecastToday = this._parseEnergy(states[this._entities.solcast_today]);
+    const forecastRemaining = this._parseEnergy(states[this._entities.solcast_remaining]);
     const forecastPct = forecastToday > 0 ? Math.min(100, (solarKwh / forecastToday) * 100) : 0.0;
 
     // Apply flow text updates
@@ -943,7 +970,7 @@ class AresEnergyFlowCard extends HTMLElement {
   }
 }
 
-console.info('%c ARES-ENERGY-FLOW %c v1.1.2 ',
+console.info('%c ARES-ENERGY-FLOW %c v1.1.3 ',
   'color:#fff;background:#00e5ff;font-weight:700;border-radius:3px 0 0 3px',
   'color:#00e5ff;background:#1a1d21;font-weight:700;border-radius:0 3px 3px 0');
 
