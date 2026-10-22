@@ -316,7 +316,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <span id="badge-grid-guard" style="font-size: 7.5px; font-weight: 800; color: ${cGrid}; background: rgba(255, 112, 67, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(255, 112, 67, 0.3); display: none;">4.2 kW MAX</span>
               </div>
               <div id="pwr-grid" class="node-pwr">0 W</div>
-              <div id="kwh-grid" class="node-kwh">0,00 kWh imported</div>
+              <div id="kwh-grid" class="node-kwh">0.00 kWh imported</div>
             </div>
 
             <!-- Node 3: Home Base Consumer -->
@@ -329,7 +329,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <span id="badge-home" style="font-size: 7.5px; font-weight: 700; color: #00e5ff; background: rgba(0, 229, 255, 0.12); padding: 1px 3.5px; border-radius: 4px; border: 0.5px solid rgba(0, 229, 255, 0.3);">100% SOLAR</span>
               </div>
               <div id="pwr-home" class="node-pwr">0 W</div>
-              <div id="kwh-home" class="node-kwh">0,00 kWh solar</div>
+              <div id="kwh-home" class="node-kwh">0.00 kWh solar</div>
             </div>
 
             <!-- Node 4: Tesla EV or BESS Consumer -->
@@ -342,7 +342,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <span id="badge-tesla" style="font-size: 6.8px; font-weight: 700; color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); border: 0.5px solid rgba(255, 255, 255, 0.12); padding: 1px 2px; border-radius: 3.5px; flex-shrink: 0; letter-spacing: -0.15px;">IDLE</span>
               </div>
               <div id="pwr-tesla" class="node-pwr">0 W</div>
-              <div id="kwh-tesla" class="node-kwh">0,00 kWh charged</div>
+              <div id="kwh-tesla" class="node-kwh">0.00 kWh charged</div>
               <div id="bar-soc-box" style="display: ${isBattery ? 'block' : 'none'}; width: 100%; height: 2px; border-radius: 1px; background: rgba(179, 136, 255, 0.15); margin-top: 3px; overflow: hidden;">
                 <div id="bar-soc-fill" style="width: 0%; height: 100%; background: #b388ff; border-radius: 1px; transition: width 0.6s ease;"></div>
               </div>
@@ -355,7 +355,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <span>Grid Out</span>
               </div>
               <div id="pwr-export" class="node-pwr">0 W</div>
-              <div id="kwh-export" class="node-kwh">0,00 kWh exported</div>
+              <div id="kwh-export" class="node-kwh">0.00 kWh exported</div>
             </div>
           </div>
 
@@ -401,7 +401,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-solar-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
-                    0,00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; 100% Free</span>
+                    0.00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; 100% Free</span>
                   </span>
                   <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
                 </div>
@@ -418,7 +418,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-import-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
-                    0,00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Night/Backup</span>
+                    0.00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Night/Backup</span>
                   </span>
                   <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
                 </div>
@@ -435,7 +435,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-export-kwh" style="font-size: 15px; font-weight: 900; color: #ffffff; line-height: 1.1; font-variant-numeric: tabular-nums;">
-                    0,00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Clean Surplus</span>
+                    0.00 <span style="font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; Clean Surplus</span>
                   </span>
                   <span style="font-size: 8.5px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF SOLAR</span>
                 </div>
