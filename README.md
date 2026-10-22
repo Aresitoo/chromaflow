@@ -256,11 +256,6 @@ If you'd like to support the project financially, buying a coffee is a wonderful
 
 <p align="center">
   <a href="https://buymeacoffee.com/aresitoo" target="_blank">
-    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=aresitoo&button_colour=FFDD00&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="48">
-  </a>
-</p>
-<p align="center">
-  <a href="https://buymeacoffee.com/aresitoo" target="_blank">
     <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Project-FFDD00.svg?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black&labelColor=1a1a1a" alt="Buy Me a Coffee Badge">
   </a>
 </p>
