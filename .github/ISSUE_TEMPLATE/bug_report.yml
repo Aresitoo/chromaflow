@@ -1,45 +1,110 @@
-name: 🐛 Bug Report
-description: Create a report to help us improve the card
+name: "🐛 Bug Report"
+description: Report an issue, glitch, or rendering error with ha-energy-flow-card
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for filing a bug report! Before opening an issue, please ensure you are on the latest release and have cleared your browser cache (Ctrl+F5).
+        Thanks for taking the time to report an issue! 
+        Before submitting, please make sure you are running the **latest release** and have **cleared your browser / Companion App frontend cache** (e.g. `Ctrl+F5` or Reload in HA App).
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have cleared my browser cache / HA app frontend cache
+          required: true
+        - label: I am using the latest version of the card
+          required: true
+        - label: I have checked existing issues to avoid filing a duplicate
+          required: true
+
   - type: textarea
     id: description
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is.
+      label: Bug Description
+      description: A clear and concise description of what the error or unexpected behavior is.
+      placeholder: "e.g. When battery power is negative, the flow dots animate in reverse but the badge displays 0W..."
     validations:
       required: true
-  - type: textarea
-    id: card_config
+
+  - type: dropdown
+    id: client_environment
     attributes:
-      label: Your Lovelace Card Configuration (YAML)
-      description: Please paste the YAML of your card here.
-      render: yaml
+      label: Client / Display Environment
+      description: Where are you viewing the card when this occurs?
+      options:
+        - Desktop Browser (Chrome / Edge / Brave)
+        - Desktop Browser (Firefox)
+        - Desktop Browser (Safari / macOS)
+        - Home Assistant Companion App (Android)
+        - Home Assistant Companion App (iOS)
+        - Wall Tablet (Fully Kiosk Browser / Android)
+        - Other (specify in description)
     validations:
       required: true
+
   - type: input
     id: version
     attributes:
       label: Card Version
-      description: Which version of the card are you running? (e.g. v1.1.0)
-      placeholder: v1.1.0
+      description: Exact version of ha-energy-flow-card you have installed.
+      placeholder: "e.g. v1.1.0"
     validations:
       required: true
+
   - type: input
     id: ha_version
     attributes:
-      label: Home Assistant Version
-      description: Your Home Assistant version (e.g. 2024.10.x, Core, OS, Container).
-      placeholder: 2024.10.3
+      label: Home Assistant Core Version
+      description: Which Home Assistant core version are you running?
+      placeholder: "e.g. 2024.10.3 (OS on Raspberry Pi / Proxmox / Container)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: card_config
+    attributes:
+      label: Card Configuration (YAML)
+      description: Paste your full card configuration YAML here.
+      placeholder: |
+        type: custom:ares-energy-flow-card
+        solar:
+          entity: sensor.solar_power
+        grid:
+          entity: sensor.grid_power
+        battery:
+          entity: sensor.battery_power
+          state_of_charge: sensor.battery_soc
+      render: yaml
+    validations:
+      required: true
+
+  - type: input
+    id: sensor_units
+    attributes:
+      label: Sensor Power Units & States
+      description: What units do your entities report in Home Assistant Developer Tools -> States?
+      placeholder: "e.g. solar is W, grid is kW, battery is W"
     validations:
       required: false
+
   - type: textarea
-    id: screenshots
+    id: console_logs
     attributes:
-      label: Screenshots & Console Logs
-      description: If applicable, add screenshots or F12 browser console errors to help explain your problem.
+      label: Browser Console Errors (F12)
+      description: If you see red error messages in the browser console (press F12 -> Console), please paste them here.
+      placeholder: "Uncaught TypeError: Cannot read properties of undefined..."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or Screen Recordings
+      description: Drag and drop screenshots or GIFs showing the issue here.
+    validations:
+      required: false
