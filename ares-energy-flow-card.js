@@ -16,6 +16,7 @@ class AresEnergyFlowCard extends HTMLElement {
       contract_power_limit_kw: 4.2,
       contract_warning_pct: 0.85,
       max_expected_power_kw: 7.5,
+      min_flow_threshold_w: 2,
       show_solar_forecast: true,
       palette: 'solar', // 'solar' (default) or 'fitness'
       device_type: 'ev', // 'ev' (default) or 'battery' (BESS)
@@ -37,12 +38,14 @@ class AresEnergyFlowCard extends HTMLElement {
     if (!ent || ent.state === undefined || ent.state === null || ent.state === 'unavailable' || ent.state === 'unknown') {
       return 0.0;
     }
-    const val = parseFloat(ent.state);
+    const rawStr = String(ent.state).trim().replace(',', '.');
+    const val = parseFloat(rawStr);
     if (isNaN(val)) return 0.0;
     const cfgUnit = String(this._config?.power_unit || '').toLowerCase().trim();
-    const uom = String(ent.attributes?.unit_of_measurement || cfgUnit).toLowerCase().trim();
-    if (uom === 'kw') return val * 1000.0;
-    if (uom === 'mw') return val * 1000000.0;
+    const entUnit = String(ent.attributes?.unit_of_measurement || '').toLowerCase().trim();
+    const uom = cfgUnit || entUnit;
+    if (uom === 'kw' || uom.includes('kw')) return val * 1000.0;
+    if (uom === 'mw' || uom.includes('mw')) return val * 1000000.0;
     return val;
   }
 
@@ -50,12 +53,14 @@ class AresEnergyFlowCard extends HTMLElement {
     if (!ent || ent.state === undefined || ent.state === null || ent.state === 'unavailable' || ent.state === 'unknown') {
       return 0.0;
     }
-    const val = parseFloat(ent.state);
+    const rawStr = String(ent.state).trim().replace(',', '.');
+    const val = parseFloat(rawStr);
     if (isNaN(val)) return 0.0;
     const cfgUnit = String(this._config?.energy_unit || '').toLowerCase().trim();
-    const uom = String(ent.attributes?.unit_of_measurement || cfgUnit).toLowerCase().trim();
-    if (uom === 'wh') return val / 1000.0;
-    if (uom === 'mwh') return val * 1000.0;
+    const entUnit = String(ent.attributes?.unit_of_measurement || '').toLowerCase().trim();
+    const uom = cfgUnit || entUnit;
+    if (uom === 'wh' || (uom.includes('wh') && !uom.includes('kwh') && !uom.includes('mwh'))) return val / 1000.0;
+    if (uom === 'mwh' || uom.includes('mwh')) return val * 1000.0;
     return val;
   }
 
@@ -70,6 +75,11 @@ class AresEnergyFlowCard extends HTMLElement {
   }
 
   setConfig(config) {
+    const rawThresh = config?.min_flow_threshold_w ?? config?.idle_threshold_w;
+    this._minFlowW = rawThresh !== undefined && rawThresh !== null && !isNaN(parseFloat(rawThresh))
+      ? Math.max(0, parseFloat(rawThresh))
+      : 2.0;
+
     this._config = Object.assign({
       palette: 'solar',
       device_type: 'ev',
@@ -79,21 +89,22 @@ class AresEnergyFlowCard extends HTMLElement {
       contract_warning_pct: 0.85,
       show_solar_forecast: true,
       max_expected_power_kw: 7.5,
+      min_flow_threshold_w: 2,
       entities: {}
     }, config);
 
     // Entity configuration mapping with clean standard fallbacks
     const ents = this._config.entities || {};
     this._entities = {
-      solar_power: ents.solar_power || 'sensor.solar_power',
+      solar_power: ents.solar_power || 'sensor.shellyem_e4525b_channel_2_power',
       solar_daily_yield: ents.solar_daily_yield || 'sensor.solar_daily_yield',
-      grid_power: ents.grid_power || 'sensor.grid_power',
-      grid_daily_import: ents.grid_daily_import || 'sensor.grid_daily_import_energy',
+      grid_power: ents.grid_power || 'sensor.return_to_grid_new',
+      grid_daily_import: ents.grid_daily_import || 'sensor.living_room_shellyem_e4525b_channel_1_grid_daily_import_energy',
       grid_daily_export: ents.grid_daily_export || 'sensor.grid_daily_export_energy',
-      grid_export_power: ents.grid_export_power || 'sensor.grid_export_power',
-      ev_power: ents.ev_power || 'sensor.ev_charging_power',
-      ev_charging: ents.ev_charging || 'binary_sensor.ev_charging',
-      ev_daily_energy: ents.ev_daily_energy || 'sensor.ev_daily_energy',
+      grid_export_power: ents.grid_export_power || 'sensor.true_grid_export_power',
+      ev_power: ents.ev_power || 'sensor.evse_192_168_0_249_charge_power',
+      ev_charging: ents.ev_charging || 'binary_sensor.evse_192_168_0_249_charging',
+      ev_daily_energy: ents.ev_daily_energy || 'sensor.evse_192_168_0_249_charge_energy',
       battery_power: ents.battery_power || 'sensor.battery_power',
       battery_soc: ents.battery_soc || 'sensor.battery_soc',
       battery_daily_charge: ents.battery_daily_charge || 'sensor.battery_daily_charge_energy',
@@ -649,6 +660,7 @@ class AresEnergyFlowCard extends HTMLElement {
     let liveImportW = grid_raw_w > 0 ? grid_raw_w : 0.0;
     let liveExportW = grid_raw_w < 0 ? Math.abs(grid_raw_w) : (this._parsePower(states[this._entities.grid_export_power]));
 
+    const idleThresh = this._minFlowW;
     let liveMiddleW = 0.0;
     let isMiddleActive = false;
     let isDischarging = false;
@@ -673,24 +685,24 @@ class AresEnergyFlowCard extends HTMLElement {
         const kwhChargeEnt = states[this._entities.battery_daily_charge];
         if (kwhChargeEnt) middleKwh = this._parseEnergy(kwhChargeEnt);
         
-        isDischarging = liveMiddleW < -15;
+        isDischarging = liveMiddleW < -idleThresh;
         if (isDischarging) {
           const kwhDiscEnt = states[this._entities.battery_daily_discharge];
           if (kwhDiscEnt) middleKwh = this._parseEnergy(kwhDiscEnt);
         }
       }
-      isDischarging = liveMiddleW < -15;
-      isMiddleActive = Math.abs(liveMiddleW) > 15;
+      isDischarging = liveMiddleW < -idleThresh;
+      isMiddleActive = Math.abs(liveMiddleW) > idleThresh;
     } else {
       // Standard EV mode
       const liveEvW = this._parsePower(states[this._entities.ev_power]);
       liveMiddleW = liveEvW;
-      isMiddleActive = liveMiddleW > 15 || isCharging;
+      isMiddleActive = liveMiddleW > idleThresh || isCharging;
       middleKwh = evKwh;
     }
 
     // Real-Time physical power distribution
-    const solarToGridW = (liveSolarW > 15 && liveExportW > 15) ? Math.min(liveSolarW, liveExportW) : 0.0;
+    const solarToGridW = (liveSolarW > idleThresh && liveExportW > idleThresh) ? Math.min(liveSolarW, liveExportW) : 0.0;
     const solarAvailableOnSiteW = Math.max(0, liveSolarW - solarToGridW);
     const solarToMiddleW = (!isDischarging && isMiddleActive) ? Math.min(solarAvailableOnSiteW, Math.max(0, liveMiddleW)) : 0.0;
     const solarToHomeW = Math.max(0, solarAvailableOnSiteW - solarToMiddleW);
@@ -712,10 +724,12 @@ class AresEnergyFlowCard extends HTMLElement {
     // Calculate dynamic animation durations calibrated to max expected system power
     const maxFlowW = (this._config && (this._config.max_flow_power_w || (this._config.max_expected_power_kw ? this._config.max_expected_power_kw * 1000 : null))) || 7500;
     const calcDur = (w) => {
-      if (w < 15) return 0;
-      const clampedW = Math.max(15, Math.min(maxFlowW, w));
-      const norm = Math.log10(clampedW / 15) / Math.log10(maxFlowW / 15);
-      const dur = 4.2 - Math.pow(norm, 0.8) * (4.2 - 0.45);
+      if (w <= 0 || w < idleThresh) return 0;
+      const floorW = Math.max(0.5, idleThresh);
+      const clampedW = Math.max(floorW, Math.min(maxFlowW, w));
+      const norm = Math.log10(clampedW / floorW) / Math.log10(Math.max(floorW + 1, maxFlowW) / floorW);
+      const dur = 4.2 - Math.pow(Math.min(1, Math.max(0, norm)), 0.8) * (4.2 - 0.45);
+      return parseFloat(dur.toFixed(2));
       return parseFloat(dur.toFixed(2));
     };
 
@@ -729,19 +743,19 @@ class AresEnergyFlowCard extends HTMLElement {
     // Operational badge for Home
     let homeBadgeText = 'IDLE';
     let homeBadgeColor = 'rgba(255, 255, 255, 0.4)';
-    if (liveHomeW > 15) {
-      if (gridToHomeW <= 15) {
-        if (batteryToHomeW > 15 && solarToHomeW <= 15) {
+    if (liveHomeW > idleThresh) {
+      if (gridToHomeW <= idleThresh) {
+        if (batteryToHomeW > idleThresh && solarToHomeW <= idleThresh) {
           homeBadgeText = '100% BESS';
           homeBadgeColor = '#00e5ff';
-        } else if (batteryToHomeW > 15) {
+        } else if (batteryToHomeW > idleThresh) {
           homeBadgeText = 'SOLAR + BESS';
           homeBadgeColor = '#00e5ff';
         } else {
           homeBadgeText = '100% SOLAR';
           homeBadgeColor = '#00e5ff';
         }
-      } else if (solarToHomeW <= 15 && batteryToHomeW <= 15) {
+      } else if (solarToHomeW <= idleThresh && batteryToHomeW <= idleThresh) {
         homeBadgeText = 'GRID';
         homeBadgeColor = '#ff7043';
       } else {
@@ -780,9 +794,9 @@ class AresEnergyFlowCard extends HTMLElement {
     if (el.barSolarForecastFill) {
       el.barSolarForecastFill.style.width = `${Math.min(100, forecastPct)}%`;
     }
-    el.nodeSolar.style.background = liveSolarW > 15 ? 'rgba(255, 213, 79, 0.12)' : 'rgba(255, 213, 79, 0.04)';
-    el.nodeSolar.style.borderColor = liveSolarW > 15 ? '#ffd54f' : 'rgba(255, 213, 79, 0.3)';
-    el.nodeSolar.style.boxShadow = liveSolarW > 15 ? '0 0 12px rgba(255, 213, 79, 0.25)' : 'none';
+    el.nodeSolar.style.background = liveSolarW > idleThresh ? 'rgba(255, 213, 79, 0.12)' : 'rgba(255, 213, 79, 0.04)';
+    el.nodeSolar.style.borderColor = liveSolarW > idleThresh ? '#ffd54f' : 'rgba(255, 213, 79, 0.3)';
+    el.nodeSolar.style.boxShadow = liveSolarW > idleThresh ? '0 0 12px rgba(255, 213, 79, 0.25)' : 'none';
 
     el.pwrGrid.textContent = fmtPwr(liveImportW);
     el.kwhGrid.textContent = `${fmtKwh(importKwh)} kWh imported`;
@@ -816,9 +830,9 @@ class AresEnergyFlowCard extends HTMLElement {
       el.nodeGrid.style.boxShadow = '0 0 12px rgba(255, 179, 0, 0.4)';
     } else {
       if (el.badgeGridGuard) el.badgeGridGuard.style.display = 'none';
-      el.nodeGrid.style.background = liveImportW > 15 ? 'rgba(255, 112, 67, 0.12)' : 'rgba(255, 112, 67, 0.04)';
-      el.nodeGrid.style.borderColor = liveImportW > 15 ? '#ff7043' : 'rgba(255, 112, 67, 0.3)';
-      el.nodeGrid.style.boxShadow = liveImportW > 15 ? '0 0 12px rgba(255, 112, 67, 0.25)' : 'none';
+      el.nodeGrid.style.background = liveImportW > idleThresh ? 'rgba(255, 112, 67, 0.12)' : 'rgba(255, 112, 67, 0.04)';
+      el.nodeGrid.style.borderColor = liveImportW > idleThresh ? '#ff7043' : 'rgba(255, 112, 67, 0.3)';
+      el.nodeGrid.style.boxShadow = liveImportW > idleThresh ? '0 0 12px rgba(255, 112, 67, 0.25)' : 'none';
     }
 
     el.pwrHome.textContent = fmtPwr(liveHomeW);
@@ -900,9 +914,9 @@ class AresEnergyFlowCard extends HTMLElement {
 
     el.pwrExport.textContent = fmtPwr(liveExportW);
     el.kwhExport.textContent = `${fmtKwh(exportKwh)} kWh exported`;
-    el.nodeExport.style.background = liveExportW > 15 ? 'rgba(0, 230, 118, 0.12)' : 'rgba(0, 230, 118, 0.04)';
-    el.nodeExport.style.borderColor = liveExportW > 15 ? '#00e676' : 'rgba(0, 230, 118, 0.25)';
-    el.nodeExport.style.boxShadow = liveExportW > 15 ? '0 0 12px rgba(0, 230, 118, 0.25)' : 'none';
+    el.nodeExport.style.background = liveExportW > idleThresh ? 'rgba(0, 230, 118, 0.12)' : 'rgba(0, 230, 118, 0.04)';
+    el.nodeExport.style.borderColor = liveExportW > idleThresh ? '#00e676' : 'rgba(0, 230, 118, 0.25)';
+    el.nodeExport.style.boxShadow = liveExportW > idleThresh ? '0 0 12px rgba(0, 230, 118, 0.25)' : 'none';
 
     // Apply original production autarky scorecard math
     const c1 = 402.12; // 2 * PI * 64
@@ -970,7 +984,7 @@ class AresEnergyFlowCard extends HTMLElement {
   }
 }
 
-console.info('%c ARES-ENERGY-FLOW %c v1.1.3 ',
+console.info('%c ARES-ENERGY-FLOW %c v1.1.4 ',
   'color:#fff;background:#00e5ff;font-weight:700;border-radius:3px 0 0 3px',
   'color:#00e5ff;background:#1a1d21;font-weight:700;border-radius:0 3px 3px 0');
 
