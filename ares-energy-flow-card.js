@@ -1193,21 +1193,40 @@ class HaEnergyFlowCard extends HTMLElement {
       }
     };
 
-        let remainingSolar = liveSolarW;
-    const solarToHomeW = Math.min(remainingSolar, liveHomeW);
-    remainingSolar -= solarToHomeW;
-
+        const solarPriority = this._config?.solar_priority || 'middle';
+    let remainingSolar = liveSolarW;
+    let solarToHomeW = 0;
     let solarToMiddleW = 0;
-    if (isBattery) {
-      if (batteryCharging) {
-        solarToMiddleW = Math.min(remainingSolar, batteryChargeW);
-        remainingSolar -= solarToMiddleW;
+
+    if (solarPriority === 'home') {
+      solarToHomeW = Math.min(remainingSolar, liveHomeW);
+      remainingSolar -= solarToHomeW;
+      if (isBattery) {
+        if (batteryCharging) {
+          solarToMiddleW = Math.min(remainingSolar, batteryChargeW);
+          remainingSolar -= solarToMiddleW;
+        }
+      } else {
+        if (isMiddleActive) {
+          solarToMiddleW = Math.min(remainingSolar, liveMiddleW);
+          remainingSolar -= solarToMiddleW;
+        }
       }
     } else {
-      if (isMiddleActive) {
-        solarToMiddleW = Math.min(remainingSolar, liveMiddleW);
-        remainingSolar -= solarToMiddleW;
+      // Default: 'middle' (Tesla / Battery gets solar first -> original crossing lines)
+      if (isBattery) {
+        if (batteryCharging) {
+          solarToMiddleW = Math.min(remainingSolar, batteryChargeW);
+          remainingSolar -= solarToMiddleW;
+        }
+      } else {
+        if (isMiddleActive) {
+          solarToMiddleW = Math.min(remainingSolar, liveMiddleW);
+          remainingSolar -= solarToMiddleW;
+        }
       }
+      solarToHomeW = Math.min(remainingSolar, liveHomeW);
+      remainingSolar -= solarToHomeW;
     }
 
     let solarToGridW = 0;
@@ -1233,16 +1252,24 @@ class HaEnergyFlowCard extends HTMLElement {
     let gridToHomeW = 0;
     let gridToMiddleW = 0;
     if (liveImportW > idleThresh) {
-      gridToHomeW = Math.max(0, homeUnmetW - batteryToHomeW);
-      const remainingImport = Math.max(0, liveImportW - gridToHomeW);
-      if (isBattery) {
-        if (batteryCharging) {
-          gridToMiddleW = Math.max(0, batteryChargeW - solarToMiddleW);
+      if (solarPriority === 'home') {
+        gridToHomeW = Math.min(liveImportW, Math.max(0, homeUnmetW - batteryToHomeW));
+        const remainingImport = Math.max(0, liveImportW - gridToHomeW);
+        if (isBattery && batteryCharging) {
+          gridToMiddleW = Math.min(remainingImport, Math.max(0, batteryChargeW - solarToMiddleW));
+        } else if (!isBattery && isMiddleActive) {
+          gridToMiddleW = Math.min(remainingImport, Math.max(0, liveMiddleW - solarToMiddleW));
         }
       } else {
-        if (isMiddleActive) {
-          gridToMiddleW = Math.max(0, liveMiddleW - solarToMiddleW);
+        // 'middle' priority: middle takes grid shortfall first (if any), rest goes to home
+        let middleUnmetW = 0;
+        if (isBattery && batteryCharging) {
+          middleUnmetW = Math.max(0, batteryChargeW - solarToMiddleW);
+        } else if (!isBattery && isMiddleActive) {
+          middleUnmetW = Math.max(0, liveMiddleW - solarToMiddleW);
         }
+        gridToMiddleW = Math.min(liveImportW, middleUnmetW);
+        gridToHomeW = Math.max(0, liveImportW - gridToMiddleW);
       }
     }
 
@@ -1863,6 +1890,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
     if (this._forms.display) {
       this._forms.display.data = {
+        solar_priority: this._config?.solar_priority || 'middle',
         font_scale: this._config.font_scale ?? 1.0,
         speed_multiplier: this._config.speed_multiplier ?? 1.0,
         palette: this._config.palette || 'solar',
@@ -1956,6 +1984,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       if (val.battery_name) cfg.battery_name = val.battery_name;
       if (val.ev_name) cfg.ev_name = val.ev_name;
     } else if (secId === 'display') {
+      if (val.solar_priority) cfg.solar_priority = val.solar_priority;
       cfg.font_scale = typeof val.font_scale === 'number' ? val.font_scale : 1.0;
       cfg.speed_multiplier = typeof val.speed_multiplier === 'number' ? val.speed_multiplier : 1.0;
       cfg.palette = val.palette || 'solar';
@@ -2049,6 +2078,18 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
   _getDisplaySchema() {
     return [
+      {
+        name: "solar_priority",
+        label: "☀️ Solar Distribution Priority",
+        selector: {
+          select: {
+            options: [
+              { value: "middle", label: "🚗 Electric Vehicle / Battery First (Original Crossing Lines)" },
+              { value: "home", label: "🏠 Home Baseload First" }
+            ]
+          }
+        }
+      },
       {
         name: "font_scale",
         label: "Card Text Size Multiplier (0.8x small to 1.3x large)",
