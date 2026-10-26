@@ -1321,23 +1321,40 @@ class HaEnergyFlowCard extends HTMLElement {
   }
 }
 
+// Dual Custom Element Registration (ChromaFlow & Ares Energy Flow backwards compatibility)
 if (!customElements.get('ha-energy-flow-card')) {
   customElements.define('ha-energy-flow-card', HaEnergyFlowCard);
 }
+if (!customElements.get('ares-energy-flow-card')) {
+  customElements.define('ares-energy-flow-card', HaEnergyFlowCard);
+}
+
+// Lovelace Card Picker Registration
 window.customCards = window.customCards || [];
-const existingCardIdx = window.customCards.findIndex(c => c.type === 'ha-energy-flow-card');
-const cardMeta = {
+
+const cardMetaChroma = {
   type: 'ha-energy-flow-card',
   name: 'ChromaFlow — Energy Flow & Autarky Card',
-  description: 'Ultra-customizable real-time energy flow and autarky scorecard with visual color studio, dual-color gradients, and no-YAML visual editor.',
+  description: 'Ultra-customizable real-time energy flow and autarky scorecard with visual colors studio, dual-color gradients, and full no-YAML editor.',
   preview: true,
-  documentationURL: 'https://github.com/Aresitoo/ha-energy-flow-card'
+  documentationURL: 'https://github.com/Aresitoo/chromaflow'
 };
-if (existingCardIdx >= 0) {
-  window.customCards[existingCardIdx] = cardMeta;
-} else {
-  window.customCards.push(cardMeta);
-}
+
+const cardMetaAres = {
+  type: 'ares-energy-flow-card',
+  name: 'Ares Energy Flow Card (ChromaFlow 2.0)',
+  description: 'Backwards-compatible custom card entry for ChromaFlow 2.0 energy flow and autarky scorecard.',
+  preview: true,
+  documentationURL: 'https://github.com/Aresitoo/chromaflow'
+};
+
+const idx1 = window.customCards.findIndex(c => c.type === 'ha-energy-flow-card');
+if (idx1 >= 0) window.customCards[idx1] = cardMetaChroma;
+else window.customCards.push(cardMetaChroma);
+
+const idx2 = window.customCards.findIndex(c => c.type === 'ares-energy-flow-card');
+if (idx2 >= 0) window.customCards[idx2] = cardMetaAres;
+else window.customCards.push(cardMetaAres);
 
 /**
  * Visual Config Editor for ha-energy-flow-card
@@ -1630,15 +1647,15 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
     const groups = [
       {
-        title: "☀️ 1. Solar Photovoltaic Box",
+        title: "☀️ 1. Solar Panels Box",
         items: [
           { key: "bg_solar", label: "Box Background Tint", desc: "Semi-transparent backdrop for solar card", default: "rgba(255, 213, 79, 0.12)" },
           { key: "border_solar", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(255, 213, 79, 0.3)" },
-          { key: "title_solar", label: "Title Text & ☀️ Icon", desc: "Word 'Solar' and the solar emoji icon", default: "#ffd54f" },
+          { key: "title_solar", label: "Title Text & ☀️ Icon", desc: "Title label text ('Solar') and emoji icon", default: "#ffd54f" },
           { key: "pwr_solar", label: "Solar Generation Power (kW)", desc: "Big real-time wattage number (e.g. 3.84 kW)", default: "#ffffff" },
           { key: "kwh_solar", label: "Daily Solar Energy (kWh)", desc: "Today's total cumulative yield (e.g. 17.20 kWh today)", default: "rgba(255, 255, 255, 0.6)" },
           { key: "kwh_solar_rem", label: "Remaining Forecast (kWh)", desc: "Estimated rest-of-day yield (e.g. 7.7 kWh remaining)", default: "#ffd54f" },
-          { key: "badge_solar_text", label: "Solcast EST Badge Text", desc: "Today's forecast badge text (e.g. 20.0 kWh EST)", default: "#ffd54f" },
+          { key: "badge_solar_text", label: "Solcast EST Badge Text", desc: "Today's forecast estimated yield badge text", default: "#ffd54f" },
           { key: "badge_solar_bg", label: "Solcast EST Badge Background", desc: "Background pill color for forecast badge", default: "rgba(255, 213, 79, 0.12)" },
           { key: "bar_solar_forecast", label: "Forecast Progress Bar Fill", desc: "Progress bar showing percentage of forecast achieved", default: "#ffd54f" }
         ]
@@ -1648,12 +1665,12 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         items: [
           { key: "bg_grid", label: "Box Background Tint", desc: "Semi-transparent backdrop for grid in card", default: "rgba(255, 112, 67, 0.12)" },
           { key: "border_grid", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(255, 112, 67, 0.3)" },
-          { key: "title_grid", label: "Title Text & 🏭 Icon", desc: "Word 'Grid In' and the grid emoji icon", default: "#ff7043" },
+          { key: "title_grid", label: "Title Text & 🏭 Icon", desc: "Title label text ('Grid In') and emoji icon", default: "#ff7043" },
           { key: "pwr_grid", label: "Imported Power (kW/W)", desc: "Real-time utility import reading", default: "#ffffff" },
           { key: "kwh_grid", label: "Imported Energy (kWh)", desc: "Cumulative energy imported today", default: "rgba(255, 255, 255, 0.6)" },
-          { key: "badge_grid_text", label: "ICP Guard Warning Badge Text", desc: "Alert badge when near contracted power limit", default: "#ff7043" },
-          { key: "badge_grid_bg", label: "ICP Guard Warning Badge Background", desc: "Background pill color for warning badge", default: "rgba(255, 112, 67, 0.12)" },
-          { key: "bar_grid_limit", label: "Contract Limit Progress Bar Fill", desc: "Bar showing percentage of contracted kW used", default: "#ff7043" }
+          { key: "badge_grid_text", label: "Grid Limit Warning Badge Text", desc: "Alert warning badge when approaching grid power limit", default: "#ff7043" },
+          { key: "badge_grid_bg", label: "Grid Limit Warning Badge Background", desc: "Background pill color for warning alert badge", default: "rgba(255, 112, 67, 0.12)" },
+          { key: "bar_grid_limit", label: "Grid Limit Progress Bar Fill", desc: "Bar showing percentage of contracted kW capacity used", default: "#ff7043" }
         ]
       },
       {
@@ -2036,7 +2053,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     return [
       {
         name: "device_type",
-        label: "Middle Box Mode",
+        label: "Middle Box Mode (Battery or EV)",
         selector: {
           select: {
             options: [
@@ -2047,7 +2064,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         }
       },
       { name: "battery_power", label: "Battery Power Sensor (W or kW)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "battery_positive_charging", label: "Power Sign: Positive (+) numbers mean Charging", selector: { boolean: {} } },
+      { name: "battery_positive_charging", label: "Battery Power Direction: Check if positive (+) numbers mean Charging", selector: { boolean: {} } },
       { name: "battery_soc", label: "Battery State of Charge (%)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_charge", label: "Today's Battery Charged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_discharge", label: "Today's Battery Discharged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
@@ -2177,4 +2194,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
 if (!customElements.get('ha-energy-flow-card-editor')) {
   customElements.define('ha-energy-flow-card-editor', HaEnergyFlowCardEditor);
+}
+if (!customElements.get('ares-energy-flow-card-editor')) {
+  customElements.define('ares-energy-flow-card-editor', HaEnergyFlowCardEditor);
 }
