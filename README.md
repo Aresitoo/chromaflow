@@ -1,98 +1,85 @@
-# ⚡ ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card
+# ⚡ ChromaFlow
+
+An energy flow and autarky card for Home Assistant.
 
 <p align="center">
-  <img src="assets/social_preview_1280x640.png?v=5" width="100%" alt="ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card for Home Assistant" />
+  <img src="assets/social_preview_1280x640.png?v=5" width="100%" alt="ChromaFlow Energy Flow and Autarky Card" />
 </p>
 
-An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Autarky Scorecard Card** for **Home Assistant**. Unifies real-time physical power distribution curves, an executive 3-ring autarky scorecard, a full **No-YAML Visual Editor**, a **Visual Colors Studio** with dual-color gradient flow lines, Home Battery Storage (BESS) with bidirectional grid export, EV fast charging, Solcast PV solar forecast pacing, and an intelligent utility power guard into a single high-performance Lovelace card.
+I built ChromaFlow because I wanted a clean Home Assistant energy card that combines live animated power lines with autarky rings and a built-in visual editor so I never have to touch YAML just to change a color or pick a sensor.
+
+It supports solar panels, grid import and export, home load, home battery storage (BESS) with bidirectional grid export, EV fast charging, and Solcast solar forecasts.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
 ![Version](https://img.shields.io/badge/version-v2.0.0-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Web Animations API](https://img.shields.io/badge/Animation-Stutter--Free%20WAAPI-blueviolet.svg)
 ![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
 
 <p align="center">
-  <a href="#-visual-editor--color-studio">Visual Editor & Colors</a> •
-  <a href="#-live-animated-preview">Live Preview</a> •
-  <a href="#%EF%B8%8F-operational-states--gallery">Gallery</a> •
-  <a href="#-key-features">Key Features</a> •
-  <a href="#-quick-start-installation">Installation</a> •
-  <a href="#%EF%B8%8F-complete-configuration-options">Configuration</a> •
-  <a href="#-community-credits--special-thanks">Credits</a> •
-  <a href="https://github.com/Aresitoo/chromaflow/discussions">Discussions</a>
+  <a href="#-color-studio-and-visual-editor">Colors & Editor</a> •
+  <a href="#-live-preview">Live Preview</a> •
+  <a href="#%EF%B8%8F-examples">Examples</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-quick-start">Installation</a> •
+  <a href="#%EF%B8%8F-yaml-configuration">Configuration</a> •
+  <a href="#-credits">Credits</a>
 </p>
 
 ---
 
-## 🎨 Visual Editor & Color Studio
+## 🎨 Color Studio and Visual Editor
 
-ChromaFlow 2.0 is built from the ground up for Home Assistant's native Lovelace UI — **zero YAML editing is required**, while offering unmatched visual depth:
+ChromaFlow can be configured entirely inside Home Assistant's dashboard editor without editing YAML:
 
-| 🎨 Visual Colors Studio (Dual Gradients & Element Isolation) | 🛠️ Full No-YAML Card Editor (Dropdown Sensor Pickers) |
+| Color Studio (Two-Tone Gradients & Scoped Colors) | Visual Editor (Dropdown Sensor Pickers) |
 | :---: | :---: |
-| <img src="assets/chromaflow_color_studio.png?v=1" width="100%" alt="ChromaFlow Visual Colors Studio" /> | <img src="assets/chromaflow_visual_editor.png?v=1" width="100%" alt="ChromaFlow No-YAML Visual Editor" /> |
-| **Complete Color Freedom**<br>Native HTML5 color wheels with support for Hex, RGBA, and CSS names. Dual-color Start & End pickers per flow path let you create vibrant two-tone gradients or bold solid lines. 100% sovereign element isolation means changing a power number or flow line never bleeds into titles or badges! | **Effortless Configuration**<br>Organized into 6 clean, plain-English expansion panels (`☀️ Solar Panels`, `⚡ Utility Grid & Power Limit`, `🔋 Home Battery or 🚗 Electric Vehicle`, etc.) with automatic entity discovery, live preview updating, and instant interactive feedback. |
+| <img src="assets/chromaflow_color_studio.png?v=1" width="100%" alt="ChromaFlow Color Studio" /> | <img src="assets/chromaflow_visual_editor.png?v=1" width="100%" alt="ChromaFlow Visual Editor" /> |
+| **Custom Colors & Gradients**<br>Native color pickers supporting Hex, RGBA, and CSS names. Each flow line has independent Start and End color pickers so you can create two-tone gradients or solid colors. Color changes to one element stay isolated and won't affect other boxes. | **Visual Settings**<br>Organized into 6 collapsible panels (`☀️ Solar Panels`, `⚡ Utility Grid`, `🔋 Home Battery or 🚗 EV`, etc.) with searchable sensor dropdowns, live preview updates, and line speed adjustments. |
 
 ---
 
-## 📸 Live Animated Preview
+## 📸 Live Preview
 
 <p align="center">
-  <img src="assets/energy_flow_live.webp?v=3" width="85%" alt="ChromaFlow 2.0 Real-Time Energy Flow & Autarky Scorecard Live Animation" />
+  <img src="assets/energy_flow_live.webp?v=3" width="85%" alt="ChromaFlow Live Flow Animation" />
 </p>
 
 ---
 
-## 🖼️ Operational States & Gallery
+## 🖼️ Examples
 
-### 🔋 Home Battery Storage (BESS) Mode
-| 🔋 Battery Discharging to Home | ⚡ Solar Charging Battery |
+### 🔋 Home Battery Storage (BESS)
+| Battery Discharging to Home | Solar Charging Battery |
 | :---: | :---: |
-| <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="BESS Battery Discharging to Home" /> | <img src="assets/bess_charging_view.png?v=1" width="100%" alt="Solar Charging Home Battery" /> |
-| **`device_type: battery` (Discharging)**<br>Animated cyan pulse stream directly into Home (`flow-battery-home`). Home dynamically badges as **`100% BESS`** or **`SOLAR + BESS`** with a real-time SoC progress bar. | **`device_type: battery` (Charging)**<br>Excess solar routed into storage with pulsating purple stream, live charge rate, stored kWh, and active SoC charging status (e.g. `85% CHG`). |
+| <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="Battery Discharging to Home" /> | <img src="assets/bess_charging_view.png?v=1" width="100%" alt="Solar Charging Home Battery" /> |
+| **`device_type: battery` (Discharging)**<br>Animated stream directly into Home. The Home box displays **`100% BESS`** or **`SOLAR + BESS`** with a live state of charge progress bar. | **`device_type: battery` (Charging)**<br>Surplus solar routes into the battery with live charge rate, stored kWh, and active charge status (e.g. `85% CHG`). |
 
-### ☀️ Themes & EV Operational States
-| ☀️ Solar Harmonized (Default) | 🏃 Fitness Activity Theme | 🚗 Tesla Active Charging | 🌙 Nighttime Grid Mode |
+### ☀️ Themes and EV Charging
+| Solar Theme (Default) | Fitness Activity Theme | EV Fast Charging | Nighttime Grid Mode |
 | :---: | :---: | :---: | :---: |
-| <img src="assets/energy_flow_card.png?v=3" width="100%" alt="Solar Harmonized Theme" /> | <img src="assets/fitness_palette_view.png?v=1" width="100%" alt="Fitness Activity Theme" /> | <img src="assets/tesla_charging_view.png?v=1" width="100%" alt="Tesla Active Charging State" /> | <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="Nighttime Grid Reliance State" /> |
-| Iconic high-contrast palette matching professional solar monitoring hardware. | Apple Fitness activity rings aesthetic with neon pink, acid green & electric cyan. | High-power charging stream with live kW, daily kWh charged, and state badge. | Midnight utility import mode with clear grid dependency telemetry. |
+| <img src="assets/energy_flow_card.png?v=3" width="100%" alt="Solar Theme" /> | <img src="assets/fitness_palette_view.png?v=1" width="100%" alt="Fitness Activity Theme" /> | <img src="assets/tesla_charging_view.png?v=1" width="100%" alt="EV Charging State" /> | <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="Nighttime Grid State" /> |
+| High-contrast dark theme designed for solar dashboards. | Activity rings theme inspired by fitness trackers. | Dedicated EV mode with live charging status, kW rate, and kWh session counter. | Shows utility grid reliance and peak import during night hours. |
 
 ---
 
-## 🌟 Key Features
+## ⚡ Features
 
-- **🎨 100% Independent Visual Colors Studio**:
-  - Every single element on the card has its own dedicated color setting: Power numbers (`kW`), Daily energy (`kWh`), Node titles, Icons, Badges, Progress bars, Borders, and Background tints.
-  - Changing one element never cascades into or recolors another.
-- **🌈 Dual-Color Start/End Flow Gradients**:
-  - Each of the 7 flow paths has independent **Start Color (Source)** and **End Color (Destination)** pickers.
-  - Create seamless, glowing two-tone gradients (e.g., Solar Yellow $\to$ Home Cyan, or Custom Magenta $\to$ Electric Blue), or set both to the same color for solid streams.
-- **⚡ Restored Logarithmic Velocity Physics**:
-  - True dynamic speed contrast based on real-world energy distribution physics:
-    - **Low draw (Home $\approx 250\text{ W}$)**: drifts calmly at $\approx 1.75\text{s}$ duration.
-    - **Moderate flow (Grid Out $\approx 1.38\text{ kW}$)**: flows at $\approx 1.25\text{s}$ duration.
-    - **High load (Tesla $\approx 3.5\text{ kW}$)**: zips swiftly at $\approx 0.73\text{s}$ duration ($>2.4\times$ faster!).
-  - Master speed multiplier scales all lines together, plus **individual speed sliders** ($0.2\times$ to $3.0\times$) for complete manual authority.
-- **🔋 Bidirectional Home Battery Storage & Grid Export**:
-  - Full support for Home Battery Storage (`device_type: battery`).
-  - Displays solar charging, home discharging, and surplus **Battery-to-Grid export** with live animated flows.
-- **🛠️ Zero-YAML Visual Editor**:
-  - Native Home Assistant card editor with searchable entity dropdowns, live preview, and instant auto-fill for Shelly, Solcast, Enphase, APsystems, and Tesla sensors.
-- **☀️ Solcast PV Forecast Pacing**:
-  - Real-time comparison against Solcast daily predictions with visual progress bar, remaining forecast badge, and pacing scorecard ring.
-  - Toggle on/off with a single click while preserving card geometry and upward sweeping S-curves.
-- **🛡️ Intelligent Contracted Power Guard**:
-  - Monitored utility grid limit with percentage warning slider ($50\%\dots 100\%$) that illuminates an amber warning badge when approaching breaker tripping capacity.
-- **📏 Responsive Typography Scale Multiplier**:
-  - Custom font scaling slider ($0.8\times$ to $1.3\times$) to match any tablet, wall dashboard, or mobile screen.
+- **Live Flow Paths**: Animated SVG lines connect Solar, Grid, Home, and your Battery or EV.
+- **Dynamic Line Speeds**: Low standby draws (250W) move slowly, while high loads like EV charging (3kW+) move noticeably faster.
+- **Autarky Scorecard**: 3 concentric rings showing self-consumption, grid reliance, and solar export percentages.
+- **Solar Priority Toggle**: Choose whether grid imports route directly to Home or to your EV / battery charger when solar production is low.
+- **Bidirectional Battery Export**: Track home batteries discharging surplus energy back to the grid.
+- **Solcast Forecast Pacing**: Progress bar showing today's actual solar generation compared to the Solcast daily prediction.
+- **Grid Power Limit Warning**: Displays a warning badge when power consumption approaches your contracted breaker limit.
+- **Responsive Layout**: Adapts cleanly across desktop cards, mobile screens, and card picker previews.
+- **Font Scale Slider**: Adjust text size (0.8x to 1.3x) to fit wall tablets or smaller screens.
 
 ---
 
-## 🚀 Quick Start (ELI5 Guide)
+## 🚀 Quick Start
 
-> 💡 **Important:** This is a **Lovelace Dashboard Card**, not a widget for the built-in Home Assistant Energy Panel.
+> 💡 **Note:** This is a **Lovelace Dashboard Card**, not a widget for the built-in Home Assistant Energy panel.
 
 ### Step 1: Install via HACS (Custom Repository)
 1. Open **HACS** in your Home Assistant sidebar.
@@ -102,41 +89,42 @@ ChromaFlow 2.0 is built from the ground up for Home Assistant's native Lovelace 
    https://github.com/Aresitoo/chromaflow
    ```
 4. Set the category to **Dashboard / Lovelace** and click **Add**.
-5. Find **ChromaFlow — Energy Flow & Autarky Card**, click **Download**, and reload your browser (**Ctrl + F5**).
+5. Find **ChromaFlow**, click Download, and reload your browser (Ctrl + F5).
 
 ---
 
-### Step 2: Add to Your Dashboard (Visual Editor)
-1. Go to any of your dashboards (e.g. your main Overview).
+### Step 2: Add to Your Dashboard
+1. Go to your dashboard.
 2. Click the **3 dots** (top right) ➔ **Edit Dashboard**.
-3. Click **+ Add Card** (bottom right).
-4. Search for **ChromaFlow** *(or Ares Energy Flow Card)*.
-   *(If it doesn't show in search yet, scroll down to **Manual** and paste: `type: custom:ha-energy-flow-card` or `type: custom:ares-energy-flow-card`)*.
+3. Click **+ Add Card**.
+4. Search for **ChromaFlow**.
+   *(If it does not show in search yet, scroll down to **Manual** and paste: `type: custom:ha-energy-flow-card`)*.
 5. In the visual settings editor that appears:
    - Select your **Solar Power** sensor.
    - Select your **Grid Import/Export** sensor.
    - Select your **Home Consumption** sensor.
-   - *(Optional)* Pick your EV / Battery sensors.
-6. Click **Save** — you're all set! ☀️⚡
+   - *(Optional)* Pick your EV or Battery sensors.
+6. Click **Save**.
 
 ---
 
-### Method 2: Manual Installation
-1. Download [`ares-energy-flow-card.js`](https://raw.githubusercontent.com/Aresitoo/chromaflow/main/ares-energy-flow-card.js) from the latest release.
+### Manual Installation
+1. Download `ares-energy-flow-card.js` from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
-3. Add the resource reference in **Settings $	o$ Dashboards $	o$ Three dots $	o$ Resources**:
+3. Add the resource reference in **Settings ➔ Dashboards ➔ Resources**:
    - **URL**: `/local/ares-energy-flow-card.js?v=2.0.0`
    - **Resource Type**: `JavaScript Module`
 
 ---
 
-## 🛠️ Complete Configuration Options
+## 🛠️ YAML Configuration
 
-You can configure ChromaFlow entirely through the **Home Assistant Visual Editor**, or edit the YAML directly for advanced setups:
+You can configure ChromaFlow entirely through the visual editor, or customize it directly in YAML:
 
 ```yaml
 type: custom:ha-energy-flow-card
 device_type: ev # or 'battery' for home storage (BESS)
+solar_priority: middle # 'middle' (prioritize home) or 'home' (prioritize ev/battery)
 contract_power_limit_kw: 4.2
 contract_warning_pct: 0.85 # Alert when grid import reaches 85% of limit
 max_expected_power_kw: 7.5
@@ -159,7 +147,7 @@ entities:
   ev_charging: binary_sensor.ev_charging
   ev_daily_energy: sensor.ev_charger_energy
 
-# Optional: Granular Color Overrides (Hex, RGBA, or CSS Named Colors)
+# Optional: Custom Color Overrides (Hex, RGBA, or CSS Named Colors)
 colors:
   flow_solar_home_start: "#ffd54f"
   flow_solar_home_end: "#00e5ff"
@@ -169,7 +157,7 @@ colors:
   kwh_solar: "rgba(255, 255, 255, 0.6)"
   title_solar: "#ffd54f"
 
-# Optional: Granular Line Speed Overrides (Multiplier 0.2x to 3.0x)
+# Optional: Individual Line Speed Overrides (Multiplier 0.2x to 3.0x)
 line_speeds:
   solar_home: 1.0
   solar_tesla: 1.2
@@ -178,26 +166,26 @@ line_speeds:
 
 ---
 
-## 🙏 Community Credits & Special Thanks
+## 🙏 Credits
 
-ChromaFlow 2.0 represents a major community-driven milestone. Special thanks to the contributors and users on GitHub who shared feedback:
+Thanks to the Home Assistant community members on GitHub whose feedback helped shape this card:
 
-- **@Rayeliint** — for reporting the entity animation issue and inspiring the full Home Assistant Visual Editor overhaul and zero-YAML fallback system ([Issue #3](https://github.com/Aresitoo/chromaflow/issues/3)).
-- **@jameslowe1977-cyber** — for requesting bidirectional battery export flow support to track home batteries exporting surplus power back to the grid ([Issue #4](https://github.com/Aresitoo/chromaflow/issues/4)).
+- **@Rayeliint** ([Issue #3](https://github.com/Aresitoo/chromaflow/issues/3)) for reporting entity animation issues and helping test the visual editor.
+- **@jameslowe1977-cyber** ([Issue #4](https://github.com/Aresitoo/chromaflow/issues/4)) for suggesting bidirectional battery export flow support.
 
 ---
 
-## 💪 Support & Community
+## 💬 Feedback and Support
 
-If you enjoy ChromaFlow and find it valuable for your smart home:
+If you run into any issues or have ideas for new features:
 
-- ⭐ **Star the Repository**: It helps more Home Assistant users discover the card!
-- 💬 **GitHub Discussions**: Share your custom color themes and setup ideas in [Discussions](https://github.com/Aresitoo/chromaflow/discussions).
-- 🐛 **Issue Tracker**: Found a bug or have a suggestion? Open an issue on [GitHub Issues](https://github.com/Aresitoo/chromaflow/issues).
-- ☕ **Buy Me a Coffee**: If you'd like to support continued development, you can [sponsor a coffee here](https://buymeacoffee.com/aresitoo)!
+- ⭐ **Star the Repository**: Helps other Home Assistant users find the card.
+- 💬 **GitHub Discussions**: Share your setup or color combinations in [Discussions](https://github.com/Aresitoo/chromaflow/discussions).
+- 🐛 **Issue Tracker**: Found a bug? Open an issue on [GitHub Issues](https://github.com/Aresitoo/chromaflow/issues).
+- ☕ **Buy Me a Coffee**: If you would like to support my work, you can [sponsor a coffee here](https://buymeacoffee.com/aresitoo).
 
 ---
 
 ## 📄 License
 
-This project is open-source and released under the **MIT License**.
+This project is licensed under the **MIT License**.
