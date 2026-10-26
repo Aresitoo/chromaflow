@@ -21,7 +21,7 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
   <a href="#-quick-start-installation">Installation</a> •
   <a href="#%EF%B8%8F-complete-configuration-options">Configuration</a> •
   <a href="#-community-credits--special-thanks">Credits</a> •
-  <a href="https://github.com/Aresitoo/ha-energy-flow-card/discussions">Discussions</a>
+  <a href="https://github.com/Aresitoo/chromaflow/discussions">Discussions</a>
 </p>
 
 ---
@@ -90,24 +90,41 @@ ChromaFlow 2.0 is built from the ground up for Home Assistant's native Lovelace 
 
 ---
 
-## 🚀 Quick Start Installation
+## 🚀 Quick Start (ELI5 Guide)
 
-### Method 1: HACS Custom Repository (Recommended)
+> 💡 **Important:** This is a **Lovelace Dashboard Card**, not a widget for the built-in Home Assistant Energy Panel.
 
+### Step 1: Install via HACS (Custom Repository)
 1. Open **HACS** in your Home Assistant sidebar.
-2. Click the three dots in the top right corner and select **Custom repositories**.
+2. Click the **3 dots** (top right) ➔ **Custom repositories**.
 3. Paste the repository URL:
    ```text
-   https://github.com/Aresitoo/ha-energy-flow-card
+   https://github.com/Aresitoo/chromaflow
    ```
 4. Set the category to **Dashboard / Lovelace** and click **Add**.
-5. Find **ChromaFlow — Energy Flow & Autarky Card**, click **Download**, and restart or reload your dashboard.
+5. Find **ChromaFlow — Energy Flow & Autarky Card**, click **Download**, and reload your browser (**Ctrl + F5**).
+
+---
+
+### Step 2: Add to Your Dashboard (Visual Editor)
+1. Go to any of your dashboards (e.g. your main Overview).
+2. Click the **3 dots** (top right) ➔ **Edit Dashboard**.
+3. Click **+ Add Card** (bottom right).
+4. Search for **ChromaFlow** *(or Ares Energy Flow Card)*.
+   *(If it doesn't show in search yet, scroll down to **Manual** and paste: `type: custom:ha-energy-flow-card` or `type: custom:ares-energy-flow-card`)*.
+5. In the visual settings editor that appears:
+   - Select your **Solar Power** sensor.
+   - Select your **Grid Import/Export** sensor.
+   - Select your **Home Consumption** sensor.
+   - *(Optional)* Pick your EV / Battery sensors.
+6. Click **Save** — you're all set! ☀️⚡
+
+---
 
 ### Method 2: Manual Installation
-
-1. Download [`ares-energy-flow-card.js`](https://raw.githubusercontent.com/Aresitoo/ha-energy-flow-card/main/ares-energy-flow-card.js) from the latest release.
+1. Download [`ares-energy-flow-card.js`](https://raw.githubusercontent.com/Aresitoo/chromaflow/main/ares-energy-flow-card.js) from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
-3. Add the resource reference in **Settings $\to$ Dashboards $\to$ Three dots $\to$ Resources**:
+3. Add the resource reference in **Settings $	o$ Dashboards $	o$ Three dots $	o$ Resources**:
    - **URL**: `/local/ares-energy-flow-card.js?v=2.0.0`
    - **Resource Type**: `JavaScript Module`
 
@@ -165,8 +182,8 @@ line_speeds:
 
 ChromaFlow 2.0 represents a major community-driven milestone. Special thanks to the contributors and users on GitHub who shared feedback:
 
-- **@Rayeliint** — for reporting the entity animation issue and inspiring the full Home Assistant Visual Editor overhaul and zero-YAML fallback system ([Issue #3](https://github.com/Aresitoo/ha-energy-flow-card/issues/3)).
-- **@jameslowe1977-cyber** — for requesting bidirectional battery export flow support to track home batteries exporting surplus power back to the grid ([Issue #4](https://github.com/Aresitoo/ha-energy-flow-card/issues/4)).
+- **@Rayeliint** — for reporting the entity animation issue and inspiring the full Home Assistant Visual Editor overhaul and zero-YAML fallback system ([Issue #3](https://github.com/Aresitoo/chromaflow/issues/3)).
+- **@jameslowe1977-cyber** — for requesting bidirectional battery export flow support to track home batteries exporting surplus power back to the grid ([Issue #4](https://github.com/Aresitoo/chromaflow/issues/4)).
 
 ---
 
@@ -175,8 +192,8 @@ ChromaFlow 2.0 represents a major community-driven milestone. Special thanks to 
 If you enjoy ChromaFlow and find it valuable for your smart home:
 
 - ⭐ **Star the Repository**: It helps more Home Assistant users discover the card!
-- 💬 **GitHub Discussions**: Share your custom color themes and setup ideas in [Discussions](https://github.com/Aresitoo/ha-energy-flow-card/discussions).
-- 🐛 **Issue Tracker**: Found a bug or have a suggestion? Open an issue on [GitHub Issues](https://github.com/Aresitoo/ha-energy-flow-card/issues).
+- 💬 **GitHub Discussions**: Share your custom color themes and setup ideas in [Discussions](https://github.com/Aresitoo/chromaflow/discussions).
+- 🐛 **Issue Tracker**: Found a bug or have a suggestion? Open an issue on [GitHub Issues](https://github.com/Aresitoo/chromaflow/issues).
 - ☕ **Buy Me a Coffee**: If you'd like to support continued development, you can [sponsor a coffee here](https://buymeacoffee.com/aresitoo)!
 
 ---
