@@ -1,7 +1,7 @@
 # ⚡ ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card
 
 <p align="center">
-  <img src="assets/social_preview_1280x640.png?v=4" width="100%" alt="ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card for Home Assistant" />
+  <img src="assets/social_preview_1280x640.png?v=5" width="100%" alt="ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card for Home Assistant" />
 </p>
 
 An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Autarky Scorecard Card** for **Home Assistant**. Unifies real-time physical power distribution curves, an executive 3-ring autarky scorecard, a full **No-YAML Visual Editor**, a **Visual Colors Studio** with dual-color gradient flow lines, Home Battery Storage (BESS) with bidirectional grid export, EV fast charging, Solcast PV solar forecast pacing, and an intelligent utility power guard into a single high-performance Lovelace card.
