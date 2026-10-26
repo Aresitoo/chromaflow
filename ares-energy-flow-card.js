@@ -105,6 +105,7 @@ class HaEnergyFlowCard extends HTMLElement {
         'binary_sensor.ev_charging'
       ]),
       ev_daily_energy: resolve('ev_daily_energy', [
+        'sensor.v2c_charging_stats',
         'sensor.evse_192_168_0_249_charge_energy',
         'sensor.ev_charged_today'
       ]),
@@ -1252,8 +1253,14 @@ class HaEnergyFlowCard extends HTMLElement {
       el.badgeGridGuard.style.display = 'none';
     }
 
+    const kwhSolarYield = this._parseEnergy(eSolarYield);
+    const kwhGridImport = this._parseEnergy(eGridImport);
+    const kwhGridExport = this._parseEnergy(eGridExport);
+    const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
+    const homeSolarKwh = (!isBattery && middleKwh > 0) ? Math.max(0, selfConsumedKwh - middleKwh) : selfConsumedKwh;
+
     el.pwrHome.textContent = fmtPwr(liveHomeW);
-    el.kwhHome.textContent = `${fmtKwh(this._parseEnergy(eSolarYield))} kWh solar`;
+    el.kwhHome.textContent = `${fmtKwh(homeSolarKwh)} kWh solar`;
 
     el.pwrTesla.textContent = fmtPwr(Math.abs(liveMiddleW));
     if (isBattery) {
@@ -1407,14 +1414,8 @@ class HaEnergyFlowCard extends HTMLElement {
     const c2 = 339.29;
     const c3 = 251.33;
 
-    const kwhSolarYield = this._parseEnergy(eSolarYield);
-    const kwhGridImport = this._parseEnergy(eGridImport);
-    const kwhGridExport = this._parseEnergy(eGridExport);
-
     let kwhTotalLoad = kwhSolarYield + kwhGridImport - kwhGridExport;
     if (kwhTotalLoad <= 0) kwhTotalLoad = kwhSolarYield + kwhGridImport;
-
-    const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
     const autarkyPct = kwhTotalLoad > 0 ? Math.min(100, Math.max(0, Math.round((selfConsumedKwh / kwhTotalLoad) * 100))) : 0;
     const gridReliancePct = kwhTotalLoad > 0 ? Math.min(100, Math.max(0, Math.round((kwhGridImport / kwhTotalLoad) * 100))) : 0;
     const exportPct = kwhSolarYield > 0 ? Math.min(100, Math.max(0, Math.round((kwhGridExport / kwhSolarYield) * 100))) : 0;
@@ -1546,7 +1547,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       load_power: resolve('load_power', ['sensor.load_power', 'sensor.house_consumption_power']),
       ev_power: resolve('ev_power', ['sensor.evse_192_168_0_249_charge_power', 'sensor.ev_power']),
       ev_charging: resolve('ev_charging', ['binary_sensor.evse_192_168_0_249_charging', 'binary_sensor.ev_charging']),
-      ev_daily_energy: resolve('ev_daily_energy', ['sensor.evse_192_168_0_249_charge_energy']),
+      ev_daily_energy: resolve('ev_daily_energy', ['sensor.v2c_charging_stats', 'sensor.evse_192_168_0_249_charge_energy']),
       battery_power: resolve('battery_power', ['sensor.battery_power', 'sensor.bess_power']),
       battery_soc: resolve('battery_soc', ['sensor.battery_soc', 'sensor.battery_state_of_charge']),
       battery_daily_charge: resolve('battery_daily_charge', ['sensor.battery_daily_charge_energy']),
