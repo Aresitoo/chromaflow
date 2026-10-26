@@ -1,29 +1,46 @@
-# ⚡ Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
-
-An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Autarky Scorecard Card** for **Home Assistant**. Unifies real-time physical power distribution curves, an executive 3-ring autarky scorecard, Home Battery Storage (BESS), EV charging, Solcast PV solar forecast pacing, and an intelligent utility contracted power guard into a single high-performance Lovelace card.
-
-![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Web Animations API](https://img.shields.io/badge/Animation-Stutter--Free%20WAAPI-blueviolet.svg)
-![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg) [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
+# ⚡ ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card
 
 <p align="center">
+  <img src="assets/social_preview_1280x640.png?v=4" width="100%" alt="ChromaFlow 2.0 — Ultra-Customizable Energy Flow & Autarky Card for Home Assistant" />
+</p>
+
+An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Autarky Scorecard Card** for **Home Assistant**. Unifies real-time physical power distribution curves, an executive 3-ring autarky scorecard, a full **No-YAML Visual Editor**, a **Visual Colors Studio** with dual-color gradient flow lines, Home Battery Storage (BESS) with bidirectional grid export, EV fast charging, Solcast PV solar forecast pacing, and an intelligent utility power guard into a single high-performance Lovelace card.
+
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
+![Version](https://img.shields.io/badge/version-v2.0.0-success.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Web Animations API](https://img.shields.io/badge/Animation-Stutter--Free%20WAAPI-blueviolet.svg)
+![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
+
+<p align="center">
+  <a href="#-visual-editor--color-studio">Visual Editor & Colors</a> •
   <a href="#-live-animated-preview">Live Preview</a> •
   <a href="#%EF%B8%8F-operational-states--gallery">Gallery</a> •
-  <a href="#-features">Features</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-full-configuration-reference">Configuration</a> •
-  <a href="#-support--community">Support</a> •
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-quick-start-installation">Installation</a> •
+  <a href="#%EF%B8%8F-complete-configuration-options">Configuration</a> •
+  <a href="#-community-credits--special-thanks">Credits</a> •
   <a href="https://github.com/Aresitoo/ha-energy-flow-card/discussions">Discussions</a>
 </p>
 
+---
+
+## 🎨 Visual Editor & Color Studio
+
+ChromaFlow 2.0 is built from the ground up for Home Assistant's native Lovelace UI — **zero YAML editing is required**, while offering unmatched visual depth:
+
+| 🎨 Visual Colors Studio (Dual Gradients & Element Isolation) | 🛠️ Full No-YAML Card Editor (Dropdown Sensor Pickers) |
+| :---: | :---: |
+| <img src="assets/chromaflow_color_studio.png?v=1" width="100%" alt="ChromaFlow Visual Colors Studio" /> | <img src="assets/chromaflow_visual_editor.png?v=1" width="100%" alt="ChromaFlow No-YAML Visual Editor" /> |
+| **Complete Color Freedom**<br>Native HTML5 color wheels with support for Hex, RGBA, and CSS names. Dual-color Start & End pickers per flow path let you create vibrant two-tone gradients or bold solid lines. 100% sovereign element isolation means changing a power number or flow line never bleeds into titles or badges! | **Effortless Configuration**<br>Organized into 6 clean, plain-English expansion panels (`☀️ Solar Panels`, `⚡ Utility Grid & Power Limit`, `🔋 Home Battery or 🚗 Electric Vehicle`, etc.) with automatic entity discovery, live preview updating, and instant interactive feedback. |
 
 ---
 
 ## 📸 Live Animated Preview
 
 <p align="center">
-  <img src="assets/energy_flow_live.webp?v=3" width="85%" alt="Home Assistant Real-Time Energy Flow & Autarky Scorecard Live Animation" />
+  <img src="assets/energy_flow_live.webp?v=3" width="85%" alt="ChromaFlow 2.0 Real-Time Energy Flow & Autarky Scorecard Live Animation" />
 </p>
 
 ---
@@ -39,230 +56,131 @@ An ultra-responsive, hardware-accelerated **Real-Time Energy Flow & Executive Au
 ### ☀️ Themes & EV Operational States
 | ☀️ Solar Harmonized (Default) | 🏃 Fitness Activity Theme | 🚗 Tesla Active Charging | 🌙 Nighttime Grid Mode |
 | :---: | :---: | :---: | :---: |
-| <img src="assets/solar_export_view.png?v=2" width="100%" alt="Solar Harmonized Palette" /> | <img src="assets/fitness_palette_view.png?v=1" width="100%" alt="Fitness Activity Palette" /> | <img src="assets/tesla_charging_view.png?v=2" width="100%" alt="Tesla EV Fast Charging" /> | <img src="assets/energy_flow_card.png?v=2" width="100%" alt="Nighttime Grid Reliance" /> |
-| **`palette: solar`**<br>Classic solar green, warm coral grid, amber generation | **`palette: fitness`**<br>Apple Activity rings style: crimson red, apple lime, cyan | **EV High-Draw Load**<br>Pulsating purple charging stream + live kW | **Night Mode & Autarky**<br>Contracted power guard + executive 3-ring summary |
+| <img src="assets/energy_flow_card.png?v=3" width="100%" alt="Solar Harmonized Theme" /> | <img src="assets/fitness_palette_view.png?v=1" width="100%" alt="Fitness Activity Theme" /> | <img src="assets/tesla_charging_view.png?v=1" width="100%" alt="Tesla Active Charging State" /> | <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="Nighttime Grid Reliance State" /> |
+| Iconic high-contrast palette matching professional solar monitoring hardware. | Apple Fitness activity rings aesthetic with neon pink, acid green & electric cyan. | High-power charging stream with live kW, daily kWh charged, and state badge. | Midnight utility import mode with clear grid dependency telemetry. |
 
 ---
 
 ## 🌟 Key Features
 
-1. **Executive 3-Ring Autarky Scorecard**:
-   - Concentric bold SVG activity rings displaying live energy autonomy metrics:
-     - 🟢 **Outer Ring (Autarky)**: Percentage of today's total household energy sourced from self-produced solar.
-     - 🟡 **Middle Ring (Self-Consumption)**: Percentage of today's solar generation directly consumed on-site.
-     - 🟠 **Inner Ring (Grid Export & Reliance)**: Direct visual ratio of energy sent to or drawn from the grid.
-   - High-contrast typography and clear percentage readouts designed for at-a-glance visibility across mobile companion apps and wall-mounted dashboard tablets.
-
-2. **Bidirectional Home Battery Storage (BESS)**:
-   - Replaces or adapts the secondary node into a dedicated **Home Battery (BESS)** (e.g. Tesla Powerwall, Enphase, SolarEdge, BYD, Pylontech):
-     - **Discharging Flow**: Animated pulse curving directly from the battery into the Home node (`flow-battery-home`), with dynamic Home badging (`100% BESS` or `SOLAR + BESS`).
-     - **Solar Charging Flow**: Direct solar stream routing into the battery with live Watts and daily kWh accumulated.
-     - **Sleek SoC Progress Bar**: Integrated 2px State-of-Charge progress bar with dynamic color transitions (cyan on discharge, purple on charge).
-
-3. **Hiccup-Free Velocity Scaling (`playbackRate` Web Animations API)**:
-   - Uses native browser compositor time dilation via the Web Animations API (`path.getAnimations()[0].playbackRate`) instead of re-evaluating CSS `animationDuration`.
-   - Completely eliminates keyframe phase resets, micro-stutters, and timeline skips when sensor wattage jitters.
-
-4. **Smart Contracted Utility Power Guard (ICP)**:
-   - Real-time utility contract overload protection based on your contracted power limit (`contract_power_limit_kw`).
-   - **Amber Warning Glow**: Activates at $85\%$ of contracted capacity to notify you before heavy appliance draw trips the circuit breaker.
-   - **Flashing Crimson Overload Alarm**: Triggers at $\ge 100\%$ capacity with animated alarm glow when household draw exceeds the utility ceiling.
-   - **Smart Solar Balancing**: Solar power generated during daylight adds *on top* of the contracted grid ceiling, allowing total household power to exceed the contract without tripping the breaker.
-
-5. **Symmetrical 118px Executive Node Architecture**:
-   - Perfectly balanced 118px source and consumer nodes:
-     - **☀️ Solar Box**: Live generation (Watts), today's yield (kWh), dedicated remaining potential line (`remaining`), and dynamic forecast progress bar.
-     - **⚡ Grid Box**: Net power flow, daily import/export accumulator, and live ICP threshold alerts.
-     - **🚗 EV or 🔋 BESS Box**: Configurable consumer or battery storage node with dynamic active/idle status.
-     - **🏠 Home Box**: Net household power, solar/BESS fraction percentage badge, and dynamic state styling.
-
-6. **Optional Solcast PV Forecast Integration**:
-   - Frosted gold forecast badge (e.g. `24.9 kWh EST`) and micro progress bar tracking today's actual yield against the estimated daily target.
-   - **100% Optional**: If you don't use Solcast, simply set `show_solar_forecast: false` or omit the entities. The card cleanly hides the forecast badge and remaining line.
-
----
-
-## 💡 How to Adapt for Your Installation
-
-### 1. Configuring Home Battery / BESS (`device_type: battery`)
-If you have a home battery storage system instead of an electric vehicle, set `device_type: battery`:
-
-```yaml
-type: custom:ares-energy-flow-card
-device_type: battery          # Activates BESS mode (at card root level)
-battery_name: "Powerwall"     # Custom title (e.g. "Powerwall", "BESS", "LFP Storage")
-entities:
-  # ... solar and grid sensors ...
-  battery_power: sensor.battery_power                      # Live Watts (pos = charge, neg = discharge)
-  battery_soc: sensor.battery_state_of_charge              # State of charge (0-100%)
-  battery_daily_charge: sensor.battery_daily_charge_energy # Today's charged kWh
-  battery_daily_discharge: sensor.battery_daily_discharge_energy # Today's discharged kWh
-```
-
-> [!TIP]
-> **Zero-Fuss Auto-Detection (v1.1.0+)**:
-> You don't even need to write `device_type: battery`! Simply providing `battery_power` or `battery_soc` inside your `entities:` block will automatically activate Home Battery mode!
->
-> ⚠️ **Still seeing Tesla after updating?**
-> Home Assistant heavily caches custom frontend cards. Perform a hard browser refresh (**Ctrl + F5** / clear Home Assistant companion app frontend cache) so your browser loads the latest version (**v1.1.4**)!
-
-### 2. Selecting Color Palette Theme (`palette`)
-The card supports two distinct aesthetic palettes:
-- **`palette: solar` (Default)**: Harmonized solar dashboard colors — `#00e676` green autarky ring, `#ff7043` warm coral grid reliance, and `#ffd54f` amber solar generation.
-- **`palette: fitness`**: Apple Fitness Activity Ring inspired theme — `#fa114f` crimson red solar & autarky, `#a6e22e` apple lime grid import, and `#00e5ff` electric cyan surplus export, with synchronized glowing flow lines and node accents.
-
-```yaml
-palette: fitness  # 'solar' (default) or 'fitness'
-```
-
-### 3. Setting the Contracted Power Guard (ICP)
-Different countries and utility contracts specify maximum simultaneous draw (for example, $3.3\text{ kW}$, $4.2\text{ kW}$, $5.5\text{ kW}$, or $6.9\text{ kW}$ in Spain / Europe).
-
-Configure `contract_power_limit_kw` to your utility contract limit:
-```yaml
-contract_power_limit_kw: 4.2  # Set to your contracted kW limit
-contract_warning_pct: 0.85    # Warning amber glow threshold (default: 85%)
-```
-- When net grid import is below $85\%$, the card renders a clean normal border.
-- Between $85\%$ and $99\%$, the Grid node glows amber with a `${pct}% ICP` badge.
-- At 100% or above, the Grid node flashes crimson with an `OVERLOAD %` alarm.
-
-### 4. Customizing the EV / Consumer Node
-In default EV mode (`device_type: ev`), you can customize the label for any electric vehicle or heavy appliance (e.g., "Wallbox", "EV", "Heat Pump", "HVAC"):
-```yaml
-ev_name: "Wallbox"
-```
-
-### 5. Customizing System Power Envelope
-The flow animation dynamically adjusts speed from leisurely idle down to high-velocity stream using logarithmic scaling. Set `max_expected_power_kw` to match your peak array size or inverter ceiling (e.g. $5.0$, $7.5$, $10.0$ kW):
-```yaml
-max_expected_power_kw: 7.5  # Inverter peak capacity
-```
+- **🎨 100% Independent Visual Colors Studio**:
+  - Every single element on the card has its own dedicated color setting: Power numbers (`kW`), Daily energy (`kWh`), Node titles, Icons, Badges, Progress bars, Borders, and Background tints.
+  - Changing one element never cascades into or recolors another.
+- **🌈 Dual-Color Start/End Flow Gradients**:
+  - Each of the 7 flow paths has independent **Start Color (Source)** and **End Color (Destination)** pickers.
+  - Create seamless, glowing two-tone gradients (e.g., Solar Yellow $\to$ Home Cyan, or Custom Magenta $\to$ Electric Blue), or set both to the same color for solid streams.
+- **⚡ Restored Logarithmic Velocity Physics**:
+  - True dynamic speed contrast based on real-world energy distribution physics:
+    - **Low draw (Home $\approx 250\text{ W}$)**: drifts calmly at $\approx 1.75\text{s}$ duration.
+    - **Moderate flow (Grid Out $\approx 1.38\text{ kW}$)**: flows at $\approx 1.25\text{s}$ duration.
+    - **High load (Tesla $\approx 3.5\text{ kW}$)**: zips swiftly at $\approx 0.73\text{s}$ duration ($>2.4\times$ faster!).
+  - Master speed multiplier scales all lines together, plus **individual speed sliders** ($0.2\times$ to $3.0\times$) for complete manual authority.
+- **🔋 Bidirectional Home Battery Storage & Grid Export**:
+  - Full support for Home Battery Storage (`device_type: battery`).
+  - Displays solar charging, home discharging, and surplus **Battery-to-Grid export** with live animated flows.
+- **🛠️ Zero-YAML Visual Editor**:
+  - Native Home Assistant card editor with searchable entity dropdowns, live preview, and instant auto-fill for Shelly, Solcast, Enphase, APsystems, and Tesla sensors.
+- **☀️ Solcast PV Forecast Pacing**:
+  - Real-time comparison against Solcast daily predictions with visual progress bar, remaining forecast badge, and pacing scorecard ring.
+  - Toggle on/off with a single click while preserving card geometry and upward sweeping S-curves.
+- **🛡️ Intelligent Contracted Power Guard**:
+  - Monitored utility grid limit with percentage warning slider ($50\%\dots 100\%$) that illuminates an amber warning badge when approaching breaker tripping capacity.
+- **📏 Responsive Typography Scale Multiplier**:
+  - Custom font scaling slider ($0.8\times$ to $1.3\times$) to match any tablet, wall dashboard, or mobile screen.
 
 ---
 
 ## 🚀 Quick Start Installation
 
-### Method 2: Manual Installation
-
-1. Download [`ares-energy-flow-card.js`](./ares-energy-flow-card.js) from this repository.
-2. Copy `ares-energy-flow-card.js` into your Home Assistant `<config>/www/` directory (e.g. via Samba, SSH, or Studio Code Server).
-3. In Home Assistant, navigate to **Settings** $\rightarrow$ **Dashboards** $\rightarrow$ **Three Dots (⋮)** in the top right $\rightarrow$ **Resources**.
-4. Click **Add Resource**:
-   - **URL**: `/local/ares-energy-flow-card.js`
-   - **Resource Type**: `JavaScript Module`
-5. Refresh your browser or companion app.
-
 ### Method 1: HACS Custom Repository (Recommended)
 
-1. Open **HACS** in Home Assistant.
-2. Click the **Three Dots (⋮)** in the top right $\rightarrow$ **Custom repositories**.
-3. Paste repository URL: `https://github.com/Aresitoo/ha-energy-flow-card`
-4. Category: **Dashboard** (or **Plugin / Lovelace**).
-5. Click **Add**, find **Ares Energy Flow & Autarky Scorecard**, and click **Download**.
+1. Open **HACS** in your Home Assistant sidebar.
+2. Click the three dots in the top right corner and select **Custom repositories**.
+3. Paste the repository URL:
+   ```text
+   https://github.com/Aresitoo/ha-energy-flow-card
+   ```
+4. Set the category to **Dashboard / Lovelace** and click **Add**.
+5. Find **ChromaFlow — Energy Flow & Autarky Card**, click **Download**, and restart or reload your dashboard.
+
+### Method 2: Manual Installation
+
+1. Download [`ares-energy-flow-card.js`](https://raw.githubusercontent.com/Aresitoo/ha-energy-flow-card/main/ares-energy-flow-card.js) from the latest release.
+2. Copy the file into your Home Assistant `<config>/www/` directory.
+3. Add the resource reference in **Settings $\to$ Dashboards $\to$ Three dots $\to$ Resources**:
+   - **URL**: `/local/ares-energy-flow-card.js?v=2.0.0`
+   - **Resource Type**: `JavaScript Module`
 
 ---
 
 ## 🛠️ Complete Configuration Options
 
-Add the card to any Lovelace view:
+You can configure ChromaFlow entirely through the **Home Assistant Visual Editor**, or edit the YAML directly for advanced setups:
 
 ```yaml
-type: custom:ares-energy-flow-card
-palette: solar              # 'solar' (default) or 'fitness'
-device_type: ev             # 'ev' (default) or 'battery' (BESS)
-battery_name: "BESS"        # Used when device_type is 'battery'
-ev_name: "Tesla"            # Used when device_type is 'ev'
+type: custom:ha-energy-flow-card
+device_type: ev # or 'battery' for home storage (BESS)
 contract_power_limit_kw: 4.2
-contract_warning_pct: 0.85
+contract_warning_pct: 0.85 # Alert when grid import reaches 85% of limit
 max_expected_power_kw: 7.5
+min_flow_threshold_w: 2
+speed_multiplier: 1.0
+font_scale: 1.0
 show_solar_forecast: true
+palette: solar # 'solar' or 'fitness'
+
 entities:
-  # Solar:
   solar_power: sensor.solar_power
   solar_daily_yield: sensor.solar_daily_yield
-
-  # Grid:
   grid_power: sensor.grid_power
-  grid_daily_import: sensor.grid_daily_import_energy
-  grid_daily_export: sensor.grid_daily_export_energy
-
-  # EV Mode (when device_type: ev):
-  ev_power: sensor.ev_charging_power
+  grid_daily_import: sensor.grid_daily_import
+  grid_daily_export: sensor.grid_daily_export
+  load_power: sensor.home_power # optional
+  solcast_today: sensor.solcast_pv_forecast_forecast_today # optional
+  solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today # optional
+  ev_power: sensor.ev_charger_power
   ev_charging: binary_sensor.ev_charging
-  ev_daily_energy: sensor.ev_daily_energy
+  ev_daily_energy: sensor.ev_charger_energy
 
-  # Battery Mode (when device_type: battery):
-  battery_power: sensor.battery_power
-  battery_soc: sensor.battery_soc
-  battery_daily_charge: sensor.battery_daily_charge_energy
-  battery_daily_discharge: sensor.battery_daily_discharge_energy
+# Optional: Granular Color Overrides (Hex, RGBA, or CSS Named Colors)
+colors:
+  flow_solar_home_start: "#ffd54f"
+  flow_solar_home_end: "#00e5ff"
+  flow_solar_tesla_start: "#ffd54f"
+  flow_solar_tesla_end: "#b388ff"
+  pwr_solar: "#ffffff"
+  kwh_solar: "rgba(255, 255, 255, 0.6)"
+  title_solar: "#ffd54f"
 
-  # Forecast (Optional):
-  solcast_today: sensor.solcast_pv_forecast_forecast_today
-  solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today
+# Optional: Granular Line Speed Overrides (Multiplier 0.2x to 3.0x)
+line_speeds:
+  solar_home: 1.0
+  solar_tesla: 1.2
+  solar_grid: 1.0
 ```
 
-### Configuration Reference
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `type` | string | **Required** | Must be `custom:ares-energy-flow-card` |
-| `device_type` | string | `'ev'` | Secondary slot mode: `'ev'` (default) or `'battery'` (BESS) |
-| `battery_name` | string | `'BESS'` | Custom title for battery storage node (e.g. `'Powerwall'`) |
-| `ev_name` | string | `"Tesla"` | Custom title for electric vehicle node (e.g. `'Wallbox'`) |
-| `palette` | string | `'solar'` | Theme color palette: `'solar'` (harmonized green/coral/amber) or `'fitness'` (Apple Activity ring crimson/lime/cyan) |
-| `contract_power_limit_kw` | number | `4.2` | Contracted utility power limit in kW (ICP limit) |
-| `contract_warning_pct` | number | `0.85` | Ratio of contracted limit at which amber warning activates ($0.85 = 85\%$) |
-| `max_expected_power_kw` | number | `7.5` | System peak power envelope for velocity scaling ($7.5 = 7500\text{ W}$) |
-| `min_flow_threshold_w` | number | `2` | Minimum active flow threshold in Watts below which lines go idle ($0$–$15\text{ W}$). Set higher (e.g. $8$–$15\text{ W}$) to filter nocturnal micro-inverter phantom draw. |
-| `show_solar_forecast` | boolean | `true` | Display Solcast estimate badge and progress bar |
-| `power_unit` | string | `'auto'` | Force power sensor unit (`'W'`, `'kW'`, `'MW'`). Automatically detected from sensor `unit_of_measurement` by default. |
-| `energy_unit` | string | `'auto'` | Force energy sensor unit (`'kWh'`, `'Wh'`, `'MWh'`). Automatically detected from sensor `unit_of_measurement` by default. |
-| `entities.solar_power` | string | `sensor.solar_power` | Real-time solar production in Watts |
-| `entities.solar_daily_yield` | string | `sensor.solar_daily_yield` | Cumulative solar yield today in kWh |
-| `entities.grid_power` | string | `sensor.grid_power` | Net grid power in Watts (positive = import, negative = export) |
-| `entities.grid_daily_import` | string | `sensor.grid_daily_import_energy` | Cumulative grid energy imported today in kWh |
-| `entities.grid_daily_export` | string | `sensor.grid_daily_export_energy` | Cumulative grid energy exported today in kWh |
-| `entities.ev_power` | string | `sensor.ev_charging_power` | Real-time EV charger or appliance draw in Watts |
-| `entities.ev_charging` | string | `binary_sensor.ev_charging` | Binary sensor indicating active charging state |
-| `entities.ev_daily_energy` | string | `sensor.ev_daily_energy` | Cumulative EV charger energy today in kWh |
-| `entities.battery_power` | string | `sensor.battery_power` | Real-time battery power in Watts (positive = charging, negative = discharging) |
-| `entities.battery_soc` | string | `sensor.battery_soc` | Battery State-of-Charge percentage (0–100%) |
-| `entities.battery_daily_charge` | string | `sensor.battery_daily_charge_energy` | Cumulative energy charged into battery today in kWh |
-| `entities.battery_daily_discharge` | string | `sensor.battery_daily_discharge_energy` | Cumulative energy discharged from battery today in kWh |
-| `entities.solcast_today` | string | `sensor.solcast_pv_forecast_forecast_today` | Solcast today's estimated forecast in kWh |
-| `entities.solcast_remaining` | string | `sensor.solcast_pv_forecast_forecast_remaining_today` | Solcast remaining forecast today in kWh |
-
 ---
+
+## 🙏 Community Credits & Special Thanks
+
+ChromaFlow 2.0 represents a major community-driven milestone. Special thanks to the contributors and users on GitHub who shared feedback:
+
+- **@Rayeliint** — for reporting the entity animation issue and inspiring the full Home Assistant Visual Editor overhaul and zero-YAML fallback system ([Issue #3](https://github.com/Aresitoo/ha-energy-flow-card/issues/3)).
+- **@jameslowe1977-cyber** — for requesting bidirectional battery export flow support to track home batteries exporting surplus power back to the grid ([Issue #4](https://github.com/Aresitoo/ha-energy-flow-card/issues/4)).
 
 ---
 
 ## 💪 Support & Community
 
-`ha-energy-flow-card` is **100% free, open-source**, and built in spare time. If it saved you hours of YAML configuration, brought buttery-smooth 60fps animations to your dashboard, or helped optimize your household autarky, there are many ways you can support the project:
+If you enjoy ChromaFlow and find it valuable for your smart home:
 
-### ⭐ Star the Repository
-The simplest and most impactful way to show support is to **star the repository on GitHub**. It increases visibility, motivates ongoing development, and helps more Home Assistant users discover the card!
+- ⭐ **Star the Repository**: It helps more Home Assistant users discover the card!
+- 💬 **GitHub Discussions**: Share your custom color themes and setup ideas in [Discussions](https://github.com/Aresitoo/ha-energy-flow-card/discussions).
+- 🐛 **Issue Tracker**: Found a bug or have a suggestion? Open an issue on [GitHub Issues](https://github.com/Aresitoo/ha-energy-flow-card/issues).
+- ☕ **Buy Me a Coffee**: If you'd like to support continued development, you can [sponsor a coffee here](https://buymeacoffee.com/aresitoo)!
 
-### 💬 Community & Discussions
-Have questions, want to show off your dashboard layout, or have ideas for new features? Join us in **[GitHub Discussions](https://github.com/Aresitoo/ha-energy-flow-card/discussions)**:
-- **💡 [Ideas & Suggestions](https://github.com/Aresitoo/ha-energy-flow-card/discussions/categories/ideas)**: Propose new flow animations or sensor support.
-- **🎨 [Show and Tell](https://github.com/Aresitoo/ha-energy-flow-card/discussions/categories/show-and-tell)**: Share screenshots of your cards and theme setups to inspire others.
-- **❓ [Q&A & Help](https://github.com/Aresitoo/ha-energy-flow-card/discussions/categories/q-a)**: Get guidance from the community on configuring tricky entities.
-
-### 🐛 Bug Reports & Feedback
-Found an unexpected glitch or rendering bug? Submit a **[Bug Report](https://github.com/Aresitoo/ha-energy-flow-card/issues/new/choose)** using our structured form. Detailed reports with YAML and logs make fixing bugs fast and painless.
-
-### ☕ Buy Me a Coffee
-If you'd like to support the project financially, buying a coffee is a wonderful way to say thank you and fuel late-night testing and new features:
-
-<p align="center">
-  <a href="https://buymeacoffee.com/aresitoo" target="_blank">
-    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Project-FFDD00.svg?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black&labelColor=1a1a1a" alt="Buy Me a Coffee Badge">
-  </a>
-</p>
+---
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is open-source and released under the **MIT License**.
