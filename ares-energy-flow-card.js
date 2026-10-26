@@ -472,6 +472,127 @@ class HaEnergyFlowCard extends HTMLElement {
           border: 1px solid ${isFitness ? 'rgba(250, 17, 79, 0.3)' : 'rgba(0, 230, 118, 0.25)'};
           box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
           isolation: isolate;
+          container-type: inline-size;
+          container-name: chromaflow;
+        }
+
+        /* Adaptive Container Queries for Compact Views & Card Picker Previews */
+        @container chromaflow (max-width: 375px) {
+          ha-card {
+            padding: 8px 10px 12px;
+          }
+          .col-left, .col-right {
+            width: clamp(94px, 33%, 124px);
+          }
+          .node {
+            padding: 5px 6px;
+          }
+          .node-pwr {
+            font-size: calc(15px * var(--ares-font-scale, 1));
+          }
+          .node-kwh {
+            font-size: calc(8.5px * var(--ares-font-scale, 1));
+          }
+          .node-title {
+            font-size: calc(10px * var(--ares-font-scale, 1));
+          }
+          .badge {
+            font-size: calc(6.5px * var(--ares-font-scale, 1));
+            padding: 1px 2px;
+          }
+          .scorecard {
+            padding: 10px 10px !important;
+            gap: 10px !important;
+          }
+          .rings-container {
+            width: 106px !important;
+            height: 106px !important;
+          }
+          .rings-center-text {
+            width: 58px !important;
+          }
+          .rings-center-pct {
+            font-size: 17px !important;
+          }
+          .rings-center-sub {
+            font-size: 7.5px !important;
+          }
+          .rings-center-sub2 {
+            font-size: 6.5px !important;
+          }
+          .kpi-column {
+            gap: 6px !important;
+          }
+          .kpi-title {
+            font-size: calc(9px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-pct {
+            font-size: calc(14px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-kwh {
+            font-size: calc(9.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-tag {
+            font-size: 7.5px !important;
+          }
+        }
+
+        @container chromaflow (max-width: 315px) {
+          ha-card {
+            padding: 6px 8px 10px;
+          }
+          .col-left, .col-right {
+            width: 33%;
+          }
+          .node {
+            padding: 4px 5px;
+          }
+          .node-pwr {
+            font-size: calc(13px * var(--ares-font-scale, 1));
+          }
+          .node-kwh {
+            font-size: calc(7.5px * var(--ares-font-scale, 1));
+          }
+          .node-title {
+            font-size: calc(9px * var(--ares-font-scale, 1));
+          }
+          .badge {
+            font-size: 5.5px;
+            padding: 0.5px 1.5px;
+          }
+          .scorecard {
+            padding: 8px 8px !important;
+            gap: 8px !important;
+          }
+          .rings-container {
+            width: 86px !important;
+            height: 86px !important;
+          }
+          .rings-center-text {
+            width: 48px !important;
+          }
+          .rings-center-pct {
+            font-size: 15px !important;
+          }
+          .rings-center-sub {
+            font-size: 6.8px !important;
+            letter-spacing: 0.2px !important;
+          }
+          .rings-center-sub2 {
+            display: none !important;
+          }
+          .kpi-title {
+            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-pct {
+            font-size: calc(13px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-kwh {
+            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-tag {
+            display: none !important;
+          }
         }
         .bg-glow {
           position: absolute;
@@ -726,9 +847,9 @@ class HaEnergyFlowCard extends HTMLElement {
           </div>
 
           <!-- Bottom: Autarky Scorecard -->
-          <div style="background: ${cScorecardBg}; border-radius: 14px; border: 1px solid ${cScorecardBorder}; padding: 12px 14px; display: flex; align-items: center; gap: 14px;">
+          <div class="scorecard" style="background: ${cScorecardBg}; border-radius: 14px; border: 1px solid ${cScorecardBorder}; padding: 12px 14px; display: flex; align-items: center; gap: 14px;">
             <!-- Left: Concentric Activity Rings -->
-            <div style="position: relative; width: 136px; height: 136px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+            <div class="rings-container" style="position: relative; width: 136px; height: 136px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
               <svg viewBox="0 0 156 156" style="width: 100%; height: 100%; transform: rotate(-90deg);">
                 <!-- Ring 1 (Outer): Autarky -->
                 <circle cx="78" cy="78" r="68" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
@@ -742,26 +863,26 @@ class HaEnergyFlowCard extends HTMLElement {
                 <circle cx="78" cy="78" r="40" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
                 <circle id="ring-export" cx="78" cy="78" r="40" fill="none" stroke="${cExportRing}" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33" style="transition: stroke-dashoffset 0.6s ease;" />
               </svg>
-              <div style="position: absolute; text-align: center; pointer-events: none; width: 72px;">
-                <div id="autarky-center-pct" style="font-size: clamp(18px, calc(20px * var(--ares-font-scale, 1)), 23px); font-weight: 900; color: ${cPctCenter}; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
-                <div style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cLblCenter}; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;"><span id="lbl-autarky">${lbls.autarky}</span></div>
-                <div style="font-size: calc(7.5px * var(--ares-font-scale, 1)); color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;"><span id="lbl-autarky-sub">${lbls.autarky_sub}</span></div>
+              <div class="rings-center-text" style="position: absolute; text-align: center; pointer-events: none; width: 72px;">
+                <div id="autarky-center-pct" class="rings-center-pct" style="font-size: clamp(18px, calc(20px * var(--ares-font-scale, 1)), 23px); font-weight: 900; color: ${cPctCenter}; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
+                <div class="rings-center-sub" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cLblCenter}; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;"><span id="lbl-autarky">${lbls.autarky}</span></div>
+                <div class="rings-center-sub2" style="font-size: calc(7.5px * var(--ares-font-scale, 1)); color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;"><span id="lbl-autarky-sub">${lbls.autarky_sub}</span></div>
               </div>
             </div>
 
             <!-- Right: Tabular KPI Rows -->
-            <div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0;">
+            <div class="kpi-column" style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0;">
               <!-- Row 1: Solar Self-Consumed -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;"><span id="lbl-self-consumed">${lbls.self_consumed}</span></span>
-                  <span id="row-autarky-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowSelfTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-self-consumed">${lbls.self_consumed}</span></span>
+                  <span id="row-autarky-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowSelfTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span id="row-solar-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfKwh}; font-variant-numeric: tabular-nums; white-space: nowrap;">
+                  <span id="row-solar-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
                     0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-self-consumed-sub">${lbls.self_consumed_sub}</span></span>
                   </span>
-                  <span style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
                 <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin-top: 2px;">
                   <div id="bar-solar-self-consumed" style="width: 0%; height: 100%; background: ${cRowSelfBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -771,14 +892,14 @@ class HaEnergyFlowCard extends HTMLElement {
               <!-- Row 2: Utility Grid Reliance -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;"><span id="lbl-grid-reliance">${lbls.grid_reliance}</span></span>
-                  <span id="row-grid-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowGridTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-grid-reliance">${lbls.grid_reliance}</span></span>
+                  <span id="row-grid-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowGridTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span id="row-grid-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridKwh}; font-variant-numeric: tabular-nums; white-space: nowrap;">
+                  <span id="row-grid-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
                     0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-grid-reliance-sub">${lbls.grid_reliance_sub}</span></span>
                   </span>
-                  <span style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF LOAD</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
                 <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cGridBg}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-grid-reliance" style="width: 0%; height: 100%; background: ${cRowGridBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -788,14 +909,14 @@ class HaEnergyFlowCard extends HTMLElement {
               <!-- Row 3: Exported to Grid -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap;"><span id="lbl-exported">${lbls.exported}</span></span>
-                  <span id="row-export-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowExportTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap;">0%</span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-exported">${lbls.exported}</span></span>
+                  <span id="row-export-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowExportTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span id="row-export-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportKwh}; font-variant-numeric: tabular-nums; white-space: nowrap;">
+                  <span id="row-export-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
                     0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-exported-sub">${lbls.exported_sub}</span></span>
                   </span>
-                  <span style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px;">OF SOLAR</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF SOLAR</span>
                 </div>
                 <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cExportBg}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-export" style="width: 0%; height: 100%; background: ${cRowExportBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -947,7 +1068,7 @@ class HaEnergyFlowCard extends HTMLElement {
     const pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeTargetY + 5}, ${endX} ${homeTargetY + 5}`;
     const pGridTesla = `M ${startX} ${gTeslaY} C ${cp1X} ${gTeslaY}, ${cp2X} ${teslaTargetY + 5}, ${endX} ${teslaTargetY + 5}`;
 
-    const cpArcX = Math.round(endX - 42);
+    const cpArcX = Math.round(endX - Math.min(42, Math.max(16, (endX - startX) * 0.45)));
     const teslaTopY = Math.round(cRight.offsetTop + nodeTesla.offsetTop);
     const teslaBottomY = teslaTopY + nodeTesla.offsetHeight;
     const homeBottomY = Math.round(cRight.offsetTop + nodeHome.offsetTop + nodeHome.offsetHeight);
