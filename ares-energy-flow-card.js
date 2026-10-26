@@ -4,6 +4,268 @@
  * Version: v1.2.0 (Zero-YAML Visual Editor, 100% Granular Color Studio, Classic S-Curves & Bulletproof Anchors)
  */
 
+const PALETTES = {
+  solar: {
+    name: '☀️ Solar Harmonized (Default)',
+    solar: '#ffd54f',
+    grid: '#ff7043',
+    home: '#00e5ff',
+    device: '#b388ff',
+    export: '#00e676',
+    autarky: '#00e676',
+    import_ring: '#ff7043',
+    export_ring: '#ffd54f',
+    bg_solar: 'rgba(255, 213, 79, 0.12)',
+    border_solar: 'rgba(255, 213, 79, 0.3)',
+    bg_grid: 'rgba(255, 112, 67, 0.12)',
+    border_grid: 'rgba(255, 112, 67, 0.3)',
+    bg_home: 'rgba(0, 229, 255, 0.12)',
+    border_home: 'rgba(0, 229, 255, 0.3)',
+    bg_device: 'rgba(179, 136, 255, 0.12)',
+    border_device: 'rgba(179, 136, 255, 0.3)',
+    bg_export: 'rgba(0, 230, 118, 0.12)',
+    border_export: 'rgba(0, 230, 118, 0.25)',
+    card_border: 'rgba(0, 230, 118, 0.25)',
+    scorecard_radial: 'rgba(0, 229, 255, 0.05)'
+  },
+  fitness: {
+    name: '🏃 Fitness Activity (Apple Rings)',
+    solar: '#fa114f',
+    grid: '#a6e22e',
+    home: '#00e5ff',
+    device: '#b388ff',
+    export: '#00e5ff',
+    autarky: '#fa114f',
+    import_ring: '#a6e22e',
+    export_ring: '#00e5ff',
+    bg_solar: 'rgba(250, 17, 79, 0.15)',
+    border_solar: 'rgba(250, 17, 79, 0.3)',
+    bg_grid: 'rgba(166, 226, 46, 0.15)',
+    border_grid: 'rgba(166, 226, 46, 0.3)',
+    bg_home: 'rgba(0, 229, 255, 0.12)',
+    border_home: 'rgba(0, 229, 255, 0.3)',
+    bg_device: 'rgba(179, 136, 255, 0.12)',
+    border_device: 'rgba(179, 136, 255, 0.3)',
+    bg_export: 'rgba(0, 229, 255, 0.15)',
+    border_export: 'rgba(0, 229, 255, 0.25)',
+    card_border: 'rgba(250, 17, 79, 0.3)',
+    scorecard_radial: 'rgba(250, 17, 79, 0.08)'
+  },
+  halloween: {
+    name: '🎃 Spooky Halloween (Pumpkin & Witch Purple)',
+    solar: '#ff7518',
+    grid: '#9d4edd',
+    home: '#39ff14',
+    device: '#f72585',
+    export: '#ff0055',
+    autarky: '#ff7518',
+    import_ring: '#9d4edd',
+    export_ring: '#39ff14',
+    bg_solar: 'rgba(255, 117, 24, 0.15)',
+    border_solar: 'rgba(255, 117, 24, 0.35)',
+    bg_grid: 'rgba(157, 78, 221, 0.15)',
+    border_grid: 'rgba(157, 78, 221, 0.35)',
+    bg_home: 'rgba(57, 255, 20, 0.12)',
+    border_home: 'rgba(57, 255, 20, 0.3)',
+    bg_device: 'rgba(247, 37, 133, 0.15)',
+    border_device: 'rgba(247, 37, 133, 0.3)',
+    bg_export: 'rgba(255, 0, 85, 0.15)',
+    border_export: 'rgba(255, 0, 85, 0.3)',
+    card_border: 'rgba(255, 117, 24, 0.35)',
+    scorecard_radial: 'rgba(157, 78, 221, 0.08)'
+  },
+  christmas: {
+    name: '🎄 Festive Christmas (Pine, Crimson & Gold)',
+    solar: '#ffd700',
+    grid: '#d90429',
+    home: '#2b9348',
+    device: '#80b918',
+    export: '#f8f9fa',
+    autarky: '#2b9348',
+    import_ring: '#d90429',
+    export_ring: '#ffd700',
+    bg_solar: 'rgba(255, 215, 0, 0.15)',
+    border_solar: 'rgba(255, 215, 0, 0.35)',
+    bg_grid: 'rgba(217, 4, 41, 0.15)',
+    border_grid: 'rgba(217, 4, 41, 0.35)',
+    bg_home: 'rgba(43, 147, 72, 0.15)',
+    border_home: 'rgba(43, 147, 72, 0.35)',
+    bg_device: 'rgba(128, 185, 24, 0.15)',
+    border_device: 'rgba(128, 185, 24, 0.3)',
+    bg_export: 'rgba(248, 249, 250, 0.15)',
+    border_export: 'rgba(248, 249, 250, 0.3)',
+    card_border: 'rgba(217, 4, 41, 0.35)',
+    scorecard_radial: 'rgba(43, 147, 72, 0.08)'
+  },
+  cyberpunk: {
+    name: '🌆 Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)',
+    solar: '#00ffff',
+    grid: '#ff007f',
+    home: '#ffff00',
+    device: '#bd00ff',
+    export: '#00ff66',
+    autarky: '#00ffff',
+    import_ring: '#ff007f',
+    export_ring: '#00ff66',
+    bg_solar: 'rgba(0, 255, 255, 0.15)',
+    border_solar: 'rgba(0, 255, 255, 0.35)',
+    bg_grid: 'rgba(255, 0, 127, 0.15)',
+    border_grid: 'rgba(255, 0, 127, 0.35)',
+    bg_home: 'rgba(255, 255, 0, 0.12)',
+    border_home: 'rgba(255, 255, 0, 0.3)',
+    bg_device: 'rgba(189, 0, 255, 0.15)',
+    border_device: 'rgba(189, 0, 255, 0.35)',
+    bg_export: 'rgba(0, 255, 102, 0.15)',
+    border_export: 'rgba(0, 255, 102, 0.3)',
+    card_border: 'rgba(0, 255, 255, 0.35)',
+    scorecard_radial: 'rgba(255, 0, 127, 0.08)'
+  },
+  synthwave: {
+    name: '🌅 Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)',
+    solar: '#ff9e00',
+    grid: '#ff0054',
+    home: '#00f5d4',
+    device: '#9b5de5',
+    export: '#fee440',
+    autarky: '#00f5d4',
+    import_ring: '#ff0054',
+    export_ring: '#ff9e00',
+    bg_solar: 'rgba(255, 158, 0, 0.15)',
+    border_solar: 'rgba(255, 158, 0, 0.35)',
+    bg_grid: 'rgba(255, 0, 84, 0.15)',
+    border_grid: 'rgba(255, 0, 84, 0.35)',
+    bg_home: 'rgba(0, 245, 212, 0.12)',
+    border_home: 'rgba(0, 245, 212, 0.3)',
+    bg_device: 'rgba(155, 93, 229, 0.15)',
+    border_device: 'rgba(155, 93, 229, 0.35)',
+    bg_export: 'rgba(254, 228, 64, 0.15)',
+    border_export: 'rgba(254, 228, 64, 0.3)',
+    card_border: 'rgba(255, 0, 84, 0.35)',
+    scorecard_radial: 'rgba(0, 245, 212, 0.08)'
+  },
+  nord: {
+    name: '❄️ Nord Frost (Polar Night, Ice Blue & Arctic Teal)',
+    solar: '#ebcb8b',
+    grid: '#bf616a',
+    home: '#88c0d0',
+    device: '#b48ead',
+    export: '#a3be8c',
+    autarky: '#a3be8c',
+    import_ring: '#bf616a',
+    export_ring: '#88c0d0',
+    bg_solar: 'rgba(235, 203, 139, 0.15)',
+    border_solar: 'rgba(235, 203, 139, 0.3)',
+    bg_grid: 'rgba(191, 97, 106, 0.15)',
+    border_grid: 'rgba(191, 97, 106, 0.3)',
+    bg_home: 'rgba(136, 192, 208, 0.15)',
+    border_home: 'rgba(136, 192, 208, 0.3)',
+    bg_device: 'rgba(180, 142, 173, 0.15)',
+    border_device: 'rgba(180, 142, 173, 0.3)',
+    bg_export: 'rgba(163, 190, 140, 0.15)',
+    border_export: 'rgba(163, 190, 140, 0.3)',
+    card_border: 'rgba(136, 192, 208, 0.3)',
+    scorecard_radial: 'rgba(136, 192, 208, 0.08)'
+  },
+  midnight: {
+    name: '🌌 Midnight Glow (Stealth Slate, Sky Blue & Amber)',
+    solar: '#38bdf8',
+    grid: '#f59e0b',
+    home: '#e2e8f0',
+    device: '#a855f7',
+    export: '#10b981',
+    autarky: '#38bdf8',
+    import_ring: '#f59e0b',
+    export_ring: '#10b981',
+    bg_solar: 'rgba(56, 189, 248, 0.15)',
+    border_solar: 'rgba(56, 189, 248, 0.3)',
+    bg_grid: 'rgba(245, 158, 11, 0.15)',
+    border_grid: 'rgba(245, 158, 11, 0.3)',
+    bg_home: 'rgba(226, 232, 240, 0.12)',
+    border_home: 'rgba(226, 232, 240, 0.3)',
+    bg_device: 'rgba(168, 85, 247, 0.15)',
+    border_device: 'rgba(168, 85, 247, 0.3)',
+    bg_export: 'rgba(16, 185, 129, 0.15)',
+    border_export: 'rgba(16, 185, 129, 0.3)',
+    card_border: 'rgba(56, 189, 248, 0.3)',
+    scorecard_radial: 'rgba(56, 189, 248, 0.08)'
+  },
+  emerald: {
+    name: '🌲 Emerald Forest (Mint Jade, Lime Leaf & Deep Pine)',
+    solar: '#a3e635',
+    grid: '#eab308',
+    home: '#34d399',
+    device: '#059669',
+    export: '#10b981',
+    autarky: '#10b981',
+    import_ring: '#eab308',
+    export_ring: '#34d399',
+    bg_solar: 'rgba(163, 230, 53, 0.15)',
+    border_solar: 'rgba(163, 230, 53, 0.3)',
+    bg_grid: 'rgba(234, 179, 8, 0.15)',
+    border_grid: 'rgba(234, 179, 8, 0.3)',
+    bg_home: 'rgba(52, 211, 153, 0.15)',
+    border_home: 'rgba(52, 211, 153, 0.3)',
+    bg_device: 'rgba(5, 150, 105, 0.15)',
+    border_device: 'rgba(5, 150, 105, 0.3)',
+    bg_export: 'rgba(16, 185, 129, 0.15)',
+    border_export: 'rgba(16, 185, 129, 0.3)',
+    card_border: 'rgba(16, 185, 129, 0.3)',
+    scorecard_radial: 'rgba(52, 211, 153, 0.08)'
+  },
+  ocean: {
+    name: '🌊 Deep Ocean (Lagoon Aqua, Coral & Deep Indigo)',
+    solar: '#38bdf8',
+    grid: '#f43f5e',
+    home: '#06b6d4',
+    device: '#6366f1',
+    export: '#2dd4bf',
+    autarky: '#2dd4bf',
+    import_ring: '#f43f5e',
+    export_ring: '#38bdf8',
+    bg_solar: 'rgba(56, 189, 248, 0.15)',
+    border_solar: 'rgba(56, 189, 248, 0.3)',
+    bg_grid: 'rgba(244, 63, 94, 0.15)',
+    border_grid: 'rgba(244, 63, 94, 0.3)',
+    bg_home: 'rgba(6, 182, 212, 0.15)',
+    border_home: 'rgba(6, 182, 212, 0.3)',
+    bg_device: 'rgba(99, 102, 241, 0.15)',
+    border_device: 'rgba(99, 102, 241, 0.3)',
+    bg_export: 'rgba(45, 212, 191, 0.15)',
+    border_export: 'rgba(45, 212, 191, 0.3)',
+    card_border: 'rgba(6, 182, 212, 0.3)',
+    scorecard_radial: 'rgba(6, 182, 212, 0.08)'
+  }
+};
+
+function hslToHex(h, s, l) {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function hexToRgba(hex, alpha) {
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return `rgba(255, 255, 255, ${alpha})`;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getRandomVibrantHex(baseHue) {
+  const h = (baseHue !== undefined) ? (Math.round(baseHue) % 360) : Math.floor(Math.random() * 360);
+  const s = 82 + Math.floor(Math.random() * 18);
+  const l = 54 + Math.floor(Math.random() * 12);
+  return hslToHex(h, s, l);
+}
+
 class HaEnergyFlowCard extends HTMLElement {
   static async getConfigElement() {
     if (window.loadCardHelpers) {
@@ -97,35 +359,72 @@ class HaEnergyFlowCard extends HTMLElement {
       ]),
       ev_power: resolve('ev_power', [
         'sensor.evse_192_168_0_249_charge_power',
+        'sensor.v2c_trydan_power',
+        'sensor.wallbox_power',
+        'sensor.wallbox_portal_charging_power',
+        'sensor.easee_power',
+        'sensor.tesla_wall_connector_power',
+        'sensor.zaptec_power',
+        'sensor.ohme_power',
+        'sensor.go_echarger_power',
         'sensor.ev_power',
-        'sensor.wallbox_power'
+        'sensor.ev_charge_power',
+        'sensor.charger_power'
       ]),
       ev_charging: resolve('ev_charging', [
         'binary_sensor.evse_192_168_0_249_charging',
-        'binary_sensor.ev_charging'
+        'binary_sensor.v2c_trydan_charging',
+        'binary_sensor.wallbox_charging',
+        'binary_sensor.easee_is_charging',
+        'binary_sensor.tesla_wall_connector_charging',
+        'binary_sensor.tesla_charging',
+        'binary_sensor.ev_charging',
+        'binary_sensor.charger_status'
       ]),
       ev_daily_energy: resolve('ev_daily_energy', [
         'sensor.v2c_charging_stats',
         'sensor.evse_192_168_0_249_charge_energy',
+        'sensor.wallbox_energy_added',
+        'sensor.wallbox_portal_added_energy',
+        'sensor.wallbox_energy',
+        'sensor.easee_charger_session_energy',
+        'sensor.easee_lifetime_energy',
+        'sensor.tesla_wall_connector_energy',
+        'sensor.charger_total_energy',
+        'sensor.tesla_charge_energy_added',
+        'sensor.zaptec_session_energy',
+        'sensor.ohme_session_energy',
+        'sensor.go_echarger_energy',
+        'sensor.ev_daily_energy',
+        'sensor.ev_charging_energy_today',
         'sensor.ev_charged_today'
       ]),
       battery_power: resolve('battery_power', [
         'sensor.battery_power',
         'sensor.bess_power',
-        'sensor.powerwall_battery_now'
+        'sensor.powerwall_battery_now',
+        'sensor.solar_battery_power',
+        'sensor.givenergy_battery_power',
+        'sensor.huawei_battery_power'
       ]),
       battery_soc: resolve('battery_soc', [
         'sensor.battery_soc',
         'sensor.battery_state_of_charge',
-        'sensor.powerwall_charge'
+        'sensor.powerwall_charge',
+        'sensor.givenergy_battery_soc',
+        'sensor.huawei_battery_soc'
       ]),
       battery_daily_charge: resolve('battery_daily_charge', [
         'sensor.battery_daily_charge_energy',
-        'sensor.battery_charge_today'
+        'sensor.battery_charge_today',
+        'sensor.powerwall_daily_battery_charge',
+        'sensor.givenergy_battery_charge_energy_today'
       ]),
       battery_daily_discharge: resolve('battery_daily_discharge', [
         'sensor.battery_daily_discharge_energy',
-        'sensor.battery_discharge_today'
+        'sensor.battery_discharge_today',
+        'sensor.powerwall_daily_battery_discharge',
+        'sensor.givenergy_battery_discharge_energy_today'
       ]),
       solcast_today: resolve('solcast_today', [
         'sensor.solcast_pv_forecast_forecast_today',
@@ -269,7 +568,9 @@ class HaEnergyFlowCard extends HTMLElement {
     this._rendered = true;
     this.style.setProperty('--ares-font-scale', String(this._fontScale || 1.0));
 
-    const isFitness = (this._config && this._config.palette === 'fitness');
+    const pKey = (this._config && this._config.palette) || 'solar';
+    const pal = PALETTES[pKey] || PALETTES.solar;
+    const isFitness = (pKey === 'fitness');
     const isBattery = this._isBatteryMode();
     const lbls = this._getLabels();
     const devIcon = isBattery ? '🔋' : '🚗';
@@ -280,82 +581,82 @@ class HaEnergyFlowCard extends HTMLElement {
 
     const d = {
       // 1. Solar Box Elements
-      bg_solar: isFitness ? 'rgba(250, 17, 79, 0.15)' : 'rgba(255, 213, 79, 0.12)',
-      border_solar: isFitness ? 'rgba(250, 17, 79, 0.3)' : 'rgba(255, 213, 79, 0.3)',
-      title_solar: isFitness ? '#fa114f' : '#ffd54f',
+      bg_solar: pal.bg_solar,
+      border_solar: pal.border_solar,
+      title_solar: pal.solar,
       pwr_solar: '#ffffff',
       kwh_solar: 'rgba(255, 255, 255, 0.6)',
-      kwh_solar_rem: isFitness ? '#fa114f' : '#ffd54f',
-      badge_solar_text: isFitness ? '#fa114f' : '#ffd54f',
-      badge_solar_bg: isFitness ? 'rgba(250, 17, 79, 0.15)' : 'rgba(255, 213, 79, 0.12)',
-      bar_solar_forecast: isFitness ? '#fa114f' : '#ffd54f',
+      kwh_solar_rem: pal.solar,
+      badge_solar_text: pal.solar,
+      badge_solar_bg: pal.bg_solar,
+      bar_solar_forecast: pal.solar,
 
       // 2. Grid In Box Elements
-      bg_grid: isFitness ? 'rgba(166, 226, 46, 0.15)' : 'rgba(255, 112, 67, 0.12)',
-      border_grid: isFitness ? 'rgba(166, 226, 46, 0.3)' : 'rgba(255, 112, 67, 0.3)',
-      title_grid: isFitness ? '#a6e22e' : '#ff7043',
+      bg_grid: pal.bg_grid,
+      border_grid: pal.border_grid,
+      title_grid: pal.grid,
       pwr_grid: '#ffffff',
       kwh_grid: 'rgba(255, 255, 255, 0.6)',
-      badge_grid_text: isFitness ? '#a6e22e' : '#ff7043',
-      badge_grid_bg: isFitness ? 'rgba(166, 226, 46, 0.15)' : 'rgba(255, 112, 67, 0.12)',
-      bar_grid_limit: isFitness ? '#a6e22e' : '#ff7043',
+      badge_grid_text: pal.grid,
+      badge_grid_bg: pal.bg_grid,
+      bar_grid_limit: pal.grid,
 
       // 3. Home Box Elements
-      bg_home: 'rgba(0, 229, 255, 0.12)',
-      border_home: 'rgba(0, 229, 255, 0.3)',
-      title_home: '#00e5ff',
+      bg_home: pal.bg_home,
+      border_home: pal.border_home,
+      title_home: pal.home,
       pwr_home: '#ffffff',
       kwh_home: 'rgba(255, 255, 255, 0.6)',
-      badge_home_text: '#00e5ff',
-      badge_home_bg: 'rgba(0, 229, 255, 0.12)',
+      badge_home_text: pal.home,
+      badge_home_bg: pal.bg_home,
 
       // 4. Battery / EV Box Elements
-      bg_device: 'rgba(179, 136, 255, 0.12)',
-      border_device: 'rgba(179, 136, 255, 0.3)',
-      title_device: '#b388ff',
+      bg_device: pal.bg_device,
+      border_device: pal.border_device,
+      title_device: pal.device,
       pwr_device: '#ffffff',
       kwh_device: 'rgba(255, 255, 255, 0.6)',
-      badge_device_text: '#b388ff',
-      badge_device_bg: 'rgba(179, 136, 255, 0.12)',
-      bar_device_soc: '#b388ff',
+      badge_device_text: pal.device,
+      badge_device_bg: pal.bg_device,
+      bar_device_soc: pal.device,
 
       // 5. Grid Out (Export) Box Elements
-      bg_export: isFitness ? 'rgba(0, 229, 255, 0.15)' : 'rgba(0, 230, 118, 0.12)',
-      border_export: isFitness ? 'rgba(0, 229, 255, 0.25)' : 'rgba(0, 230, 118, 0.25)',
-      title_export: isFitness ? '#00e5ff' : '#00e676',
+      bg_export: pal.bg_export,
+      border_export: pal.border_export,
+      title_export: pal.export,
       pwr_export: '#ffffff',
       kwh_export: 'rgba(255, 255, 255, 0.6)',
 
       // 6. Dedicated Energy Flow Lines
-      flow_solar_home: isFitness ? '#fa114f' : '#ffd54f',
-      flow_solar_tesla: isFitness ? '#fa114f' : '#ffd54f',
-      flow_solar_grid: isFitness ? '#fa114f' : '#ffd54f',
-      flow_grid_home: isFitness ? '#a6e22e' : '#ff7043',
-      flow_grid_tesla: isFitness ? '#a6e22e' : '#ff7043',
-      flow_battery_home: '#00e5ff',
-      flow_battery_grid: isFitness ? '#fa114f' : '#ffd54f',
+      flow_solar_home: pal.solar,
+      flow_solar_tesla: pal.solar,
+      flow_solar_grid: pal.solar,
+      flow_grid_home: pal.grid,
+      flow_grid_tesla: pal.grid,
+      flow_battery_home: pal.device,
+      flow_battery_grid: pal.device,
       flow_rails: 'rgba(255, 255, 255, 0.05)',
 
       // 7. Activity Rings & Scorecard Center
-      ring_autarky: isFitness ? '#fa114f' : '#00e676',
-      ring_import: isFitness ? '#a6e22e' : '#ff7043',
-      ring_export: isFitness ? '#00e5ff' : '#ffd54f',
+      ring_autarky: pal.autarky,
+      ring_import: pal.import_ring,
+      ring_export: pal.export_ring,
       autarky_center_pct: '#ffffff',
-      autarky_center_lbl: isFitness ? '#fa114f' : '#00e676',
+      autarky_center_lbl: pal.autarky,
       ring_bg_track: 'rgba(255, 255, 255, 0.05)',
 
       // 8. Tabular Scorecard Rows
       bg_scorecard: 'rgba(255, 255, 255, 0.02)',
       border_scorecard: 'rgba(255, 255, 255, 0.06)',
-      row_self_consumed_title: isFitness ? '#fa114f' : '#00e676',
+      row_self_consumed_title: pal.autarky,
       row_self_consumed_kwh: '#ffffff',
-      row_self_consumed_bar: isFitness ? '#fa114f' : '#00e676',
-      row_grid_reliance_title: isFitness ? '#a6e22e' : '#ff7043',
+      row_self_consumed_bar: pal.autarky,
+      row_grid_reliance_title: pal.import_ring,
       row_grid_reliance_kwh: '#ffffff',
-      row_grid_reliance_bar: isFitness ? '#a6e22e' : '#ff7043',
-      row_exported_title: isFitness ? '#00e5ff' : '#ffd54f',
+      row_grid_reliance_bar: pal.import_ring,
+      row_exported_title: pal.export_ring,
       row_exported_kwh: '#ffffff',
-      row_exported_bar: isFitness ? '#00e5ff' : '#ffd54f'
+      row_exported_bar: pal.export_ring
     };
 
     // 1. Solar Box
@@ -407,26 +708,26 @@ class HaEnergyFlowCard extends HTMLElement {
     const cKwhExport = colors.kwh_export || d.kwh_export;
 
     // 6. Dedicated Flow Lines with Dual-Color Endpoints
-    const cSolarHomeStart = colors.flow_solar_home_start || (colors.flow_solar_home ? colors.flow_solar_home : (isFitness ? '#fa114f' : '#ffd54f'));
-    const cSolarHomeEnd = colors.flow_solar_home_end || (colors.flow_solar_home ? colors.flow_solar_home : '#00e5ff');
+    const cSolarHomeStart = colors.flow_solar_home_start || (colors.flow_solar_home ? colors.flow_solar_home : pal.solar);
+    const cSolarHomeEnd = colors.flow_solar_home_end || (colors.flow_solar_home ? colors.flow_solar_home : pal.home);
 
-    const cSolarTeslaStart = colors.flow_solar_tesla_start || (colors.flow_solar_tesla ? colors.flow_solar_tesla : (isFitness ? '#fa114f' : '#ffd54f'));
-    const cSolarTeslaEnd = colors.flow_solar_tesla_end || (colors.flow_solar_tesla ? colors.flow_solar_tesla : '#b388ff');
+    const cSolarTeslaStart = colors.flow_solar_tesla_start || (colors.flow_solar_tesla ? colors.flow_solar_tesla : pal.solar);
+    const cSolarTeslaEnd = colors.flow_solar_tesla_end || (colors.flow_solar_tesla ? colors.flow_solar_tesla : pal.device);
 
-    const cSolarGridStart = colors.flow_solar_grid_start || (colors.flow_solar_grid ? colors.flow_solar_grid : (isFitness ? '#fa114f' : '#ffd54f'));
-    const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : (isFitness ? '#00e5ff' : '#00e676'));
+    const cSolarGridStart = colors.flow_solar_grid_start || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.solar);
+    const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.export);
 
-    const cGridHomeStart = colors.flow_grid_home_start || (colors.flow_grid_home ? colors.flow_grid_home : (isFitness ? '#a6e22e' : '#ff7043'));
-    const cGridHomeEnd = colors.flow_grid_home_end || (colors.flow_grid_home ? colors.flow_grid_home : '#00e5ff');
+    const cGridHomeStart = colors.flow_grid_home_start || (colors.flow_grid_home ? colors.flow_grid_home : pal.grid);
+    const cGridHomeEnd = colors.flow_grid_home_end || (colors.flow_grid_home ? colors.flow_grid_home : pal.home);
 
-    const cGridTeslaStart = colors.flow_grid_tesla_start || (colors.flow_grid_tesla ? colors.flow_grid_tesla : (isFitness ? '#a6e22e' : '#ff7043'));
-    const cGridTeslaEnd = colors.flow_grid_tesla_end || (colors.flow_grid_tesla ? colors.flow_grid_tesla : '#b388ff');
+    const cGridTeslaStart = colors.flow_grid_tesla_start || (colors.flow_grid_tesla ? colors.flow_grid_tesla : pal.grid);
+    const cGridTeslaEnd = colors.flow_grid_tesla_end || (colors.flow_grid_tesla ? colors.flow_grid_tesla : pal.device);
 
-    const cBatteryHomeStart = colors.flow_battery_home_start || (colors.flow_battery_home ? colors.flow_battery_home : '#b388ff');
-    const cBatteryHomeEnd = colors.flow_battery_home_end || (colors.flow_battery_home ? colors.flow_battery_home : '#00e5ff');
+    const cBatteryHomeStart = colors.flow_battery_home_start || (colors.flow_battery_home ? colors.flow_battery_home : pal.device);
+    const cBatteryHomeEnd = colors.flow_battery_home_end || (colors.flow_battery_home ? colors.flow_battery_home : pal.home);
 
-    const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : '#b388ff');
-    const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : (isFitness ? '#00e5ff' : '#00e676'));
+    const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.device);
+    const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.export);
 
     const cRails = colors.flow_rails || d.flow_rails;
 
@@ -470,7 +771,7 @@ class HaEnergyFlowCard extends HTMLElement {
           border-radius: 20px;
           overflow: hidden;
           background: linear-gradient(145deg, #11141a 0%, #1a1e26 100%);
-          border: 1px solid ${isFitness ? 'rgba(250, 17, 79, 0.3)' : 'rgba(0, 230, 118, 0.25)'};
+          border: 1px solid ${pal.card_border};
           box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
           isolation: isolate;
           container-type: inline-size;
@@ -1585,6 +1886,57 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         }
 
         /* Color Studio Styling */
+        .color-studio-toolbar {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+        .studio-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 13px;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.05);
+          color: #ffffff;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .studio-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.35);
+          transform: translateY(-1px);
+        }
+        .btn-random-palette {
+          background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(179, 136, 255, 0.2));
+          border-color: rgba(0, 229, 255, 0.4);
+        }
+        .btn-random-palette:hover {
+          background: linear-gradient(135deg, rgba(0, 229, 255, 0.35), rgba(179, 136, 255, 0.35));
+          border-color: #00e5ff;
+        }
+        .btn-wild-shuffle {
+          background: linear-gradient(135deg, rgba(255, 112, 67, 0.2), rgba(255, 213, 79, 0.2));
+          border-color: rgba(255, 112, 67, 0.4);
+        }
+        .btn-wild-shuffle:hover {
+          background: linear-gradient(135deg, rgba(255, 112, 67, 0.35), rgba(255, 213, 79, 0.35));
+          border-color: #ffd54f;
+        }
+        .btn-reset-colors {
+          background: rgba(255, 255, 255, 0.04);
+          color: rgba(255, 255, 255, 0.7);
+          margin-left: auto;
+        }
+        .btn-reset-colors:hover {
+          background: rgba(250, 17, 79, 0.15);
+          border-color: rgba(250, 17, 79, 0.35);
+          color: #fa114f;
+        }
         .color-studio-tip {
           display: flex;
           align-items: center;
@@ -1892,6 +2244,11 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       <div class="color-studio-tip">
         <span>🎨 Click any color square to open the color wheel, or type hex, rgba, or CSS names. Browse <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/named-color" target="_blank" rel="noopener noreferrer">MDN Named Colors ↗</a></span>
       </div>
+      <div class="color-studio-toolbar">
+        <button type="button" class="studio-btn btn-random-palette" id="btn-random-palette">🎲 Random Palette</button>
+        <button type="button" class="studio-btn btn-wild-shuffle" id="btn-wild-shuffle">🔀 Wild Shuffle</button>
+        <button type="button" class="studio-btn btn-reset-colors" id="btn-reset-colors">↺ Reset Colors</button>
+      </div>
     `;
 
     for (const grp of groups) {
@@ -1961,6 +2318,159 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         updateColorKey(k, val);
       });
     });
+
+    // 🎲 Randomize Harmonized Palette Button
+    const btnRandom = container.querySelector('#btn-random-palette');
+    if (btnRandom) {
+      btnRandom.addEventListener('click', () => {
+        const baseHue = Math.floor(Math.random() * 360);
+        const cSolar = getRandomVibrantHex(baseHue);
+        const cGrid = getRandomVibrantHex((baseHue + 72) % 360);
+        const cHome = getRandomVibrantHex((baseHue + 144) % 360);
+        const cDevice = getRandomVibrantHex((baseHue + 216) % 360);
+        const cExport = getRandomVibrantHex((baseHue + 288) % 360);
+
+        const newCols = {
+          // Solar Box
+          bg_solar: hexToRgba(cSolar, 0.15),
+          border_solar: hexToRgba(cSolar, 0.35),
+          title_solar: cSolar,
+          kwh_solar_rem: cSolar,
+          badge_solar_text: cSolar,
+          badge_solar_bg: hexToRgba(cSolar, 0.15),
+          bar_solar_forecast: cSolar,
+
+          // Grid Box
+          bg_grid: hexToRgba(cGrid, 0.15),
+          border_grid: hexToRgba(cGrid, 0.35),
+          title_grid: cGrid,
+          badge_grid_text: cGrid,
+          badge_grid_bg: hexToRgba(cGrid, 0.15),
+          bar_grid_limit: cGrid,
+
+          // Home Box
+          bg_home: hexToRgba(cHome, 0.12),
+          border_home: hexToRgba(cHome, 0.3),
+          title_home: cHome,
+          badge_home_text: cHome,
+          badge_home_bg: hexToRgba(cHome, 0.12),
+
+          // Battery / EV Box
+          bg_device: hexToRgba(cDevice, 0.15),
+          border_device: hexToRgba(cDevice, 0.35),
+          title_device: cDevice,
+          badge_device_text: cDevice,
+          badge_device_bg: hexToRgba(cDevice, 0.15),
+          bar_device_soc: cDevice,
+
+          // Export Box
+          bg_export: hexToRgba(cExport, 0.15),
+          border_export: hexToRgba(cExport, 0.3),
+          title_export: cExport,
+
+          // Flow Lines
+          flow_solar_home_start: cSolar,
+          flow_solar_home_end: cHome,
+          flow_solar_tesla_start: cSolar,
+          flow_solar_tesla_end: cDevice,
+          flow_solar_grid_start: cSolar,
+          flow_solar_grid_end: cExport,
+          flow_grid_home_start: cGrid,
+          flow_grid_home_end: cHome,
+          flow_grid_tesla_start: cGrid,
+          flow_grid_tesla_end: cDevice,
+          flow_battery_home_start: cDevice,
+          flow_battery_home_end: cHome,
+          flow_battery_grid_start: cDevice,
+          flow_battery_grid_end: cExport,
+
+          // Rings
+          ring_autarky: cSolar,
+          ring_import: cGrid,
+          ring_export: cExport,
+          autarky_center_lbl: cSolar,
+
+          // Scorecard
+          row_self_consumed_title: cSolar,
+          row_self_consumed_bar: cSolar,
+          row_grid_reliance_title: cGrid,
+          row_grid_reliance_bar: cGrid,
+          row_exported_title: cExport,
+          row_exported_bar: cExport
+        };
+
+        const cfg = { ...this._config };
+        cfg.colors = { ...(cfg.colors || {}), ...newCols };
+        for (const [k, val] of Object.entries(newCols)) {
+          const txt = container.querySelector(`.color-text-input[data-color-key="${k}"]`);
+          const whl = container.querySelector(`.color-wheel-btn[data-color-key="${k}"]`);
+          if (txt) txt.value = val;
+          if (whl) whl.value = colorToHex(val, whl.value);
+        }
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+      });
+    }
+
+    // 🔀 Wild Shuffle Button (Every setting gets an independent random color)
+    const btnWild = container.querySelector('#btn-wild-shuffle');
+    if (btnWild) {
+      btnWild.addEventListener('click', () => {
+        const newCols = {};
+        for (const grp of groups) {
+          for (const item of grp.items) {
+            const hex = getRandomVibrantHex();
+            if (item.key.startsWith('bg_')) {
+              newCols[item.key] = hexToRgba(hex, 0.15);
+            } else if (item.key.startsWith('border_')) {
+              newCols[item.key] = hexToRgba(hex, 0.35);
+            } else {
+              newCols[item.key] = hex;
+            }
+          }
+        }
+        const cfg = { ...this._config };
+        cfg.colors = { ...(cfg.colors || {}), ...newCols };
+        for (const [k, val] of Object.entries(newCols)) {
+          const txt = container.querySelector(`.color-text-input[data-color-key="${k}"]`);
+          const whl = container.querySelector(`.color-wheel-btn[data-color-key="${k}"]`);
+          if (txt) txt.value = val;
+          if (whl) whl.value = colorToHex(val, whl.value);
+        }
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+      });
+    }
+
+    // ↺ Reset Colors Button
+    const btnReset = container.querySelector('#btn-reset-colors');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        const cfg = { ...this._config };
+        cfg.colors = {};
+        const txts = container.querySelectorAll('.color-text-input');
+        const whls = container.querySelectorAll('.color-wheel-btn');
+        txts.forEach(t => { t.value = ''; });
+        whls.forEach(w => {
+          const def = w.getAttribute('data-default') || '#ffd54f';
+          w.value = colorToHex(def, '#ffd54f');
+        });
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+      });
+    }
   }
   _updateFormValues() {
     if (!this._config) return;
@@ -2281,7 +2791,15 @@ class HaEnergyFlowCardEditor extends HTMLElement {
           select: {
             options: [
               { value: "solar", label: "☀️ Solar Harmonized (Default)" },
-              { value: "fitness", label: "🏃 Fitness Activity (Apple Rings)" }
+              { value: "fitness", label: "🏃 Fitness Activity (Apple Rings)" },
+              { value: "halloween", label: "🎃 Spooky Halloween (Pumpkin & Witch Purple)" },
+              { value: "christmas", label: "🎄 Festive Christmas (Pine, Crimson & Gold)" },
+              { value: "cyberpunk", label: "🌆 Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)" },
+              { value: "synthwave", label: "🌅 Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)" },
+              { value: "nord", label: "❄️ Nord Frost (Polar Night, Ice Blue & Arctic Teal)" },
+              { value: "midnight", label: "🌌 Midnight Glow (Stealth Slate, Sky Blue & Amber)" },
+              { value: "emerald", label: "🌲 Emerald Forest (Mint Jade, Lime Leaf & Deep Pine)" },
+              { value: "ocean", label: "🌊 Deep Ocean (Lagoon Aqua, Coral & Deep Indigo)" }
             ]
           }
         }
