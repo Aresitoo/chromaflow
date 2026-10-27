@@ -8,16 +8,17 @@ An energy flow and autarky card for Home Assistant.
 
 I built ChromaFlow because I wanted a clean Home Assistant energy card that combines live animated power lines with autarky rings and a built-in visual editor so I never have to touch YAML just to change a color or pick a sensor.
 
-It supports solar panels, grid import and export, home load, home battery storage (BESS) with bidirectional grid export, EV fast charging, and Solcast solar forecasts.
+It supports solar panels, grid import and export, home load, home battery storage (BESS) with bidirectional grid export, EV fast charging, simultaneous Dual Battery + EV mode, and Solcast solar forecasts.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
-![Version](https://img.shields.io/badge/version-v2.0.2-success.svg)
+![Version](https://img.shields.io/badge/version-v2.1.0-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
 
 <p align="center">
   <a href="#-color-studio-and-visual-editor">Colors & Editor</a> •
+  <a href="#-dual-battery--ev-mode">Dual Mode</a> •
   <a href="#-live-preview">Live Preview</a> •
   <a href="#%EF%B8%8F-examples">Examples</a> •
   <a href="#-features">Features</a> •
@@ -35,7 +36,20 @@ ChromaFlow can be configured entirely inside Home Assistant's dashboard editor w
 | Color Studio (Two-Tone Gradients & Scoped Colors) | Visual Editor (Dropdown Sensor Pickers) |
 | :---: | :---: |
 | <img src="assets/chromaflow_color_studio.png?v=1" width="100%" alt="ChromaFlow Color Studio" /> | <img src="assets/chromaflow_visual_editor.png?v=1" width="100%" alt="ChromaFlow Visual Editor" /> |
-| **Custom Colors & Gradients**<br>Native color pickers supporting Hex, RGBA, and CSS names. Each flow line has independent Start and End color pickers so you can create two-tone gradients or solid colors. Color changes to one element stay isolated and won't affect other boxes. | **Visual Settings**<br>Organized into 6 collapsible panels (`☀️ Solar Panels`, `⚡ Utility Grid`, `🔋 Home Battery or 🚗 EV`, etc.) with searchable sensor dropdowns, live preview updates, and line speed adjustments. |
+| **Custom Colors & Gradients**<br>Native color pickers supporting Hex, RGBA, and CSS names. Each flow line has independent Start and End color pickers so you can create two-tone gradients or solid colors. Color changes to one element stay isolated and will not affect other boxes. | **Visual Settings**<br>Organized into 6 collapsible panels (`☀️ Solar Panels`, `⚡ Utility Grid`, `🔋 Battery & 🚗 EV`, etc.) with searchable sensor dropdowns, live preview updates, and line speed adjustments. |
+
+---
+
+## 🔋 Dual Battery & EV Mode
+
+ChromaFlow v2.1.0 introduces simultaneous Dual Mode for homes with both stationary battery storage and an electric vehicle:
+
+- **Symmetrical 6-Node Grid**:
+  - Left column: Solar Panels, Home Battery (BESS), and Grid Import.
+  - Right column: Home Consumption, Electric Vehicle (EV), and Grid Export.
+- **Adaptive Layout**: Automatically switches between 6-node Dual Mode, 5-node Single Device Mode, or 4-node Standard Mode based on configured entities.
+- **Battery Column Choice**: When only a home battery is present without an EV, you can place the battery in the Left column (under Solar) or the Right column (between Home and Grid Out).
+- **Multi-Port Line Clearance**: 10 distinct energy flow lines with dedicated landing ports, preventing lines from overlapping or touching adjacent boxes.
 
 ---
 
@@ -53,7 +67,7 @@ ChromaFlow can be configured entirely inside Home Assistant's dashboard editor w
 | Battery Discharging to Home | Solar Charging Battery |
 | :---: | :---: |
 | <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="Battery Discharging to Home" /> | <img src="assets/bess_charging_view.png?v=1" width="100%" alt="Solar Charging Home Battery" /> |
-| **`device_type: battery` (Discharging)**<br>Animated stream directly into Home. The Home box displays **`100% BESS`** or **`SOLAR + BESS`** with a live state of charge progress bar. | **`device_type: battery` (Charging)**<br>Surplus solar routes into the battery with live charge rate, stored kWh, and active charge status (e.g. `85% CHG`). |
+| **Battery Discharging**<br>Animated stream directly into Home. The Home box displays live state of charge progress bar and discharge rate. | **Battery Charging**<br>Surplus solar routes into the battery with live charge rate, stored kWh, and active charge status. |
 
 ### ☀️ Themes and EV Charging
 | Solar Theme (Default) | Fitness Activity Theme | EV Fast Charging | Nighttime Grid Mode |
@@ -65,8 +79,9 @@ ChromaFlow can be configured entirely inside Home Assistant's dashboard editor w
 
 ## ⚡ Features
 
-- **Live Flow Paths**: Animated SVG lines connect Solar, Grid, Home, and your Battery or EV.
-- **Dynamic Line Speeds**: Low standby draws (250W) move slowly, while high loads like EV charging (3kW+) move noticeably faster.
+- **10 Dynamic Flow Paths**: Animated SVG lines connect Solar, Grid, Home, Battery, and EV with zero line collisions.
+- **Dual Battery + EV Simultaneous Mode**: Displays stationary home storage and EV charging side by side.
+- **Dynamic Line Speeds**: Low standby draws move slowly, while high loads like EV charging move noticeably faster. Each line speed can be adjusted independently.
 - **Autarky Scorecard**: 3 concentric rings showing self-consumption, grid reliance, and solar export percentages.
 - **Solar Priority Toggle**: Choose whether grid imports route directly to Home or to your EV / battery charger when solar production is low.
 - **Bidirectional Battery Export**: Track home batteries discharging surplus energy back to the grid.
@@ -112,7 +127,7 @@ ChromaFlow can be configured entirely inside Home Assistant's dashboard editor w
 1. Download `ares-energy-flow-card.js` from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
 3. Add the resource reference in **Settings ➔ Dashboards ➔ Resources**:
-   - **URL**: `/local/ares-energy-flow-card.js?v=2.0.0`
+   - **URL**: `/local/ares-energy-flow-card.js?v=2.1.0`
    - **Resource Type**: `JavaScript Module`
 
 ---
@@ -123,8 +138,11 @@ You can configure ChromaFlow entirely through the visual editor, or customize it
 
 ```yaml
 type: custom:ha-energy-flow-card
-device_type: ev # or 'battery' for home storage (BESS)
-solar_priority: middle # 'middle' (prioritize home) or 'home' (prioritize ev/battery)
+show_battery: true
+show_ev: true
+battery_position: left # 'left' (under Solar) or 'right' (between Home and Grid Out)
+solar_priority: home # 'home' (prioritize home consumption) or 'middle' (prioritize battery/EV)
+allow_battery_to_ev: false # allow home battery to discharge into EV
 contract_power_limit_kw: 4.2
 contract_warning_pct: 0.85 # Alert when grid import reaches 85% of limit
 max_expected_power_kw: 7.5
@@ -135,14 +153,27 @@ show_solar_forecast: true
 palette: solar # 'solar' or 'fitness'
 
 entities:
+  # Solar
   solar_power: sensor.solar_power
   solar_daily_yield: sensor.solar_daily_yield
+  solcast_today: sensor.solcast_pv_forecast_forecast_today # optional
+  solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today # optional
+
+  # Grid
   grid_power: sensor.grid_power
   grid_daily_import: sensor.grid_daily_import
   grid_daily_export: sensor.grid_daily_export
+
+  # Home
   load_power: sensor.home_power # optional
-  solcast_today: sensor.solcast_pv_forecast_forecast_today # optional
-  solcast_remaining: sensor.solcast_pv_forecast_forecast_remaining_today # optional
+
+  # Home Battery (BESS)
+  battery_power: sensor.battery_power
+  battery_soc: sensor.battery_state_of_charge
+  battery_daily_charge: sensor.battery_daily_charge
+  battery_daily_discharge: sensor.battery_daily_discharge
+
+  # Electric Vehicle (EV)
   ev_power: sensor.ev_charger_power
   ev_charging: binary_sensor.ev_charging
   ev_daily_energy: sensor.ev_charger_energy
@@ -151,17 +182,27 @@ entities:
 colors:
   flow_solar_home_start: "#ffd54f"
   flow_solar_home_end: "#00e5ff"
-  flow_solar_tesla_start: "#ffd54f"
-  flow_solar_tesla_end: "#b388ff"
+  flow_solar_battery_start: "#ffd54f"
+  flow_solar_battery_end: "#10b981"
+  flow_solar_ev_start: "#ffd54f"
+  flow_solar_ev_end: "#b388ff"
+  flow_battery_home_start: "#10b981"
+  flow_battery_home_end: "#00e5ff"
   pwr_solar: "#ffffff"
-  kwh_solar: "rgba(255, 255, 255, 0.6)"
   title_solar: "#ffd54f"
 
 # Optional: Individual Line Speed Overrides (Multiplier 0.2x to 3.0x)
 line_speeds:
   solar_home: 1.0
-  solar_tesla: 1.2
+  solar_battery: 1.0
+  solar_ev: 1.2
   solar_grid: 1.0
+  grid_home: 1.0
+  grid_battery: 1.0
+  grid_ev: 1.2
+  battery_home: 1.0
+  battery_ev: 1.2
+  battery_grid: 1.0
 ```
 
 ---
