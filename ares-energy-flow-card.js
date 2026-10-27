@@ -502,6 +502,32 @@ class HaEnergyFlowCard extends HTMLElement {
     return isNaN(val) ? null : val;
   }
 
+  _isSameDay(dateStr, targetDate = new Date()) {
+    if (!dateStr || typeof dateStr !== 'string') return false;
+    const targetD = targetDate.getDate();
+    const targetM = targetDate.getMonth() + 1;
+    const targetY = targetDate.getFullYear();
+
+    const parsed = Date.parse(dateStr);
+    if (!isNaN(parsed)) {
+      const dObj = new Date(parsed);
+      if (dObj.getFullYear() === targetY && (dObj.getMonth() + 1) === targetM && dObj.getDate() === targetD) {
+        return true;
+      }
+    }
+
+    const parts = dateStr.split(/[\/\-\sT:]/);
+    if (parts.length >= 3) {
+      const p0 = parseInt(parts[0], 10);
+      const p1 = parseInt(parts[1], 10);
+      const p2 = parseInt(parts[2], 10);
+      if (p0 === targetD && p1 === targetM && p2 === targetY) return true;
+      if (p0 === targetY && p1 === targetM && p2 === targetD) return true;
+      if (p0 === targetM && p1 === targetD && p2 === targetY) return true;
+    }
+    return false;
+  }
+
   setConfig(config) {
     if (!config) {
       throw new Error("Invalid configuration");
@@ -778,125 +804,7 @@ class HaEnergyFlowCard extends HTMLElement {
           container-name: chromaflow;
         }
 
-        /* Adaptive Container Queries for Compact Views & Card Picker Previews */
-        @container chromaflow (max-width: 375px) {
-          ha-card {
-            padding: 8px 10px 12px;
-          }
-          .col-left, .col-right {
-            width: clamp(94px, 33%, 124px);
-          }
-          .node {
-            padding: 5px 6px;
-          }
-          .node-pwr {
-            font-size: calc(15px * var(--ares-font-scale, 1));
-          }
-          .node-kwh {
-            font-size: calc(8.5px * var(--ares-font-scale, 1));
-          }
-          .node-title {
-            font-size: calc(10px * var(--ares-font-scale, 1));
-          }
-          .badge {
-            font-size: calc(6.5px * var(--ares-font-scale, 1));
-            padding: 1px 2px;
-          }
-          .scorecard {
-            padding: 10px 10px !important;
-            gap: 10px !important;
-          }
-          .rings-container {
-            width: 106px !important;
-            height: 106px !important;
-          }
-          .rings-center-text {
-            width: 58px !important;
-          }
-          .rings-center-pct {
-            font-size: 17px !important;
-          }
-          .rings-center-sub {
-            font-size: 7.5px !important;
-          }
-          .rings-center-sub2 {
-            font-size: 6.5px !important;
-          }
-          .kpi-column {
-            gap: 6px !important;
-          }
-          .kpi-title {
-            font-size: calc(9px * var(--ares-font-scale, 1)) !important;
-          }
-          .kpi-pct {
-            font-size: calc(14px * var(--ares-font-scale, 1)) !important;
-          }
-          .kpi-kwh {
-            font-size: calc(9.5px * var(--ares-font-scale, 1)) !important;
-          }
-          .kpi-tag {
-            font-size: 7.5px !important;
-          }
-        }
-
-        @container chromaflow (max-width: 315px) {
-          ha-card {
-            padding: 6px 8px 10px;
-          }
-          .col-left, .col-right {
-            width: 33%;
-          }
-          .node {
-            padding: 4px 5px;
-          }
-          .node-pwr {
-            font-size: calc(13px * var(--ares-font-scale, 1));
-          }
-          .node-kwh {
-            font-size: calc(7.5px * var(--ares-font-scale, 1));
-          }
-          .node-title {
-            font-size: calc(9px * var(--ares-font-scale, 1));
-          }
-          .badge {
-            font-size: 5.5px;
-            padding: 0.5px 1.5px;
-          }
-          .scorecard {
-            padding: 8px 8px !important;
-            gap: 8px !important;
-          }
-          .rings-container {
-            width: 86px !important;
-            height: 86px !important;
-          }
-          .rings-center-text {
-            width: 48px !important;
-          }
-          .rings-center-pct {
-            font-size: 15px !important;
-          }
-          .rings-center-sub {
-            font-size: 6.8px !important;
-            letter-spacing: 0.2px !important;
-          }
-          .rings-center-sub2 {
-            display: none !important;
-          }
-          .kpi-title {
-            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
-          }
-          .kpi-pct {
-            font-size: calc(13px * var(--ares-font-scale, 1)) !important;
-          }
-          .kpi-kwh {
-            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
-          }
-          .kpi-tag {
-            display: none !important;
-          }
-        }
-        .bg-glow {
+                .bg-glow {
           position: absolute;
           inset: 0;
           background: radial-gradient(circle at 50% 0%, ${isFitness ? 'rgba(250, 17, 79, 0.08)' : 'rgba(0, 229, 255, 0.08)'} 0%, rgba(14, 17, 24, 0.98) 60%);
@@ -1011,6 +919,118 @@ class HaEnergyFlowCard extends HTMLElement {
           border-radius: 4px;
           white-space: nowrap;
           flex-shrink: 0;
+        }
+
+        /* Responsive Breakpoints & Card Picker Adaptive Compact Mode */
+        @container chromaflow (max-width: 360px), :host-context(.compact-view), .compact-view {
+          .col-left, .col-right {
+            width: clamp(86px, 34%, 102px) !important;
+          }
+          .node {
+            padding: 4px 5px !important;
+          }
+          .node-title {
+            font-size: calc(9.5px * var(--ares-font-scale, 1)) !important;
+            gap: 2px !important;
+          }
+          .badge {
+            font-size: 6px !important;
+            padding: 0.5px 2px !important;
+            max-width: 46px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          .node-pwr {
+            font-size: calc(14px * var(--ares-font-scale, 1)) !important;
+          }
+          .node-kwh {
+            font-size: calc(7.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .scorecard {
+            padding: 8px 8px !important;
+            gap: 8px !important;
+          }
+          .rings-container {
+            width: 90px !important;
+            height: 90px !important;
+          }
+          .rings-center-text {
+            width: 50px !important;
+          }
+          .rings-center-pct {
+            font-size: 15px !important;
+          }
+          .rings-center-sub {
+            font-size: 7px !important;
+          }
+          .kpi-title {
+            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-pct {
+            font-size: calc(13px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-kwh {
+            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-tag {
+            font-size: 7px !important;
+          }
+        }
+
+        @container chromaflow (max-width: 315px), :host-context(.mini-view), .mini-view {
+          .col-left, .col-right {
+            width: clamp(78px, 32%, 92px) !important;
+          }
+          .node {
+            padding: 3px 4px !important;
+          }
+          .node-title {
+            font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
+            gap: 2px !important;
+          }
+          .badge {
+            font-size: 5px !important;
+            padding: 0.5px 1.5px !important;
+            max-width: 38px !important;
+          }
+          .node-pwr {
+            font-size: calc(12.5px * var(--ares-font-scale, 1)) !important;
+          }
+          .node-kwh {
+            font-size: calc(7px * var(--ares-font-scale, 1)) !important;
+          }
+          .scorecard {
+            padding: 6px 6px !important;
+            gap: 6px !important;
+          }
+          .rings-container {
+            width: 78px !important;
+            height: 78px !important;
+          }
+          .rings-center-text {
+            width: 44px !important;
+          }
+          .rings-center-pct {
+            font-size: 14px !important;
+          }
+          .rings-center-sub {
+            font-size: 6.5px !important;
+          }
+          .rings-center-sub2 {
+            display: none !important;
+          }
+          .kpi-title {
+            font-size: calc(8px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-pct {
+            font-size: calc(12px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-kwh {
+            font-size: calc(8px * var(--ares-font-scale, 1)) !important;
+          }
+          .kpi-tag {
+            display: none !important;
+          }
         }
       </style>
 
@@ -1331,10 +1351,17 @@ class HaEnergyFlowCard extends HTMLElement {
     const height = Math.round(h || this._canvasArea.clientHeight || 232);
     if (width <= 0 || height <= 0) return;
 
+    const card = this.shadowRoot.querySelector('ha-card');
+    if (card && card.classList && typeof card.classList.toggle === 'function') {
+      card.classList.toggle('compact-view', width <= 360);
+      card.classList.toggle('mini-view', width <= 315);
+    }
+
     this._svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-    const cLeft = this._el.colLeft || { offsetLeft: 3, offsetWidth: 134, offsetTop: 3 };
-    const cRight = this._el.colRight || { offsetLeft: width - 137, offsetWidth: 134, offsetTop: 3 };
+    const defaultColW = width <= 315 ? 86 : (width <= 360 ? 98 : 134);
+    const cLeft = (this._el.colLeft && this._el.colLeft.offsetWidth > 0) ? this._el.colLeft : { offsetLeft: 3, offsetWidth: defaultColW, offsetTop: 3 };
+    const cRight = (this._el.colRight && this._el.colRight.offsetWidth > 0) ? this._el.colRight : { offsetLeft: width - 3 - defaultColW, offsetWidth: defaultColW, offsetTop: 3 };
 
     // Bulletproof offset geometry immune to transforms or viewport zoom
     const startX = Math.round(cLeft.offsetLeft + cLeft.offsetWidth);
@@ -1370,7 +1397,8 @@ class HaEnergyFlowCard extends HTMLElement {
     const pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeTargetY + 5}, ${endX} ${homeTargetY + 5}`;
     const pGridTesla = `M ${startX} ${gTeslaY} C ${cp1X} ${gTeslaY}, ${cp2X} ${teslaTargetY + 5}, ${endX} ${teslaTargetY + 5}`;
 
-    const cpArcX = Math.round(endX - Math.min(42, Math.max(16, (endX - startX) * 0.45)));
+    const maxSweep = Math.max(12, (endX - startX) * 0.4);
+    const cpArcX = Math.round(endX - Math.min(36, Math.min(maxSweep, (endX - startX) - 16)));
     const teslaTopY = Math.round(cRight.offsetTop + nodeTesla.offsetTop);
     const teslaBottomY = teslaTopY + nodeTesla.offsetHeight;
     const homeBottomY = Math.round(cRight.offsetTop + nodeHome.offsetTop + nodeHome.offsetHeight);
@@ -1491,7 +1519,26 @@ class HaEnergyFlowCard extends HTMLElement {
       liveMiddleW = Math.max(liveEvW, liveShellyW);
       const evBinary = eEvCharging ? (eEvCharging.state === 'on') : false;
       isMiddleActive = (liveMiddleW > 15) || evBinary;
-      middleKwh = this._parseEnergy(eEvEnergy);
+
+      // Robust EV daily energy resolution with date-guard for session history sensors (e.g. V2C Trydan)
+      let evDailyKwh = 0;
+      const latest = eEvEnergy?.attributes?.latest;
+      if (latest && typeof latest.start === 'string') {
+        if (this._isSameDay(latest.start)) {
+          evDailyKwh = Number(latest.energy_kwh ?? latest.energy ?? eEvEnergy.state) || 0;
+        } else {
+          evDailyKwh = 0.0;
+        }
+      } else {
+        evDailyKwh = this._parseEnergy(eEvEnergy);
+      }
+
+      // Live charging session energy fallback if currently active
+      const liveSessionEnt = this._hass.states['sensor.evse_192_168_0_249_charge_energy'] ||
+                             this._hass.states['sensor.v2c_trydan_charge_energy'] ||
+                             this._hass.states['sensor.wallbox_energy_added'];
+      const liveSessionKwh = liveSessionEnt ? this._parseEnergy(liveSessionEnt) : 0;
+      middleKwh = Math.max(evDailyKwh, liveSessionKwh);
     }
 
     // Whole-house load power calculation
@@ -1752,32 +1799,17 @@ if (!customElements.get('ares-energy-flow-card')) {
   customElements.define('ares-energy-flow-card', HaEnergyFlowCard);
 }
 
-// Lovelace Card Picker Registration
+// Lovelace Card Picker Registration (Consolidated Single Entry)
 window.customCards = window.customCards || [];
+window.customCards = window.customCards.filter(c => c.type !== 'ha-energy-flow-card' && c.type !== 'ares-energy-flow-card');
 
-const cardMetaChroma = {
-  type: 'ha-energy-flow-card',
-  name: 'ChromaFlow — Energy Flow & Autarky Card',
-  description: 'Ultra-customizable real-time energy flow and autarky scorecard with visual colors studio, dual-color gradients, and full no-YAML editor.',
-  preview: true,
-  documentationURL: 'https://github.com/Aresitoo/chromaflow'
-};
-
-const cardMetaAres = {
+window.customCards.push({
   type: 'ares-energy-flow-card',
-  name: 'Ares Energy Flow Card (ChromaFlow 2.0)',
-  description: 'Backwards-compatible custom card entry for ChromaFlow 2.0 energy flow and autarky scorecard.',
+  name: 'ChromaFlow: Energy Flow and Autarky Card',
+  description: 'Real-time energy flow and autarky scorecard with dynamic flow rails, visual theme presets, and a built-in color studio.',
   preview: true,
   documentationURL: 'https://github.com/Aresitoo/chromaflow'
-};
-
-const idx1 = window.customCards.findIndex(c => c.type === 'ha-energy-flow-card');
-if (idx1 >= 0) window.customCards[idx1] = cardMetaChroma;
-else window.customCards.push(cardMetaChroma);
-
-const idx2 = window.customCards.findIndex(c => c.type === 'ares-energy-flow-card');
-if (idx2 >= 0) window.customCards[idx2] = cardMetaAres;
-else window.customCards.push(cardMetaAres);
+});
 
 /**
  * Visual Config Editor for ha-energy-flow-card
