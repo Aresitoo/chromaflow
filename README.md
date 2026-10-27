@@ -89,6 +89,7 @@ ChromaFlow v2.1.0 introduces simultaneous Dual Mode for homes with both stationa
 - **Solcast Forecast Pacing**: Progress bar showing today's actual solar generation compared to the Solcast daily prediction.
 - **Grid Power Limit Warning**: Displays a warning badge when power consumption approaches your contracted breaker limit.
 - **Responsive Layout**: Adapts cleanly across desktop cards, mobile screens, and card picker previews.
+- **Match Your Home Assistant Theme**: Set `use_ha_theme: true` and the card background, border, corner radius, shadow, font and top glow follow your active HA theme, so ChromaFlow sits naturally next to your other cards. `colors.card_bg`, `colors.card_border` and `colors.card_glow` override individual parts.
 - **Font Scale Slider**: Adjust text size (0.8x to 1.3x) to fit wall tablets or smaller screens.
 
 ---
@@ -191,8 +192,14 @@ solar_sources:
     daily_yield: sensor.inverter_2_energy_today
     color: "#ff9800" # optional accent for this sub-tile
 
+# Optional: make the card background, border, corners, shadow and font follow your HA theme
+use_ha_theme: true
+
 # Optional: Custom Color Overrides (Hex, RGBA, or CSS Named Colors)
 colors:
+  card_bg: "rgba(22, 8, 43, 0.94)" # optional card background override
+  card_border: "#3b1c66" # optional card border override
+  card_glow: "rgba(255, 47, 214, 0.14)" # optional colour for the soft glow at the top of the card
   flow_solar_home_start: "#ffd54f"
   flow_solar_home_end: "#00e5ff"
   flow_solar_battery_start: "#ffd54f"
