@@ -2203,22 +2203,25 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         /* Color Studio Styling */
         .color-studio-toolbar {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           margin-bottom: 12px;
           flex-wrap: wrap;
         }
         .studio-btn {
+          flex: 1 1 auto;
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 13px;
+          justify-content: center;
+          gap: 5px;
+          padding: 7px 10px;
           border-radius: 8px;
           border: 1px solid rgba(255, 255, 255, 0.16);
           background: rgba(255, 255, 255, 0.05);
           color: #ffffff;
-          font-size: 12.5px;
-          font-weight: 700;
+          font-size: 11.5px;
+          font-weight: 600;
           cursor: pointer;
+          white-space: nowrap;
           transition: all 0.2s ease;
         }
         .studio-btn:hover {
@@ -2245,7 +2248,6 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         .btn-reset-colors {
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.7);
-          margin-left: auto;
         }
         .btn-reset-colors:hover {
           background: rgba(250, 17, 79, 0.15);
