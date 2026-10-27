@@ -969,6 +969,22 @@ class HaEnergyFlowCard extends HTMLElement {
           animation: flowSeamless16 1s linear infinite;
           -webkit-animation: flowSeamless16 1s linear infinite;
         }
+        /* Multiple solar sources (solar_sources): per-source sub-tiles inside the Solar node */
+        ha-card.has-solar-sources .canvas-area {
+          height: calc(290px + max(0px, (var(--ares-font-scale, 1) - 1) * 130px));
+        }
+        ha-card.layout-dual.has-solar-sources .canvas-area, ha-card.layout-battery-left.has-solar-sources .canvas-area {
+          height: calc(330px + max(0px, (var(--ares-font-scale, 1) - 1) * 130px));
+        }
+        .solar-sources { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
+        ha-card.has-solar-sources .solar-sources { display: flex; }
+        .solar-src { border: 1px solid; border-radius: 7px; padding: 3px 6px 4px; background: rgba(0, 0, 0, 0.18); min-width: 0; }
+        .solar-src-row { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; min-width: 0; }
+        .solar-src-name { font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .solar-src-pwr { font-size: calc(12.5px * var(--ares-font-scale, 1)); font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .solar-src-kwh, .solar-src-pct { font-size: calc(9px * var(--ares-font-scale, 1)); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .solar-src-track { margin-top: 3px; height: 2px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
+        .solar-src-bar { height: 100%; width: 0%; transition: width 0.4s ease; }
         .node {
           position: relative;
           width: 100%;
@@ -1225,6 +1241,7 @@ class HaEnergyFlowCard extends HTMLElement {
                 <div id="bar-solar-forecast-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
                   <div id="bar-solar-forecast-fill" style="width: 0%; height: 100%; background: ${cBarSolar}; transition: width 0.4s ease;"></div>
                 </div>
+                <div id="solar-sources" class="solar-sources"></div>
               </div>
 
               <!-- Node: Battery Storage (Left-Middle in Dual Mode) -->
@@ -1384,6 +1401,8 @@ class HaEnergyFlowCard extends HTMLElement {
       </ha-card>
     `;
 
+    this._solarSrcTheme = { border: cSolarBorder, title: cTitleSolar, pwr: cPwrSolar, kwh: cKwhSolar, bar: cBarSolar };
+    this._solarSrcKey = '';
     this._canvasArea = this.shadowRoot.querySelector('.canvas-area');
     this._svg = this.shadowRoot.getElementById('flow-svg');
 
@@ -1770,6 +1789,66 @@ class HaEnergyFlowCard extends HTMLElement {
     requestAnimationFrame(() => this._updateFlowPaths());
   }
 
+  _getSolarSources() {
+    const raw = this._config && this._config.solar_sources;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((src) => src && (src.power || src.entity))
+      .map((src, i) => ({
+        name: src.name || `Solar ${i + 1}`,
+        power: src.power || src.entity,
+        daily_yield: src.daily_yield || '',
+        color: src.color || ''
+      }));
+  }
+
+  _renderSolarSources(srcs, watts, fmtPwr) {
+    const card = this.shadowRoot.querySelector('ha-card');
+    const box = this.shadowRoot.getElementById('solar-sources');
+    const on = srcs.length >= 2;
+    const wasOn = card ? card.classList.contains('has-solar-sources') : false;
+    if (card) card.classList.toggle('has-solar-sources', on);
+    if (!box) return;
+    if (!on) {
+      if (box.childElementCount) box.innerHTML = '';
+      this._solarSrcKey = '';
+      if (wasOn) requestAnimationFrame(() => this._updateFlowPaths());
+      return;
+    }
+    const t = this._solarSrcTheme || {};
+    const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const key = srcs.map((src) => `${src.name}|${src.color}`).join(';');
+    if (this._solarSrcKey !== key) {
+      this._solarSrcKey = key;
+      box.innerHTML = srcs.map((src) => `
+        <div class="solar-src" style="border-color: ${esc(src.color || t.border || 'rgba(255,255,255,0.2)')};">
+          <div class="solar-src-row">
+            <span class="solar-src-name" style="color: ${esc(t.title || 'inherit')};">${esc(src.name)}</span>
+            <span class="solar-src-pwr" style="color: ${esc(t.pwr || 'inherit')};">0 W</span>
+          </div>
+          <div class="solar-src-row">
+            <span class="solar-src-kwh" style="color: ${esc(t.kwh || 'inherit')};"></span>
+            <span class="solar-src-pct" style="color: ${esc(t.kwh || 'inherit')};"></span>
+          </div>
+          <div class="solar-src-track"><div class="solar-src-bar" style="background: ${esc(src.color || t.bar || '#ffd54f')};"></div></div>
+        </div>`).join('');
+      requestAnimationFrame(() => this._updateFlowPaths());
+    } else if (!wasOn) {
+      requestAnimationFrame(() => this._updateFlowPaths());
+    }
+    const sum = watts.reduce((a, b) => a + b, 0);
+    srcs.forEach((src, i) => {
+      const tile = box.children[i];
+      if (!tile) return;
+      tile.querySelector('.solar-src-pwr').textContent = fmtPwr(watts[i]);
+      const eY = src.daily_yield ? this._hass.states[src.daily_yield] : null;
+      tile.querySelector('.solar-src-kwh').textContent = eY ? `${this._parseEnergy(eY).toFixed(1)} kWh today` : '';
+      const pct = sum > 0 ? Math.round((watts[i] / sum) * 100) : 0;
+      tile.querySelector('.solar-src-pct').textContent = sum > 0 ? `${pct}%` : '';
+      tile.querySelector('.solar-src-bar').style.width = `${pct}%`;
+    });
+  }
+
   _update() {
     if (!this._hass || !this._el) return;
     const el = this._el;
@@ -1801,6 +1880,13 @@ class HaEnergyFlowCard extends HTMLElement {
 
     // Live solar & grid power calculations
     let liveSolarW = Math.max(0, this._parsePower(eSolarPwr));
+    const solarSrcs = this._getSolarSources();
+    const solarSrcW = solarSrcs.map((src) => Math.max(0, this._parsePower(this._hass.states[src.power])));
+    const cfgSolarEnts = this._config.entities || {};
+    if (solarSrcs.length && !cfgSolarEnts.solar_power) liveSolarW = solarSrcW.reduce((a, b) => a + b, 0);
+    const solarYieldKwh = (solarSrcs.length && !cfgSolarEnts.solar_daily_yield)
+      ? solarSrcs.reduce((a, src) => a + (src.daily_yield ? this._parseEnergy(this._hass.states[src.daily_yield]) : 0), 0)
+      : this._parseEnergy(eSolarYield);
     let rawGridW = this._parsePower(eGridPwr);
     let liveImportW = 0;
     let liveExportW = 0;
@@ -2022,7 +2108,8 @@ class HaEnergyFlowCard extends HTMLElement {
 
     // Solar UI updates
     el.pwrSolar.textContent = fmtPwr(liveSolarW);
-    el.kwhSolar.textContent = `${fmtKwh(this._parseEnergy(eSolarYield))} kWh today`;
+    el.kwhSolar.textContent = `${fmtKwh(solarYieldKwh)} kWh today`;
+    this._renderSolarSources(solarSrcs, solarSrcW, fmtPwr);
 
     const showFc = (this._config?.show_solar_forecast !== false);
     if (showFc && eSolcastToday) {
@@ -2037,7 +2124,7 @@ class HaEnergyFlowCard extends HTMLElement {
       }
 
       if (fcToday > 0) {
-        const pct = Math.min(100, Math.round((this._parseEnergy(eSolarYield) / fcToday) * 100));
+        const pct = Math.min(100, Math.round((solarYieldKwh / fcToday) * 100));
         el.barSolarForecastFill.style.width = `${pct}%`;
         el.barSolarForecastBox.style.display = 'block';
       }
@@ -2061,7 +2148,7 @@ class HaEnergyFlowCard extends HTMLElement {
     }
 
     // Home UI updates
-    const kwhSolarYield = this._parseEnergy(eSolarYield);
+    const kwhSolarYield = solarYieldKwh;
     const kwhGridImport = this._parseEnergy(eGridImport);
     const kwhGridExport = this._parseEnergy(eGridExport);
     const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
@@ -2758,6 +2845,15 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         solcast_remaining: ents.solcast_remaining || '',
         show_solar_forecast: this._config.show_solar_forecast !== false
       };
+      const editorSrcs = Array.isArray(this._config.solar_sources) ? this._config.solar_sources : [];
+      const srcSlots = {};
+      for (let i = 0; i < 3; i++) {
+        const src = editorSrcs[i] || {};
+        srcSlots[`solar_source_${i + 1}_name`] = src.name || '';
+        srcSlots[`solar_source_${i + 1}_power`] = src.power || src.entity || '';
+        srcSlots[`solar_source_${i + 1}_daily_yield`] = src.daily_yield || '';
+      }
+      this._forms.solar.data = { ...this._forms.solar.data, ...srcSlots };
       if (this._hass) this._forms.solar.hass = this._hass;
     }
 
@@ -2877,6 +2973,25 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         else delete cfg.entities[k];
       }
       cfg.show_solar_forecast = Boolean(val.show_solar_forecast);
+
+      // Solar sources: editor slots 1..3; YAML-only extras beyond that and per-source colors are preserved
+      const prevSrcs = Array.isArray(cfg.solar_sources) ? cfg.solar_sources : [];
+      const srcs = [];
+      for (let i = 0; i < 3; i++) {
+        const power = val[`solar_source_${i + 1}_power`];
+        if (!power) continue;
+        const src = { ...(prevSrcs[i] || {}) };
+        delete src.entity;
+        src.power = power;
+        const nm = val[`solar_source_${i + 1}_name`];
+        if (nm) src.name = nm; else delete src.name;
+        const dy = val[`solar_source_${i + 1}_daily_yield`];
+        if (dy) src.daily_yield = dy; else delete src.daily_yield;
+        srcs.push(src);
+      }
+      srcs.push(...prevSrcs.slice(3));
+      if (srcs.length) cfg.solar_sources = srcs;
+      else delete cfg.solar_sources;
     } else if (secId === 'grid') {
       const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
       for (const k of keys) {
@@ -2965,7 +3080,24 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       { name: "solar_daily_yield", label: "Today's Solar Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "solcast_today", label: "Solcast Today Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "solcast_remaining", label: "Solcast Remaining Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } }
+      { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } },
+      {
+        type: "expandable",
+        name: "",
+        flatten: true,
+        title: "Multiple Solar Sources (Optional — 2+ inverters / arrays)",
+        schema: [
+          { name: "solar_source_1_name", label: "Source 1 Name (e.g. Roof North)", selector: { text: {} } },
+          { name: "solar_source_1_power", label: "Source 1 Live Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_1_daily_yield", label: "Source 1 Today's Energy Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_2_name", label: "Source 2 Name (e.g. Garage)", selector: { text: {} } },
+          { name: "solar_source_2_power", label: "Source 2 Live Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_2_daily_yield", label: "Source 2 Today's Energy Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_3_name", label: "Source 3 Name (e.g. Shed)", selector: { text: {} } },
+          { name: "solar_source_3_power", label: "Source 3 Live Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_3_daily_yield", label: "Source 3 Today's Energy Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } }
+        ]
+      }
     ];
   }
 
@@ -3315,6 +3447,15 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         solcast_remaining: ents.solcast_remaining || '',
         show_solar_forecast: this._config.show_solar_forecast !== false
       };
+      const editorSrcs = Array.isArray(this._config.solar_sources) ? this._config.solar_sources : [];
+      const srcSlots = {};
+      for (let i = 0; i < 3; i++) {
+        const src = editorSrcs[i] || {};
+        srcSlots[`solar_source_${i + 1}_name`] = src.name || '';
+        srcSlots[`solar_source_${i + 1}_power`] = src.power || src.entity || '';
+        srcSlots[`solar_source_${i + 1}_daily_yield`] = src.daily_yield || '';
+      }
+      this._forms.solar.data = { ...this._forms.solar.data, ...srcSlots };
       if (this._hass) this._forms.solar.hass = this._hass;
     }
 
@@ -3434,6 +3575,25 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         else delete cfg.entities[k];
       }
       cfg.show_solar_forecast = Boolean(val.show_solar_forecast);
+
+      // Solar sources: editor slots 1..3; YAML-only extras beyond that and per-source colors are preserved
+      const prevSrcs = Array.isArray(cfg.solar_sources) ? cfg.solar_sources : [];
+      const srcs = [];
+      for (let i = 0; i < 3; i++) {
+        const power = val[`solar_source_${i + 1}_power`];
+        if (!power) continue;
+        const src = { ...(prevSrcs[i] || {}) };
+        delete src.entity;
+        src.power = power;
+        const nm = val[`solar_source_${i + 1}_name`];
+        if (nm) src.name = nm; else delete src.name;
+        const dy = val[`solar_source_${i + 1}_daily_yield`];
+        if (dy) src.daily_yield = dy; else delete src.daily_yield;
+        srcs.push(src);
+      }
+      srcs.push(...prevSrcs.slice(3));
+      if (srcs.length) cfg.solar_sources = srcs;
+      else delete cfg.solar_sources;
     } else if (secId === 'grid') {
       const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
       for (const k of keys) {
@@ -3522,7 +3682,24 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       { name: "solar_daily_yield", label: "Today's Solar Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "solcast_today", label: "Solcast Today Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "solcast_remaining", label: "Solcast Remaining Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } }
+      { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } },
+      {
+        type: "expandable",
+        name: "",
+        flatten: true,
+        title: "Multiple Solar Sources (Optional — 2+ inverters / arrays)",
+        schema: [
+          { name: "solar_source_1_name", label: "Source 1 Name (e.g. Roof North)", selector: { text: {} } },
+          { name: "solar_source_1_power", label: "Source 1 Live Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_1_daily_yield", label: "Source 1 Today's Energy Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_2_name", label: "Source 2 Name (e.g. Garage)", selector: { text: {} } },
+          { name: "solar_source_2_power", label: "Source 2 Live Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_2_daily_yield", label: "Source 2 Today's Energy Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_3_name", label: "Source 3 Name (e.g. Shed)", selector: { text: {} } },
+          { name: "solar_source_3_power", label: "Source 3 Live Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_3_daily_yield", label: "Source 3 Today's Energy Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } }
+        ]
+      }
     ];
   }
 
