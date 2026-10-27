@@ -141,9 +141,11 @@ class HaEnergyFlowCard extends HTMLElement {
         'sensor.energy_imported_today'
       ]),
       grid_daily_export: resolve('grid_daily_export', [
-        'sensor.shellyem_e4525b_channel_1_energy_returned',
         'sensor.grid_daily_export_energy',
-        'sensor.energy_exported_today'
+        'sensor.living_room_shellyem_e4525b_channel_1_grid_daily_export_energy',
+        'sensor.energy_exported_today',
+        'sensor.daily_grid_export',
+        'sensor.grid_export_today'
       ]),
       load_power: resolve('load_power', [
         'sensor.load_power',
@@ -221,15 +223,18 @@ class HaEnergyFlowCard extends HTMLElement {
   _hasBattery() {
     const cfg = this._config || {};
     if (typeof cfg.show_battery === 'boolean') return cfg.show_battery;
-    const ents = cfg.entities || {};
-    return Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge || cfg.bess === true);
+    if (typeof cfg.show_bess === 'boolean') return cfg.show_bess;
+    if (cfg.bess === true) return true;
+    const ents = this._getEntities();
+    return Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge);
   }
 
   _hasEv() {
     const cfg = this._config || {};
     if (typeof cfg.show_ev === 'boolean') return cfg.show_ev;
-    const ents = cfg.entities || {};
-    return Boolean(ents.ev_power || ents.ev_charging || ents.ev_daily_energy);
+    if (typeof cfg.show_tesla === 'boolean') return cfg.show_tesla;
+    const ents = this._getEntities();
+    return Boolean(ents.ev_power || ents.ev_charging || ents.ev_daily_energy || ents.tesla_battery_level);
   }
 
   _getLayoutMode() {
@@ -738,7 +743,7 @@ class HaEnergyFlowCard extends HTMLElement {
           flex-direction: column;
           gap: 10px;
         }
-        .canvas-area {
+                .canvas-area {
           position: relative;
           width: 100%;
           height: calc(232px + max(0px, (var(--ares-font-scale, 1) - 1) * 90px));
@@ -2203,25 +2208,22 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         /* Color Studio Styling */
         .color-studio-toolbar {
           display: flex;
-          gap: 6px;
+          gap: 8px;
           margin-bottom: 12px;
           flex-wrap: wrap;
         }
         .studio-btn {
-          flex: 1 1 auto;
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 5px;
-          padding: 7px 10px;
+          gap: 6px;
+          padding: 8px 13px;
           border-radius: 8px;
           border: 1px solid rgba(255, 255, 255, 0.16);
           background: rgba(255, 255, 255, 0.05);
           color: #ffffff;
-          font-size: 11.5px;
-          font-weight: 600;
+          font-size: 12.5px;
+          font-weight: 700;
           cursor: pointer;
-          white-space: nowrap;
           transition: all 0.2s ease;
         }
         .studio-btn:hover {
@@ -2248,6 +2250,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         .btn-reset-colors {
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.7);
+          margin-left: auto;
         }
         .btn-reset-colors:hover {
           background: rgba(250, 17, 79, 0.15);
