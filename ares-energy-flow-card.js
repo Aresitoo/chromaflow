@@ -1799,17 +1799,31 @@ if (!customElements.get('ares-energy-flow-card')) {
   customElements.define('ares-energy-flow-card', HaEnergyFlowCard);
 }
 
-// Lovelace Card Picker Registration (Consolidated Single Entry)
+// Lovelace Card Picker Registration (In-Place Mutation — Preserves Array Reference)
 window.customCards = window.customCards || [];
-window.customCards = window.customCards.filter(c => c.type !== 'ha-energy-flow-card' && c.type !== 'ares-energy-flow-card');
 
-window.customCards.push({
+const cardMeta = {
   type: 'ares-energy-flow-card',
   name: 'ChromaFlow: Energy Flow and Autarky Card',
   description: 'Real-time energy flow and autarky scorecard with dynamic flow rails, visual theme presets, and a built-in color studio.',
   preview: true,
   documentationURL: 'https://github.com/Aresitoo/chromaflow'
-});
+};
+
+// 1. Remove old ha-energy-flow-card in-place without breaking array reference
+for (let i = window.customCards.length - 1; i >= 0; i--) {
+  if (window.customCards[i] && window.customCards[i].type === 'ha-energy-flow-card') {
+    window.customCards.splice(i, 1);
+  }
+}
+
+// 2. Update or insert ares-energy-flow-card in-place
+const aresIdx = window.customCards.findIndex(c => c && c.type === 'ares-energy-flow-card');
+if (aresIdx >= 0) {
+  window.customCards[aresIdx] = cardMeta;
+} else {
+  window.customCards.push(cardMeta);
+}
 
 /**
  * Visual Config Editor for ha-energy-flow-card
