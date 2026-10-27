@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v1.2.0 (Zero-YAML Visual Editor, 100% Granular Color Studio, Classic S-Curves & Bulletproof Anchors)
+ * Version: v2.1.0 (Dual Battery & EV Simultaneous Mode, Multi-Port Geometry, Full Color Studio & Visual Editor)
  */
 
 const PALETTES = {
@@ -11,6 +11,8 @@ const PALETTES = {
     grid: '#ff7043',
     home: '#00e5ff',
     device: '#b388ff',
+    battery: '#10b981',
+    ev: '#b388ff',
     export: '#00e676',
     autarky: '#00e676',
     import_ring: '#ff7043',
@@ -23,6 +25,10 @@ const PALETTES = {
     border_home: 'rgba(0, 229, 255, 0.3)',
     bg_device: 'rgba(179, 136, 255, 0.12)',
     border_device: 'rgba(179, 136, 255, 0.3)',
+    bg_battery: 'rgba(16, 185, 129, 0.12)',
+    border_battery: 'rgba(16, 185, 129, 0.3)',
+    bg_ev: 'rgba(179, 136, 255, 0.12)',
+    border_ev: 'rgba(179, 136, 255, 0.3)',
     bg_export: 'rgba(0, 230, 118, 0.12)',
     border_export: 'rgba(0, 230, 118, 0.25)',
     card_border: 'rgba(0, 230, 118, 0.25)',
@@ -271,7 +277,7 @@ class HaEnergyFlowCard extends HTMLElement {
     if (window.loadCardHelpers) {
       await window.loadCardHelpers();
     }
-    return document.createElement('ha-energy-flow-card-editor');
+    return document.createElement('ares-energy-flow-card-editor');
   }
 
   constructor() {
@@ -299,13 +305,40 @@ class HaEnergyFlowCard extends HTMLElement {
     };
   }
 
-  _isBatteryMode() {
+  _hasBattery() {
     const cfg = this._config || {};
+    if (typeof cfg.show_battery === 'boolean') return cfg.show_battery;
     const ents = cfg.entities || {};
-    const rawDt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
-    if (rawDt === 'ev') return false;
-    const hasBatteryEntities = Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge);
-    return (rawDt === 'battery' || rawDt === 'bess' || rawDt === 'storage' || rawDt === 'powerwall' || cfg.bess === true || hasBatteryEntities);
+    const dt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
+    if (dt === 'battery' || dt === 'bess' || dt === 'storage' || dt === 'powerwall' || cfg.bess === true) return true;
+    return Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge);
+  }
+
+  _hasEv() {
+    const cfg = this._config || {};
+    if (typeof cfg.show_ev === 'boolean') return cfg.show_ev;
+    const ents = cfg.entities || {};
+    const dt = String(cfg.device_type || ents.device_type || '').toLowerCase().trim();
+    if (dt === 'battery' || dt === 'bess' || dt === 'storage' || dt === 'powerwall' || cfg.bess === true) {
+      return Boolean(ents.ev_power || ents.ev_charging || ents.ev_daily_energy);
+    }
+    return true;
+  }
+
+  _getLayoutMode() {
+    const b = this._hasBattery();
+    const e = this._hasEv();
+    if (b && e) return 'dual';
+    if (b) {
+      const pos = String(this._config?.battery_position || 'left').toLowerCase().trim();
+      return (pos === 'right') ? 'battery-only' : 'battery-left';
+    }
+    if (e) return 'ev-only';
+    return 'none';
+  }
+
+  _isBatteryMode() {
+    return this._hasBattery() && !this._hasEv();
   }
 
   _getEntities() {
@@ -542,6 +575,8 @@ class HaEnergyFlowCard extends HTMLElement {
       font_scale: 1.0,
       show_solar_forecast: true,
       battery_positive_charging: true,
+      allow_battery_to_ev: false,
+      solar_priority: 'home',
       ...config
     };
 
@@ -567,11 +602,16 @@ class HaEnergyFlowCard extends HTMLElement {
     const mult = typeof this._config?.speed_multiplier === 'number' ? this._config.speed_multiplier : 1.0;
     const paths = [
       this._el?.flowSolarHome,
+      this._el?.flowSolarBattery,
+      this._el?.flowSolarEV,
       this._el?.flowSolarTesla,
       this._el?.flowSolarGrid,
       this._el?.flowGridHome,
+      this._el?.flowGridBattery,
+      this._el?.flowGridEV,
       this._el?.flowGridTesla,
       this._el?.flowBatteryHome,
+      this._el?.flowBatteryEV,
       this._el?.flowBatteryGrid
     ];
     for (const path of paths) {
@@ -597,10 +637,9 @@ class HaEnergyFlowCard extends HTMLElement {
     const pKey = (this._config && this._config.palette) || 'solar';
     const pal = PALETTES[pKey] || PALETTES.solar;
     const isFitness = (pKey === 'fitness');
-    const isBattery = this._isBatteryMode();
+    const layoutMode = this._getLayoutMode();
+    const isBattery = this._hasBattery();
     const lbls = this._getLabels();
-    const devIcon = isBattery ? '🔋' : '🚗';
-    const devName = this._getDeviceName(isBattery);
 
     // 100% Pure Independent Color Defaults (Zero Cascading Fallbacks)
     const colors = this._config.colors || {};
@@ -636,7 +675,27 @@ class HaEnergyFlowCard extends HTMLElement {
       badge_home_text: pal.home,
       badge_home_bg: pal.bg_home,
 
-      // 4. Battery / EV Box Elements
+      // 4. Battery Box Elements
+      bg_battery: pal.bg_battery || 'rgba(16, 185, 129, 0.12)',
+      border_battery: pal.border_battery || 'rgba(16, 185, 129, 0.3)',
+      title_battery: pal.battery || '#10b981',
+      pwr_battery: '#ffffff',
+      kwh_battery: 'rgba(255, 255, 255, 0.6)',
+      badge_battery_text: pal.battery || '#10b981',
+      badge_battery_bg: pal.bg_battery || 'rgba(16, 185, 129, 0.12)',
+      bar_battery_soc: pal.battery || '#10b981',
+
+      // 4b. EV Box Elements
+      bg_ev: pal.bg_ev || pal.bg_device,
+      border_ev: pal.border_ev || pal.border_device,
+      title_ev: pal.ev || pal.device,
+      pwr_ev: '#ffffff',
+      kwh_ev: 'rgba(255, 255, 255, 0.6)',
+      badge_ev_text: pal.ev || pal.device,
+      badge_ev_bg: pal.bg_ev || pal.bg_device,
+      bar_ev_soc: pal.ev || pal.device,
+
+      // Legacy fallback mapping
       bg_device: pal.bg_device,
       border_device: pal.border_device,
       title_device: pal.device,
@@ -655,12 +714,17 @@ class HaEnergyFlowCard extends HTMLElement {
 
       // 6. Dedicated Energy Flow Lines
       flow_solar_home: pal.solar,
-      flow_solar_tesla: pal.solar,
+      flow_solar_battery: pal.battery || '#10b981',
+      flow_solar_ev: pal.ev || pal.device,
+      flow_solar_tesla: pal.ev || pal.device,
       flow_solar_grid: pal.solar,
       flow_grid_home: pal.grid,
+      flow_grid_battery: pal.grid,
+      flow_grid_ev: pal.grid,
       flow_grid_tesla: pal.grid,
-      flow_battery_home: pal.device,
-      flow_battery_grid: pal.device,
+      flow_battery_home: pal.battery || '#10b981',
+      flow_battery_ev: pal.battery || '#10b981',
+      flow_battery_grid: pal.battery || '#10b981',
       flow_rails: 'rgba(255, 255, 255, 0.05)',
 
       // 7. Activity Rings & Scorecard Center
@@ -715,16 +779,25 @@ class HaEnergyFlowCard extends HTMLElement {
     const cBadgeHomeText = colors.badge_home_text || d.badge_home_text;
     const cBadgeHomeBg = colors.badge_home_bg || d.badge_home_bg;
 
-    // 4. Battery / EV Box
-    const cDeviceBg = colors.bg_device || d.bg_device;
-    const cDeviceBorder = colors.border_device || d.border_device;
-    const cTitleDevice = colors.title_device || d.title_device;
-    const cPwrDevice = colors.pwr_device || d.pwr_device;
-    const cKwhDevice = colors.kwh_device || d.kwh_device;
-    const cBadgeDeviceText = colors.badge_device_text || d.badge_device_text;
-    const cBadgeDeviceBg = colors.badge_device_bg || d.badge_device_bg;
-    const cBarDeviceSoc = colors.bar_device_soc || d.bar_device_soc;
-    const cBarDevice = cBarDeviceSoc;
+    // 4. Battery Box
+    const cBatteryBg = colors.bg_battery || d.bg_battery;
+    const cBatteryBorder = colors.border_battery || d.border_battery;
+    const cTitleBattery = colors.title_battery || d.title_battery;
+    const cPwrBattery = colors.pwr_battery || d.pwr_battery;
+    const cKwhBattery = colors.kwh_battery || d.kwh_battery;
+    const cBadgeBatteryText = colors.badge_battery_text || d.badge_battery_text;
+    const cBadgeBatteryBg = colors.badge_battery_bg || d.badge_battery_bg;
+    const cBarBatterySoc = colors.bar_battery_soc || d.bar_battery_soc;
+
+    // 4b. EV Box
+    const cEvBg = colors.bg_ev || colors.bg_device || d.bg_ev;
+    const cEvBorder = colors.border_ev || colors.border_device || d.border_ev;
+    const cTitleEv = colors.title_ev || colors.title_device || d.title_ev;
+    const cPwrEv = colors.pwr_ev || colors.pwr_device || d.pwr_ev;
+    const cKwhEv = colors.kwh_ev || colors.kwh_device || d.kwh_ev;
+    const cBadgeEvText = colors.badge_ev_text || colors.badge_device_text || d.badge_ev_text;
+    const cBadgeEvBg = colors.badge_ev_bg || colors.badge_device_bg || d.badge_ev_bg;
+    const cBarEvSoc = colors.bar_ev_soc || colors.bar_device_soc || d.bar_ev_soc;
 
     // 5. Grid Out (Export) Box
     const cExportBg = colors.bg_export || d.bg_export;
@@ -737,8 +810,11 @@ class HaEnergyFlowCard extends HTMLElement {
     const cSolarHomeStart = colors.flow_solar_home_start || (colors.flow_solar_home ? colors.flow_solar_home : pal.solar);
     const cSolarHomeEnd = colors.flow_solar_home_end || (colors.flow_solar_home ? colors.flow_solar_home : pal.home);
 
-    const cSolarTeslaStart = colors.flow_solar_tesla_start || (colors.flow_solar_tesla ? colors.flow_solar_tesla : pal.solar);
-    const cSolarTeslaEnd = colors.flow_solar_tesla_end || (colors.flow_solar_tesla ? colors.flow_solar_tesla : pal.device);
+    const cSolarBatteryStart = colors.flow_solar_battery_start || (colors.flow_solar_battery ? colors.flow_solar_battery : pal.solar);
+    const cSolarBatteryEnd = colors.flow_solar_battery_end || (colors.flow_solar_battery ? colors.flow_solar_battery : (pal.battery || '#10b981'));
+
+    const cSolarEvStart = colors.flow_solar_ev_start || colors.flow_solar_tesla_start || (colors.flow_solar_ev ? colors.flow_solar_ev : pal.solar);
+    const cSolarEvEnd = colors.flow_solar_ev_end || colors.flow_solar_tesla_end || (colors.flow_solar_ev ? colors.flow_solar_ev : (pal.ev || pal.device));
 
     const cSolarGridStart = colors.flow_solar_grid_start || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.solar);
     const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.export);
@@ -746,13 +822,19 @@ class HaEnergyFlowCard extends HTMLElement {
     const cGridHomeStart = colors.flow_grid_home_start || (colors.flow_grid_home ? colors.flow_grid_home : pal.grid);
     const cGridHomeEnd = colors.flow_grid_home_end || (colors.flow_grid_home ? colors.flow_grid_home : pal.home);
 
-    const cGridTeslaStart = colors.flow_grid_tesla_start || (colors.flow_grid_tesla ? colors.flow_grid_tesla : pal.grid);
-    const cGridTeslaEnd = colors.flow_grid_tesla_end || (colors.flow_grid_tesla ? colors.flow_grid_tesla : pal.device);
+    const cGridBatteryStart = colors.flow_grid_battery_start || (colors.flow_grid_battery ? colors.flow_grid_battery : pal.grid);
+    const cGridBatteryEnd = colors.flow_grid_battery_end || (colors.flow_grid_battery ? colors.flow_grid_battery : (pal.battery || '#10b981'));
 
-    const cBatteryHomeStart = colors.flow_battery_home_start || (colors.flow_battery_home ? colors.flow_battery_home : pal.device);
+    const cGridEvStart = colors.flow_grid_ev_start || colors.flow_grid_tesla_start || (colors.flow_grid_ev ? colors.flow_grid_ev : pal.grid);
+    const cGridEvEnd = colors.flow_grid_ev_end || colors.flow_grid_tesla_end || (colors.flow_grid_ev ? colors.flow_grid_ev : (pal.ev || pal.device));
+
+    const cBatteryHomeStart = colors.flow_battery_home_start || (colors.flow_battery_home ? colors.flow_battery_home : (pal.battery || '#10b981'));
     const cBatteryHomeEnd = colors.flow_battery_home_end || (colors.flow_battery_home ? colors.flow_battery_home : pal.home);
 
-    const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.device);
+    const cBatteryEvStart = colors.flow_battery_ev_start || (colors.flow_battery_ev ? colors.flow_battery_ev : (pal.battery || '#10b981'));
+    const cBatteryEvEnd = colors.flow_battery_ev_end || (colors.flow_battery_ev ? colors.flow_battery_ev : (pal.ev || pal.device));
+
+    const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : (pal.battery || '#10b981'));
     const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.export);
 
     const cRails = colors.flow_rails || d.flow_rails;
@@ -804,7 +886,7 @@ class HaEnergyFlowCard extends HTMLElement {
           container-name: chromaflow;
         }
 
-                .bg-glow {
+        .bg-glow {
           position: absolute;
           inset: 0;
           background: radial-gradient(circle at 50% 0%, ${isFitness ? 'rgba(250, 17, 79, 0.08)' : 'rgba(0, 229, 255, 0.08)'} 0%, rgba(14, 17, 24, 0.98) 60%);
@@ -827,6 +909,9 @@ class HaEnergyFlowCard extends HTMLElement {
           overflow: hidden;
           transition: height 0.3s ease;
         }
+        ha-card.layout-dual .canvas-area, ha-card.layout-battery-left .canvas-area {
+          height: calc(258px + max(0px, (var(--ares-font-scale, 1) - 1) * 90px));
+        }
         .col-left {
           position: absolute;
           left: 3px;
@@ -836,7 +921,7 @@ class HaEnergyFlowCard extends HTMLElement {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          gap: 8px;
+          gap: 6px;
           z-index: 2;
           box-sizing: border-box;
         }
@@ -888,21 +973,24 @@ class HaEnergyFlowCard extends HTMLElement {
           position: relative;
           width: 100%;
           border-radius: 10px;
-          padding: 6px 8px;
+          padding: 5px 8px;
           box-sizing: border-box;
           transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
+        ha-card.layout-dual .node, ha-card.layout-battery-left .node {
+          padding: 4px 7px;
+        }
         .node-pwr {
-          font-size: calc(17.5px * var(--ares-font-scale, 1));
+          font-size: calc(16.5px * var(--ares-font-scale, 1));
           font-weight: 900;
           line-height: 1.1;
-          margin-top: 2px;
+          margin-top: 1.5px;
           font-variant-numeric: tabular-nums;
         }
         .node-kwh {
           font-size: calc(9.5px * var(--ares-font-scale, 1));
           font-weight: 600;
-          margin-top: 1.5px;
+          margin-top: 1px;
         }
         .node-title {
           font-size: calc(11px * var(--ares-font-scale, 1));
@@ -927,7 +1015,7 @@ class HaEnergyFlowCard extends HTMLElement {
             width: clamp(86px, 34%, 102px) !important;
           }
           .node {
-            padding: 4px 5px !important;
+            padding: 3px 5px !important;
           }
           .node-title {
             font-size: calc(9.5px * var(--ares-font-scale, 1)) !important;
@@ -941,7 +1029,7 @@ class HaEnergyFlowCard extends HTMLElement {
             text-overflow: ellipsis !important;
           }
           .node-pwr {
-            font-size: calc(14px * var(--ares-font-scale, 1)) !important;
+            font-size: calc(13.5px * var(--ares-font-scale, 1)) !important;
           }
           .node-kwh {
             font-size: calc(7.5px * var(--ares-font-scale, 1)) !important;
@@ -982,7 +1070,7 @@ class HaEnergyFlowCard extends HTMLElement {
             width: clamp(78px, 32%, 92px) !important;
           }
           .node {
-            padding: 3px 4px !important;
+            padding: 2.5px 4px !important;
           }
           .node-title {
             font-size: calc(8.5px * var(--ares-font-scale, 1)) !important;
@@ -994,7 +1082,7 @@ class HaEnergyFlowCard extends HTMLElement {
             max-width: 38px !important;
           }
           .node-pwr {
-            font-size: calc(12.5px * var(--ares-font-scale, 1)) !important;
+            font-size: calc(12px * var(--ares-font-scale, 1)) !important;
           }
           .node-kwh {
             font-size: calc(7px * var(--ares-font-scale, 1)) !important;
@@ -1034,7 +1122,7 @@ class HaEnergyFlowCard extends HTMLElement {
         }
       </style>
 
-      <ha-card>
+      <ha-card class="layout-${layoutMode}">
         <div class="bg-glow"></div>
         <div class="content">
           <!-- Flow Canvas Area -->
@@ -1045,9 +1133,17 @@ class HaEnergyFlowCard extends HTMLElement {
                   <stop offset="0%" stop-color="${cSolarHomeStart}" />
                   <stop offset="100%" stop-color="${cSolarHomeEnd}" />
                 </linearGradient>
+                <linearGradient id="flowSolarBattery" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="${cSolarBatteryStart}" />
+                  <stop offset="100%" stop-color="${cSolarBatteryEnd}" />
+                </linearGradient>
+                <linearGradient id="flowSolarEV" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="${cSolarEvStart}" />
+                  <stop offset="100%" stop-color="${cSolarEvEnd}" />
+                </linearGradient>
                 <linearGradient id="flowSolarTesla" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="${cSolarTeslaStart}" />
-                  <stop offset="100%" stop-color="${cSolarTeslaEnd}" />
+                  <stop offset="0%" stop-color="${cSolarEvStart}" />
+                  <stop offset="100%" stop-color="${cSolarEvEnd}" />
                 </linearGradient>
                 <linearGradient id="flowSolarGrid" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="${cSolarGridStart}" />
@@ -1057,15 +1153,27 @@ class HaEnergyFlowCard extends HTMLElement {
                   <stop offset="0%" stop-color="${cGridHomeStart}" />
                   <stop offset="100%" stop-color="${cGridHomeEnd}" />
                 </linearGradient>
-                <linearGradient id="flowGridTesla" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="${cGridTeslaStart}" />
-                  <stop offset="100%" stop-color="${cGridTeslaEnd}" />
+                <linearGradient id="flowGridBattery" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="${cGridBatteryStart}" />
+                  <stop offset="100%" stop-color="${cGridBatteryEnd}" />
                 </linearGradient>
-                <linearGradient id="flowBatteryHome" x1="0%" y1="100%" x2="0%" y2="0%">
+                <linearGradient id="flowGridEV" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="${cGridEvStart}" />
+                  <stop offset="100%" stop-color="${cGridEvEnd}" />
+                </linearGradient>
+                <linearGradient id="flowGridTesla" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="${cGridEvStart}" />
+                  <stop offset="100%" stop-color="${cGridEvEnd}" />
+                </linearGradient>
+                <linearGradient id="flowBatteryHome" x1="0%" y1="100%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="${cBatteryHomeStart}" />
                   <stop offset="100%" stop-color="${cBatteryHomeEnd}" />
                 </linearGradient>
-                <linearGradient id="flowBatteryGrid" x1="0%" y1="0%" x2="0%" y2="100%">
+                <linearGradient id="flowBatteryEV" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="${cBatteryEvStart}" />
+                  <stop offset="100%" stop-color="${cBatteryEvEnd}" />
+                </linearGradient>
+                <linearGradient id="flowBatteryGrid" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stop-color="${cBatteryGridStart}" />
                   <stop offset="100%" stop-color="${cBatteryGridEnd}" />
                 </linearGradient>
@@ -1073,27 +1181,37 @@ class HaEnergyFlowCard extends HTMLElement {
 
               <!-- Inactive Background Rails (Static, Non-Moving) -->
               <path id="rail-solar-home" class="rail-path" />
-              <path id="rail-solar-tesla" class="rail-path" />
+              <path id="rail-solar-battery" class="rail-path" style="display: none;" />
+              <path id="rail-solar-ev" class="rail-path" style="display: none;" />
+              <path id="rail-solar-tesla" class="rail-path" style="display: none;" />
               <path id="rail-solar-grid" class="rail-path" />
               <path id="rail-grid-home" class="rail-path" />
-              <path id="rail-grid-tesla" class="rail-path" />
-              <path id="rail-battery-home" class="rail-path" style="display: ${isBattery ? 'block' : 'none'};" />
-              <path id="rail-battery-grid" class="rail-path" style="display: ${isBattery ? 'block' : 'none'};" />
+              <path id="rail-grid-battery" class="rail-path" style="display: none;" />
+              <path id="rail-grid-ev" class="rail-path" style="display: none;" />
+              <path id="rail-grid-tesla" class="rail-path" style="display: none;" />
+              <path id="rail-battery-home" class="rail-path" style="display: none;" />
+              <path id="rail-battery-ev" class="rail-path" style="display: none;" />
+              <path id="rail-battery-grid" class="rail-path" style="display: none;" />
 
               <!-- Active Colored Flows (Animated) -->
               <path id="flow-solar-home" class="flow-path" stroke="url(#flowSolarHome)" stroke-width="3" style="display: none;" />
+              <path id="flow-solar-battery" class="flow-path" stroke="url(#flowSolarBattery)" stroke-width="3" style="display: none;" />
+              <path id="flow-solar-ev" class="flow-path" stroke="url(#flowSolarEV)" stroke-width="3" style="display: none;" />
               <path id="flow-solar-tesla" class="flow-path" stroke="url(#flowSolarTesla)" stroke-width="3" style="display: none;" />
               <path id="flow-battery-home" class="flow-path" stroke="url(#flowBatteryHome)" stroke-width="3" style="display: none;" />
+              <path id="flow-battery-ev" class="flow-path" stroke="url(#flowBatteryEV)" stroke-width="3" style="display: none;" />
               <path id="flow-battery-grid" class="flow-path" stroke="url(#flowBatteryGrid)" stroke-width="3" style="display: none;" />
               <path id="flow-solar-grid" class="flow-path" stroke="url(#flowSolarGrid)" stroke-width="3" style="display: none;" />
               <path id="flow-grid-home" class="flow-path" stroke="url(#flowGridHome)" stroke-width="3" style="display: none;" />
+              <path id="flow-grid-battery" class="flow-path" stroke="url(#flowGridBattery)" stroke-width="3" style="display: none;" />
+              <path id="flow-grid-ev" class="flow-path" stroke="url(#flowGridEV)" stroke-width="3" style="display: none;" />
               <path id="flow-grid-tesla" class="flow-path" stroke="url(#flowGridTesla)" stroke-width="3" style="display: none;" />
             </svg>
 
-            <!-- Column: Left (Solar, Grid In) -->
+            <!-- Column: Left (Solar, Battery, Grid In) -->
             <div id="col-left" class="col-left">
               <!-- Node: Solar (Left-Top) -->
-              <div id="node-solar" class="node" style="min-height: 70px; display: flex; flex-direction: column; justify-content: center; background: ${cSolarBg}; border: 1.5px solid ${cSolarBorder};">
+              <div id="node-solar" class="node" style="min-height: 60px; display: flex; flex-direction: column; justify-content: center; background: ${cSolarBg}; border: 1.5px solid ${cSolarBorder};">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleSolar}; min-width: 0; flex-shrink: 1;">
                     <span style="font-size: 13px; line-height: 1; flex-shrink: 0;">☀️</span>
@@ -1109,8 +1227,24 @@ class HaEnergyFlowCard extends HTMLElement {
                 </div>
               </div>
 
+              <!-- Node: Battery Storage (Left-Middle in Dual Mode) -->
+              <div id="node-battery" class="node" style="min-height: 52px; display: flex; flex-direction: column; justify-content: center; background: ${cBatteryBg}; border: 1.5px solid ${cBatteryBorder};">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
+                  <div class="node-title" style="color: ${cTitleBattery}; min-width: 0; flex-shrink: 1;">
+                    <span style="font-size: 12px; line-height: 1; flex-shrink: 0;">🔋</span>
+                    <span id="lbl-battery" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.battery}</span>
+                  </div>
+                  <span id="badge-battery" class="badge" style="color: ${cBadgeBatteryText}; background: ${cBadgeBatteryBg}; border: 0.5px solid ${cBatteryBorder}; display: none;">IDLE</span>
+                </div>
+                <div id="pwr-battery" class="node-pwr" style="color: ${cPwrBattery};">0 W</div>
+                <div id="kwh-battery" class="node-kwh" style="color: ${cKwhBattery};">0% SoC</div>
+                <div id="bar-battery-soc-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
+                  <div id="bar-battery-soc-fill" style="width: 0%; height: 100%; background: ${cBarBatterySoc}; transition: width 0.4s ease;"></div>
+                </div>
+              </div>
+
               <!-- Node: Grid In (Left-Bottom) -->
-              <div id="node-grid" class="node" style="background: ${cGridBg}; border: 1.5px solid ${cGridBorder};">
+              <div id="node-grid" class="node" style="min-height: 52px; display: flex; flex-direction: column; justify-content: center; background: ${cGridBg}; border: 1.5px solid ${cGridBorder};">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleGrid}; min-width: 0; flex-shrink: 1;">
                     <span style="font-size: 12px; line-height: 1; flex-shrink: 0;">🏭</span>
@@ -1123,10 +1257,10 @@ class HaEnergyFlowCard extends HTMLElement {
               </div>
             </div>
 
-            <!-- Column: Right (Home, Middle Device, Grid Out) -->
+            <!-- Column: Right (Home, EV, Grid Out) -->
             <div id="col-right" class="col-right">
               <!-- Node: Home (Right-Top) -->
-              <div id="node-home" class="node" style="background: ${cHomeBg}; border: 1.5px solid ${cHomeBorder};">
+              <div id="node-home" class="node" style="min-height: 52px; display: flex; flex-direction: column; justify-content: center; background: ${cHomeBg}; border: 1.5px solid ${cHomeBorder};">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleHome}; min-width: 0; flex-shrink: 1;">
                     <span style="font-size: 12px; line-height: 1; flex-shrink: 0;">🏠</span>
@@ -1138,24 +1272,24 @@ class HaEnergyFlowCard extends HTMLElement {
                 <div id="kwh-home" class="node-kwh" style="color: ${cKwhHome};">0.00 kWh solar</div>
               </div>
 
-              <!-- Node: Middle Device (Right-Center) -->
-              <div id="node-tesla" class="node" style="background: ${cDeviceBg}; border: 1.5px solid ${cDeviceBorder};">
+              <!-- Node: Electric Vehicle (Right-Middle) -->
+              <div id="node-ev" class="node" style="min-height: 52px; display: flex; flex-direction: column; justify-content: center; background: ${cEvBg}; border: 1.5px solid ${cEvBorder};">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
-                  <div class="node-title" style="color: ${cTitleDevice}; min-width: 0; flex-shrink: 1;">
-                    <span id="icon-dev" style="font-size: 12px; line-height: 1; flex-shrink: 0;">${devIcon}</span>
-                    <span id="lbl-dev" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${devName}</span>
+                  <div class="node-title" style="color: ${cTitleEv}; min-width: 0; flex-shrink: 1;">
+                    <span id="icon-ev" style="font-size: 12px; line-height: 1; flex-shrink: 0;">🚗</span>
+                    <span id="lbl-ev" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.ev}</span>
                   </div>
-                  <span id="badge-tesla" class="badge" style="color: ${cBadgeDeviceText}; background: ${cBadgeDeviceBg}; border: 0.5px solid ${cDeviceBorder}; display: none;">CHARGING</span>
+                  <span id="badge-ev" class="badge" style="color: ${cBadgeEvText}; background: ${cBadgeEvBg}; border: 0.5px solid ${cEvBorder}; display: none;">CHARGING</span>
                 </div>
-                <div id="pwr-tesla" class="node-pwr" style="color: ${cPwrDevice};">0 W</div>
-                <div id="kwh-tesla" class="node-kwh" style="color: ${cKwhDevice};">0.00 kWh charged</div>
-                <div id="bar-soc-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
-                  <div id="bar-soc-fill" style="width: 0%; height: 100%; background: ${cBarDevice}; transition: width 0.4s ease;"></div>
+                <div id="pwr-ev" class="node-pwr" style="color: ${cPwrEv};">0 W</div>
+                <div id="kwh-ev" class="node-kwh" style="color: ${cKwhEv};">0.00 kWh charged</div>
+                <div id="bar-ev-soc-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
+                  <div id="bar-ev-soc-fill" style="width: 0%; height: 100%; background: ${cBarEvSoc}; transition: width 0.4s ease;"></div>
                 </div>
               </div>
 
               <!-- Node: Grid Out (Right-Bottom) -->
-              <div id="node-export" class="node" style="background: ${cExportBg}; border: 1.5px solid ${cExportBorder};">
+              <div id="node-export" class="node" style="min-height: 52px; display: flex; flex-direction: column; justify-content: center; background: ${cExportBg}; border: 1.5px solid ${cExportBorder};">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleExport}; min-width: 0; flex-shrink: 1;">
                     <span style="font-size: 12px; line-height: 1; flex-shrink: 0;">🏭</span>
@@ -1276,34 +1410,66 @@ class HaEnergyFlowCard extends HTMLElement {
       badgeHome: getEl('badge-home'),
       nodeHome: getEl('node-home'),
 
-      pwrTesla: getEl('pwr-tesla'),
-      kwhTesla: getEl('kwh-tesla'),
-      badgeTesla: getEl('badge-tesla'),
-      nodeTesla: getEl('node-tesla'),
-      lblDev: getEl('lbl-dev'),
-      iconDev: getEl('icon-dev'),
-      barSocBox: getEl('bar-soc-box'),
-      barSocFill: getEl('bar-soc-fill'),
+      // Battery elements
+      nodeBattery: getEl('node-battery'),
+      pwrBattery: getEl('pwr-battery'),
+      kwhBattery: getEl('kwh-battery'),
+      badgeBattery: getEl('badge-battery'),
+      barBatterySocBox: getEl('bar-battery-soc-box'),
+      barBatterySocFill: getEl('bar-battery-soc-fill'),
+      lblBattery: getEl('lbl-battery'),
+
+      // EV elements
+      nodeEv: getEl('node-ev'),
+      pwrEv: getEl('pwr-ev'),
+      kwhEv: getEl('kwh-ev'),
+      badgeEv: getEl('badge-ev'),
+      barEvSocBox: getEl('bar-ev-soc-box'),
+      barEvSocFill: getEl('bar-ev-soc-fill'),
+      lblEv: getEl('lbl-ev'),
+      iconEv: getEl('icon-ev'),
+
+      // Backwards compatible aliases
+      nodeTesla: getEl('node-ev'),
+      pwrTesla: getEl('pwr-ev'),
+      kwhTesla: getEl('kwh-ev'),
+      badgeTesla: getEl('badge-ev'),
+      barSocBox: getEl('bar-ev-soc-box'),
+      barSocFill: getEl('bar-ev-soc-fill'),
+      lblDev: getEl('lbl-ev'),
+      iconDev: getEl('icon-ev'),
 
       pwrExport: getEl('pwr-export'),
       kwhExport: getEl('kwh-export'),
       nodeExport: getEl('node-export'),
 
+      // Rails
       railSolarHome: getEl('rail-solar-home'),
+      railSolarBattery: getEl('rail-solar-battery'),
+      railSolarEV: getEl('rail-solar-ev'),
       railSolarTesla: getEl('rail-solar-tesla'),
       railSolarGrid: getEl('rail-solar-grid'),
       railGridHome: getEl('rail-grid-home'),
+      railGridBattery: getEl('rail-grid-battery'),
+      railGridEV: getEl('rail-grid-ev'),
       railGridTesla: getEl('rail-grid-tesla'),
       railBatteryHome: getEl('rail-battery-home'),
+      railBatteryEV: getEl('rail-battery-ev'),
       railBatteryGrid: getEl('rail-battery-grid'),
 
+      // Flows
       flowSolarHome: getEl('flow-solar-home'),
+      flowSolarBattery: getEl('flow-solar-battery'),
+      flowSolarEV: getEl('flow-solar-ev'),
       flowSolarTesla: getEl('flow-solar-tesla'),
-      flowBatteryHome: getEl('flow-battery-home'),
-      flowBatteryGrid: getEl('flow-battery-grid'),
       flowSolarGrid: getEl('flow-solar-grid'),
       flowGridHome: getEl('flow-grid-home'),
+      flowGridBattery: getEl('flow-grid-battery'),
+      flowGridEV: getEl('flow-grid-ev'),
       flowGridTesla: getEl('flow-grid-tesla'),
+      flowBatteryHome: getEl('flow-battery-home'),
+      flowBatteryEV: getEl('flow-battery-ev'),
+      flowBatteryGrid: getEl('flow-battery-grid'),
 
       // Scorecard elements
       ringAutarky: getEl('ring-autarky'),
@@ -1351,10 +1517,37 @@ class HaEnergyFlowCard extends HTMLElement {
     const height = Math.round(h || this._canvasArea.clientHeight || 232);
     if (width <= 0 || height <= 0) return;
 
+    const mode = this._getLayoutMode();
     const card = this.shadowRoot.querySelector('ha-card');
     if (card && card.classList && typeof card.classList.toggle === 'function') {
+      card.classList.toggle('layout-dual', mode === 'dual');
+      card.classList.toggle('layout-battery-left', mode === 'battery-left');
+      card.classList.toggle('layout-battery-only', mode === 'battery-only');
+      card.classList.toggle('layout-ev-only', mode === 'ev-only');
+      card.classList.toggle('layout-4node', mode === 'none');
       card.classList.toggle('compact-view', width <= 360);
       card.classList.toggle('mini-view', width <= 315);
+    }
+
+    // Dynamic node relocation based on layout mode
+    if (mode === 'dual' || mode === 'battery-left') {
+      if (this._el.colLeft && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colLeft) {
+        this._el.colLeft.insertBefore(this._el.nodeBattery, this._el.nodeGrid);
+      }
+      if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'flex';
+      if (this._el.nodeEv) this._el.nodeEv.style.display = (mode === 'dual') ? 'flex' : 'none';
+    } else if (mode === 'battery-only') {
+      if (this._el.colRight && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colRight) {
+        this._el.colRight.insertBefore(this._el.nodeBattery, this._el.nodeExport);
+      }
+      if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'flex';
+      if (this._el.nodeEv) this._el.nodeEv.style.display = 'none';
+    } else if (mode === 'ev-only') {
+      if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'none';
+      if (this._el.nodeEv) this._el.nodeEv.style.display = 'flex';
+    } else { // 'none'
+      if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'none';
+      if (this._el.nodeEv) this._el.nodeEv.style.display = 'none';
     }
 
     this._svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
@@ -1363,67 +1556,185 @@ class HaEnergyFlowCard extends HTMLElement {
     const cLeft = (this._el.colLeft && this._el.colLeft.offsetWidth > 0) ? this._el.colLeft : { offsetLeft: 3, offsetWidth: defaultColW, offsetTop: 3 };
     const cRight = (this._el.colRight && this._el.colRight.offsetWidth > 0) ? this._el.colRight : { offsetLeft: width - 3 - defaultColW, offsetWidth: defaultColW, offsetTop: 3 };
 
-    // Bulletproof offset geometry immune to transforms or viewport zoom
     const startX = Math.round(cLeft.offsetLeft + cLeft.offsetWidth);
     const endX = Math.round(cRight.offsetLeft);
 
-    const nodeSolar = this._el.nodeSolar || { offsetTop: 0, offsetHeight: 77 };
-    const nodeGrid = this._el.nodeGrid || { offsetTop: height - 70, offsetHeight: 67 };
-    const nodeHome = this._el.nodeHome || { offsetTop: 0, offsetHeight: 62 };
-    const nodeTesla = this._el.nodeTesla || { offsetTop: Math.round(height * 0.35), offsetHeight: 70 };
-    const nodeExport = this._el.nodeExport || { offsetTop: height - 63, offsetHeight: 60 };
+    const nodeSolar = this._el.nodeSolar || { offsetTop: 0, offsetHeight: 65 };
+    const nodeBattery = this._el.nodeBattery || { offsetTop: Math.round(height * 0.35), offsetHeight: 52 };
+    const nodeGrid = this._el.nodeGrid || { offsetTop: height - 60, offsetHeight: 56 };
+    const nodeHome = this._el.nodeHome || { offsetTop: 0, offsetHeight: 56 };
+    const nodeEv = this._el.nodeEv || { offsetTop: Math.round(height * 0.35), offsetHeight: 52 };
+    const nodeExport = this._el.nodeExport || { offsetTop: height - 56, offsetHeight: 52 };
 
-    // Classic S-curve geometry: lines emerge from lower on the Solar box and sweep UPWARD into Home
-    const solarBaseY = Math.round(cLeft.offsetTop + nodeSolar.offsetTop + Math.max(70, nodeSolar.offsetHeight));
-    const sHomeY = Math.max(48, solarBaseY - 22);
-    const sTeslaY = sHomeY + 9;
-    const sGridY = sTeslaY + 9;
+    const nodeSolarTopY = Math.round(cLeft.offsetTop + nodeSolar.offsetTop);
+    const nodeSolarH = Math.max(56, nodeSolar.offsetHeight);
+    const nodeSolarBottomY = nodeSolarTopY + nodeSolarH;
 
-    const gridBaseY = Math.round(cLeft.offsetTop + nodeGrid.offsetTop);
-    const gHomeY = gridBaseY + 16;
-    const gTeslaY = gHomeY + 10;
+    const nodeGridTopY = Math.round(cLeft.offsetTop + nodeGrid.offsetTop);
+    const nodeGridH = Math.max(50, nodeGrid.offsetHeight);
+    const nodeGridBottomY = nodeGridTopY + nodeGridH;
 
-    const homeTargetY = Math.round(cRight.offsetTop + nodeHome.offsetTop + (nodeHome.offsetHeight / 2));
-    const teslaTargetY = Math.round(cRight.offsetTop + nodeTesla.offsetTop + (nodeTesla.offsetHeight / 2));
-    const exportTargetY = Math.round(cRight.offsetTop + nodeExport.offsetTop + (nodeExport.offsetHeight / 2));
+    const nodeHomeTopY = Math.round(cRight.offsetTop + nodeHome.offsetTop);
+    const nodeHomeH = Math.max(50, nodeHome.offsetHeight);
+    const homeMidY = Math.round(nodeHomeTopY + (nodeHomeH / 2));
+
+    const nodeExportTopY = Math.round(cRight.offsetTop + nodeExport.offsetTop);
+    const nodeExportH = Math.max(50, nodeExport.offsetHeight);
+    const exportMidY = Math.round(nodeExportTopY + (nodeExportH / 2));
 
     const cp1X = Math.round(startX + (endX - startX) * 0.45);
     const cp2X = Math.round(startX + (endX - startX) * 0.55);
 
-    const pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeTargetY}, ${endX} ${homeTargetY}`;
-    const pSolarTesla = `M ${startX} ${sTeslaY} C ${cp1X} ${sTeslaY}, ${cp2X} ${teslaTargetY}, ${endX} ${teslaTargetY}`;
-    const pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportTargetY}, ${endX} ${exportTargetY}`;
+    let pSolarHome = '';
+    let pSolarGrid = '';
+    let pGridHome = '';
+    let pSolarBattery = '';
+    let pSolarEV = '';
+    let pGridBattery = '';
+    let pGridEV = '';
+    let pBatteryHome = '';
+    let pBatteryEV = '';
+    let pBatteryGrid = '';
 
-    const pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeTargetY + 5}, ${endX} ${homeTargetY + 5}`;
-    const pGridTesla = `M ${startX} ${gTeslaY} C ${cp1X} ${gTeslaY}, ${cp2X} ${teslaTargetY + 5}, ${endX} ${teslaTargetY + 5}`;
+    if (mode === 'dual' || mode === 'battery-left') {
+      // Battery is in col-left (middle), EV is in col-right (middle)
+      const battTopY = Math.round(cLeft.offsetTop + nodeBattery.offsetTop);
+      const battH = Math.max(50, nodeBattery.offsetHeight);
+      const battBottomY = battTopY + battH;
+      const battMidY = Math.round(battTopY + (battH / 2));
 
-    const maxSweep = Math.max(12, (endX - startX) * 0.4);
-    const cpArcX = Math.round(endX - Math.min(36, Math.min(maxSweep, (endX - startX) - 16)));
-    const teslaTopY = Math.round(cRight.offsetTop + nodeTesla.offsetTop);
-    const teslaBottomY = teslaTopY + nodeTesla.offsetHeight;
-    const homeBottomY = Math.round(cRight.offsetTop + nodeHome.offsetTop + nodeHome.offsetHeight);
-    const exportTopY = Math.round(cRight.offsetTop + nodeExport.offsetTop);
+      const evTopY = Math.round(cRight.offsetTop + nodeEv.offsetTop);
+      const evH = Math.max(50, nodeEv.offsetHeight);
+      const evMidY = Math.round(evTopY + (evH / 2));
 
-    const pBatteryHome = `M ${endX} ${teslaTopY + 14} C ${cpArcX} ${teslaTopY + 14}, ${cpArcX} ${homeBottomY - 8}, ${endX} ${homeBottomY - 8}`;
-    const pBatteryGrid = `M ${endX} ${teslaBottomY - 14} C ${cpArcX} ${teslaBottomY - 14}, ${cpArcX} ${exportTopY + 8}, ${endX} ${exportTopY + 8}`;
+      // 1. Solar Exit Ports (distributed vertically on Solar's right edge)
+      const sHomeY = nodeSolarTopY + 14;     // Upper port (to Home)
+      const sEvY = nodeSolarTopY + 28;       // Middle port (to EV)
+      const sGridY = nodeSolarTopY + 40;     // Lower-middle port (to Grid Out)
+      const sBattY = nodeSolarBottomY - 4;   // Bottom-most port (to BESS)
 
-    const setAttr = (el, d) => { if (el) el.setAttribute('d', d); };
+      // 2. Grid In Exit Ports (distributed vertically on Grid In's right edge)
+      const gBattY = nodeGridTopY + 4;       // Top port (to BESS)
+      const gHomeY = nodeGridTopY + 18;      // Middle port (to Home)
+      const gEvY = nodeGridTopY + 30;        // Lower port (to EV)
+
+      // 3. Home Landing Ports (clean 10px center-to-center air gaps on Home's left edge)
+      const hSolarLandingY = homeMidY - 10;  // Solar enters top port
+      const hBatteryLandingY = homeMidY;      // Battery enters center port
+      const hGridLandingY = homeMidY + 10;   // Grid In enters bottom port
+
+      // 4. EV Landing Ports (clean 8px center-to-center air gaps on EV's left edge)
+      const evSolarLandingY = evMidY - 8;    // Solar enters top port
+      const evBatteryLandingY = evMidY;      // Battery enters center port
+      const evGridLandingY = evMidY + 8;     // Grid In enters bottom port
+
+      // 5. Grid Out Landing Ports (clean 16px center-to-center air gap on Grid Out's left edge)
+      const goSolarLandingY = exportMidY - 8;   // Solar enters top port
+      const goBatteryLandingY = exportMidY + 8; // Battery enters bottom port
+
+      // Left-column vertical curves (tucked within 10px margin to avoid center canvas cross lines)
+      pSolarBattery = `M ${startX} ${sBattY} C ${startX + 10} ${sBattY}, ${startX + 10} ${battTopY + 4}, ${startX} ${battTopY + 4}`;
+      pGridBattery = `M ${startX} ${gBattY} C ${startX + 10} ${gBattY}, ${startX + 10} ${battBottomY - 4}, ${startX} ${battBottomY - 4}`;
+
+      // Cross flows from Solar
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${hSolarLandingY}, ${endX} ${hSolarLandingY}`;
+      pSolarEV = `M ${startX} ${sEvY} C ${cp1X} ${sEvY}, ${cp2X} ${evSolarLandingY}, ${endX} ${evSolarLandingY}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${goSolarLandingY}, ${endX} ${goSolarLandingY}`;
+
+      // Cross flows from Grid In
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${hGridLandingY}, ${endX} ${hGridLandingY}`;
+      pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evGridLandingY}, ${endX} ${evGridLandingY}`;
+
+      // Battery discharge paths
+      pBatteryHome = `M ${startX} ${battMidY - 7} C ${cp1X} ${battMidY - 7}, ${cp2X} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
+      pBatteryEV = `M ${startX} ${battMidY} C ${cp1X} ${battMidY}, ${cp2X} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
+      pBatteryGrid = `M ${startX} ${battMidY + 7} C ${cp1X} ${battMidY + 7}, ${cp2X} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+
+    } else if (mode === 'battery-only') {
+      // Battery is in col-right (middle)
+      const battTopY = Math.round(cRight.offsetTop + nodeBattery.offsetTop);
+      const battH = Math.max(50, nodeBattery.offsetHeight);
+      const battBottomY = battTopY + battH;
+      const battMidY = Math.round(battTopY + (battH / 2));
+      const homeBottomY = Math.round(nodeHomeTopY + nodeHomeH);
+
+      const sHomeY = nodeSolarTopY + 14;
+      const sBattY = nodeSolarTopY + 30;
+      const sGridY = nodeSolarTopY + 44;
+
+      const gHomeY = nodeGridTopY + 16;
+      const gBattY = nodeGridTopY + 28;
+
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
+      pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${battMidY - 6}, ${endX} ${battMidY - 6}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
+
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
+      pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${battMidY + 6}, ${endX} ${battMidY + 6}`;
+
+      const maxSweep = Math.max(12, (endX - startX) * 0.4);
+      const cpArcX = Math.round(endX - Math.min(36, Math.min(maxSweep, (endX - startX) - 16)));
+
+      pBatteryHome = `M ${endX} ${battTopY + 10} C ${cpArcX} ${battTopY + 10}, ${cpArcX} ${homeBottomY - 4}, ${endX} ${homeBottomY - 4}`;
+      pBatteryGrid = `M ${endX} ${battBottomY - 10} C ${cpArcX} ${battBottomY - 10}, ${cpArcX} ${nodeExportTopY + 4}, ${endX} ${nodeExportTopY + 4}`;
+
+    } else if (mode === 'ev-only') {
+      // EV is in col-right (middle)
+      const evTopY = Math.round(cRight.offsetTop + nodeEv.offsetTop);
+      const evH = Math.max(50, nodeEv.offsetHeight);
+      const evMidY = Math.round(evTopY + (evH / 2));
+
+      const sHomeY = nodeSolarTopY + 14;
+      const sEvY = nodeSolarTopY + 28;
+      const sGridY = nodeSolarTopY + 42;
+
+      const gHomeY = nodeGridTopY + 16;
+      const gEvY = nodeGridTopY + 28;
+
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 6}, ${endX} ${homeMidY - 6}`;
+      pSolarEV = `M ${startX} ${sEvY} C ${cp1X} ${sEvY}, ${cp2X} ${evMidY - 6}, ${endX} ${evMidY - 6}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
+
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 6}, ${endX} ${homeMidY + 6}`;
+      pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evMidY + 6}, ${endX} ${evMidY + 6}`;
+
+    } else { // 'none' (4-node mode)
+      const sHomeY = nodeSolarTopY + 18;
+      const sGridY = nodeSolarTopY + 36;
+      const gHomeY = nodeGridTopY + 18;
+
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 6}, ${endX} ${homeMidY - 6}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 6}, ${endX} ${homeMidY + 6}`;
+    }
+
+    const setAttr = (el, d) => { if (el) el.setAttribute('d', d || ''); };
 
     setAttr(this._el.railSolarHome, pSolarHome);
-    setAttr(this._el.railSolarTesla, pSolarTesla);
+    setAttr(this._el.railSolarBattery, pSolarBattery);
+    setAttr(this._el.railSolarEV, pSolarEV);
+    setAttr(this._el.railSolarTesla, pSolarEV);
     setAttr(this._el.railSolarGrid, pSolarGrid);
     setAttr(this._el.railGridHome, pGridHome);
-    setAttr(this._el.railGridTesla, pGridTesla);
+    setAttr(this._el.railGridBattery, pGridBattery);
+    setAttr(this._el.railGridEV, pGridEV);
+    setAttr(this._el.railGridTesla, pGridEV);
     setAttr(this._el.railBatteryHome, pBatteryHome);
+    setAttr(this._el.railBatteryEV, pBatteryEV);
     setAttr(this._el.railBatteryGrid, pBatteryGrid);
 
     setAttr(this._el.flowSolarHome, pSolarHome);
-    setAttr(this._el.flowSolarTesla, pSolarTesla);
-    setAttr(this._el.flowBatteryHome, pBatteryHome);
-    setAttr(this._el.flowBatteryGrid, pBatteryGrid);
+    setAttr(this._el.flowSolarBattery, pSolarBattery);
+    setAttr(this._el.flowSolarEV, pSolarEV);
+    setAttr(this._el.flowSolarTesla, pSolarEV);
     setAttr(this._el.flowSolarGrid, pSolarGrid);
     setAttr(this._el.flowGridHome, pGridHome);
-    setAttr(this._el.flowGridTesla, pGridTesla);
+    setAttr(this._el.flowGridBattery, pGridBattery);
+    setAttr(this._el.flowGridEV, pGridEV);
+    setAttr(this._el.flowGridTesla, pGridEV);
+    setAttr(this._el.flowBatteryHome, pBatteryHome);
+    setAttr(this._el.flowBatteryEV, pBatteryEV);
+    setAttr(this._el.flowBatteryGrid, pBatteryGrid);
   }
 
   _applyConfigVisibility() {
@@ -1435,11 +1746,26 @@ class HaEnergyFlowCard extends HTMLElement {
       if (!showFc) this._el.kwhSolarRem.style.display = 'none';
     }
 
-    const isBattery = this._isBatteryMode();
-    if (this._el.railBatteryHome) this._el.railBatteryHome.style.display = isBattery ? 'block' : 'none';
-    if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = isBattery ? 'block' : 'none';
-    if (this._el.flowBatteryHome && !isBattery) this._el.flowBatteryHome.style.display = 'none';
-    if (this._el.flowBatteryGrid && !isBattery) this._el.flowBatteryGrid.style.display = 'none';
+    const mode = this._getLayoutMode();
+    const hasBatt = (mode === 'dual' || mode === 'battery-left' || mode === 'battery-only');
+    const hasEv = (mode === 'dual' || mode === 'ev-only');
+    const isStress = false;
+    const allowBattToEv = Boolean(this._config?.allow_battery_to_ev) || (false) || isStress || (false);
+
+    if (this._el.railSolarBattery) this._el.railSolarBattery.style.display = hasBatt ? 'block' : 'none';
+    if (this._el.railGridBattery) this._el.railGridBattery.style.display = hasBatt ? 'block' : 'none';
+    if (this._el.railBatteryHome) this._el.railBatteryHome.style.display = hasBatt ? 'block' : 'none';
+    if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = hasBatt ? 'block' : 'none';
+    if (this._el.railBatteryEV) this._el.railBatteryEV.style.display = (mode === 'dual' && allowBattToEv) ? 'block' : 'none';
+
+
+    const showBattSoc = (this._config?.show_battery_soc !== false);
+    if (this._el.barBatterySocBox) {
+      if (!showBattSoc) this._el.barBatterySocBox.style.display = 'none';
+    }
+
+    if (this._el.railSolarEV) this._el.railSolarEV.style.display = hasEv ? 'block' : 'none';
+    if (this._el.railGridEV) this._el.railGridEV.style.display = hasEv ? 'block' : 'none';
 
     requestAnimationFrame(() => this._updateFlowPaths());
   }
@@ -1460,7 +1786,6 @@ class HaEnergyFlowCard extends HTMLElement {
     const eGridExport = this._hass.states[ents.grid_daily_export];
     const eLoadPwr = this._hass.states[ents.load_power];
 
-    const isBattery = this._isBatteryMode();
     const eBattPwr = this._hass.states[ents.battery_power];
     const eBattSoc = this._hass.states[ents.battery_soc];
     const eBattCharge = this._hass.states[ents.battery_daily_charge];
@@ -1470,8 +1795,12 @@ class HaEnergyFlowCard extends HTMLElement {
     const eEvCharging = this._hass.states[ents.ev_charging];
     const eEvEnergy = this._hass.states[ents.ev_daily_energy];
 
-    // Live power calculations
-    const liveSolarW = Math.max(0, this._parsePower(eSolarPwr));
+    const mode = this._getLayoutMode();
+    const hasBatt = (mode === 'dual' || mode === 'battery-only');
+    const hasEv = (mode === 'dual' || mode === 'ev-only');
+
+    // Live solar & grid power calculations
+    let liveSolarW = Math.max(0, this._parsePower(eSolarPwr));
     let rawGridW = this._parsePower(eGridPwr);
     let liveImportW = 0;
     let liveExportW = 0;
@@ -1487,18 +1816,15 @@ class HaEnergyFlowCard extends HTMLElement {
       }
     }
 
-    let liveMiddleW = 0;
-    let isMiddleActive = false;
-    let middleKwh = 0;
+    // Battery state calculations
+    let rawBattW = this._parsePower(eBattPwr);
+    const positiveIsCharging = this._config.battery_positive_charging !== false;
     let batteryCharging = false;
     let batteryDischarging = false;
-    let batteryDischargeW = 0;
     let batteryChargeW = 0;
+    let batteryDischargeW = 0;
 
-    const positiveIsCharging = this._config.battery_positive_charging !== false;
-
-    if (isBattery) {
-      const rawBattW = this._parsePower(eBattPwr);
+    if (hasBatt && eBattPwr) {
       if (positiveIsCharging) {
         batteryCharging = (rawBattW > 5);
         batteryDischarging = (rawBattW < -5);
@@ -1510,18 +1836,22 @@ class HaEnergyFlowCard extends HTMLElement {
         batteryDischargeW = batteryDischarging ? rawBattW : 0;
         batteryChargeW = batteryCharging ? Math.abs(rawBattW) : 0;
       }
-      liveMiddleW = rawBattW;
-      isMiddleActive = batteryCharging || batteryDischarging;
-      middleKwh = this._parseEnergy(eBattCharge) + this._parseEnergy(eBattDischarge);
-    } else {
-      const liveEvW = Math.max(0, this._parsePower(eEvPwr));
-      const liveShellyW = this._parsePower(this._hass.states['sensor.tesla_shelly_energy_meter_0_power']);
-      liveMiddleW = Math.max(liveEvW, liveShellyW);
-      const evBinary = eEvCharging ? (eEvCharging.state === 'on') : false;
-      isMiddleActive = (liveMiddleW > 15) || evBinary;
+    }
+    let batteryKwh = this._parseEnergy(eBattCharge) + this._parseEnergy(eBattDischarge);
+    let batterySoc = this._parsePercent(eBattSoc);
 
-      // Robust EV daily energy resolution with date-guard for session history sensors (e.g. V2C Trydan)
-      let evDailyKwh = 0;
+    // EV state calculations
+    let liveEvW = 0;
+    let isEvActive = false;
+    let evDailyKwh = 0;
+
+    if (hasEv) {
+      const pwrEvRaw = Math.max(0, this._parsePower(eEvPwr));
+      const liveShellyW = this._parsePower(this._hass.states['sensor.tesla_shelly_energy_meter_0_power']);
+      liveEvW = Math.max(pwrEvRaw, liveShellyW);
+      const evBinary = eEvCharging ? (eEvCharging.state === 'on') : false;
+      isEvActive = (liveEvW > 15) || evBinary;
+
       const latest = eEvEnergy?.attributes?.latest;
       if (latest && typeof latest.start === 'string') {
         if (this._isSameDay(latest.start)) {
@@ -1533,12 +1863,11 @@ class HaEnergyFlowCard extends HTMLElement {
         evDailyKwh = this._parseEnergy(eEvEnergy);
       }
 
-      // Live charging session energy fallback if currently active
       const liveSessionEnt = this._hass.states['sensor.evse_192_168_0_249_charge_energy'] ||
                              this._hass.states['sensor.v2c_trydan_charge_energy'] ||
                              this._hass.states['sensor.wallbox_energy_added'];
       const liveSessionKwh = liveSessionEnt ? this._parseEnergy(liveSessionEnt) : 0;
-      middleKwh = Math.max(evDailyKwh, liveSessionKwh);
+      evDailyKwh = Math.max(evDailyKwh, liveSessionKwh);
     }
 
     // Whole-house load power calculation
@@ -1547,97 +1876,12 @@ class HaEnergyFlowCard extends HTMLElement {
       liveHomeW = Math.max(0, this._parsePower(eLoadPwr));
     } else {
       let calcHome = liveSolarW + liveImportW - liveExportW;
-      if (isBattery) {
-        calcHome += (batteryDischargeW - batteryChargeW);
-      } else {
-        calcHome -= liveMiddleW;
-      }
+      if (hasBatt) calcHome += (batteryDischargeW - batteryChargeW);
+      if (hasEv) calcHome -= liveEvW;
       liveHomeW = Math.max(0, calcHome);
     }
 
     const idleThresh = this._config.min_flow_threshold_w ?? 2;
-    const maxSysKw = this._config.max_expected_power_kw ?? 7.5;
-    const speedMult = typeof this._config?.speed_multiplier === 'number' ? this._config.speed_multiplier : 1.0;
-
-    const fmtPwr = (w) => (w >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
-    const fmtKwh = (kwh) => (kwh ? kwh.toFixed(2) : '0.00');
-
-    // UI text updates
-    el.pwrSolar.textContent = fmtPwr(liveSolarW);
-    el.kwhSolar.textContent = `${fmtKwh(this._parseEnergy(eSolarYield))} kWh today`;
-
-    const showFc = (this._config?.show_solar_forecast !== false);
-    if (showFc && eSolcastToday) {
-      const fcToday = this._parseEnergy(eSolcastToday);
-      el.badgeSolarForecast.textContent = `${fcToday.toFixed(1)} kWh EST`;
-      el.badgeSolarForecast.style.display = 'inline-block';
-
-      if (eSolcastRem) {
-        const fcRem = this._parseEnergy(eSolcastRem);
-        el.kwhSolarRem.textContent = `${fcRem.toFixed(1)} kWh remaining`;
-        el.kwhSolarRem.style.display = 'block';
-      }
-
-      if (fcToday > 0) {
-        const pct = Math.min(100, Math.round((this._parseEnergy(eSolarYield) / fcToday) * 100));
-        el.barSolarForecastFill.style.width = `${pct}%`;
-        el.barSolarForecastBox.style.display = 'block';
-      }
-    } else {
-      el.badgeSolarForecast.style.display = 'none';
-      el.kwhSolarRem.style.display = 'none';
-      el.barSolarForecastBox.style.display = 'none';
-    }
-
-    el.pwrGrid.textContent = fmtPwr(liveImportW);
-    el.kwhGrid.textContent = `${fmtKwh(this._parseEnergy(eGridImport))} kWh imported`;
-
-    const icpLimit = (this._config.contract_power_limit_kw || 4.2) * 1000;
-    const icpWarnRatio = this._config.contract_warning_pct || 0.85;
-    if (liveImportW >= icpLimit * icpWarnRatio) {
-      el.badgeGridGuard.textContent = `${(icpLimit / 1000).toFixed(1)} kW MAX`;
-      el.badgeGridGuard.style.display = 'inline-block';
-    } else {
-      el.badgeGridGuard.style.display = 'none';
-    }
-
-    const kwhSolarYield = this._parseEnergy(eSolarYield);
-    const kwhGridImport = this._parseEnergy(eGridImport);
-    const kwhGridExport = this._parseEnergy(eGridExport);
-    const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
-    const homeSolarKwh = (!isBattery && middleKwh > 0) ? Math.max(0, selfConsumedKwh - middleKwh) : selfConsumedKwh;
-
-    el.pwrHome.textContent = fmtPwr(liveHomeW);
-    el.kwhHome.textContent = `${fmtKwh(homeSolarKwh)} kWh solar`;
-
-    el.pwrTesla.textContent = fmtPwr(Math.abs(liveMiddleW));
-    if (isBattery) {
-      const soc = this._parsePercent(eBattSoc);
-      el.kwhTesla.textContent = soc !== null ? `${soc}% SoC` : `${fmtKwh(middleKwh)} kWh`;
-      if (soc !== null) {
-        el.barSocFill.style.width = `${Math.min(100, Math.max(0, soc))}%`;
-        el.barSocBox.style.display = 'block';
-      }
-      if (batteryCharging) {
-        el.badgeTesla.textContent = 'CHARGING';
-        el.badgeTesla.style.display = 'inline-block';
-      } else if (batteryDischarging) {
-        el.badgeTesla.textContent = 'DISCHARGING';
-        el.badgeTesla.style.display = 'inline-block';
-      } else {
-        el.badgeTesla.style.display = 'none';
-      }
-    } else {
-      el.kwhTesla.textContent = `${fmtKwh(middleKwh)} kWh charged`;
-      el.badgeTesla.textContent = 'CHARGING';
-      el.badgeTesla.style.display = isMiddleActive ? 'inline-block' : 'none';
-      if (el.barSocBox) el.barSocBox.style.display = 'none';
-    }
-
-    el.pwrExport.textContent = fmtPwr(liveExportW);
-    el.kwhExport.textContent = `${fmtKwh(this._parseEnergy(eGridExport))} kWh exported`;
-
-    // Flow line velocity and routing math (Restored Logarithmic Dynamics)
     const maxFlowW = (this._config.max_expected_power_kw || 7.5) * 1000.0;
     const masterSpeedMult = (typeof this._config.speed_multiplier === 'number') ? this._config.speed_multiplier : 1.0;
     const lineSpeeds = this._config.line_speeds || {};
@@ -1669,95 +1913,203 @@ class HaEnergyFlowCard extends HTMLElement {
       }
     };
 
-        const solarPriority = this._config?.solar_priority || 'middle';
-    let remainingSolar = liveSolarW;
+    // Flow Allocation Math
     let solarToHomeW = 0;
-    let solarToMiddleW = 0;
-
-    if (solarPriority === 'home') {
-      solarToHomeW = Math.min(remainingSolar, liveHomeW);
-      remainingSolar -= solarToHomeW;
-      if (isBattery) {
-        if (batteryCharging) {
-          solarToMiddleW = Math.min(remainingSolar, batteryChargeW);
-          remainingSolar -= solarToMiddleW;
-        }
-      } else {
-        if (isMiddleActive) {
-          solarToMiddleW = Math.min(remainingSolar, liveMiddleW);
-          remainingSolar -= solarToMiddleW;
-        }
-      }
-    } else {
-      // Default: 'middle' (Tesla / Battery gets solar first -> original crossing lines)
-      if (isBattery) {
-        if (batteryCharging) {
-          solarToMiddleW = Math.min(remainingSolar, batteryChargeW);
-          remainingSolar -= solarToMiddleW;
-        }
-      } else {
-        if (isMiddleActive) {
-          solarToMiddleW = Math.min(remainingSolar, liveMiddleW);
-          remainingSolar -= solarToMiddleW;
-        }
-      }
-      solarToHomeW = Math.min(remainingSolar, liveHomeW);
-      remainingSolar -= solarToHomeW;
-    }
-
+    let solarToBatteryW = 0;
+    let solarToEvW = 0;
     let solarToGridW = 0;
     let batteryToGridW = 0;
+    let batteryToEvW = 0;
+    let batteryToHomeW = 0;
+    let gridToHomeW = 0;
+    let gridToBatteryW = 0;
+    let gridToEvW = 0;
+
+        const solarPriority = this._config?.solar_priority || 'home';
+    let remainingSolar = liveSolarW;
+
+    if (solarPriority === 'battery' && hasBatt && batteryCharging) {
+      solarToBatteryW = Math.min(remainingSolar, batteryChargeW);
+      remainingSolar -= solarToBatteryW;
+      solarToHomeW = Math.min(remainingSolar, liveHomeW);
+      remainingSolar -= solarToHomeW;
+      if (hasEv && isEvActive) {
+        solarToEvW = Math.min(remainingSolar, liveEvW);
+        remainingSolar -= solarToEvW;
+      }
+    } else if (solarPriority === 'ev' && hasEv && isEvActive) {
+      solarToEvW = Math.min(remainingSolar, liveEvW);
+      remainingSolar -= solarToEvW;
+      solarToHomeW = Math.min(remainingSolar, liveHomeW);
+      remainingSolar -= solarToHomeW;
+      if (hasBatt && batteryCharging) {
+        solarToBatteryW = Math.min(remainingSolar, batteryChargeW);
+        remainingSolar -= solarToBatteryW;
+      }
+    } else {
+      // Default: 'home' takes solar first
+      solarToHomeW = Math.min(remainingSolar, liveHomeW);
+      remainingSolar -= solarToHomeW;
+      if (hasBatt && batteryCharging) {
+        solarToBatteryW = Math.min(remainingSolar, batteryChargeW);
+        remainingSolar -= solarToBatteryW;
+      }
+      if (hasEv && isEvActive) {
+        solarToEvW = Math.min(remainingSolar, liveEvW);
+        remainingSolar -= solarToEvW;
+      }
+    }
 
     if (liveExportW > idleThresh) {
       if (liveSolarW > idleThresh) {
         solarToGridW = Math.min(remainingSolar, liveExportW);
       }
       const remainingExportW = Math.max(0, liveExportW - solarToGridW);
-      if (isBattery && batteryDischarging && remainingExportW > idleThresh) {
+      if (hasBatt && batteryDischarging && remainingExportW > idleThresh) {
         batteryToGridW = Math.min(batteryDischargeW, remainingExportW);
       }
     }
 
     const homeUnmetW = Math.max(0, liveHomeW - solarToHomeW);
-    let batteryToHomeW = 0;
-    if (isBattery && batteryDischarging) {
-      const netDischargeForHome = Math.max(0, batteryDischargeW - batteryToGridW);
-      batteryToHomeW = Math.min(netDischargeForHome, homeUnmetW);
+    const evUnmetW = Math.max(0, liveEvW - solarToEvW);
+
+    if (hasBatt && batteryDischarging) {
+      let remainingDischargeW = Math.max(0, batteryDischargeW - batteryToGridW);
+      if ((this._config.allow_battery_to_ev || false || false) && hasEv && evUnmetW > idleThresh) {
+        batteryToEvW = Math.min(remainingDischargeW, evUnmetW);
+        remainingDischargeW -= batteryToEvW;
+      }
+      batteryToHomeW = Math.min(remainingDischargeW, homeUnmetW);
     }
 
-    let gridToHomeW = 0;
-    let gridToMiddleW = 0;
     if (liveImportW > idleThresh) {
-      if (solarPriority === 'home') {
-        gridToHomeW = Math.min(liveImportW, Math.max(0, homeUnmetW - batteryToHomeW));
-        const remainingImport = Math.max(0, liveImportW - gridToHomeW);
-        if (isBattery && batteryCharging) {
-          gridToMiddleW = Math.min(remainingImport, Math.max(0, batteryChargeW - solarToMiddleW));
-        } else if (!isBattery && isMiddleActive) {
-          gridToMiddleW = Math.min(remainingImport, Math.max(0, liveMiddleW - solarToMiddleW));
-        }
+      let remainingImport = liveImportW;
+      gridToHomeW = Math.min(remainingImport, Math.max(0, homeUnmetW - batteryToHomeW));
+      remainingImport -= gridToHomeW;
+
+      if (hasBatt && batteryCharging) {
+        gridToBatteryW = Math.min(remainingImport, Math.max(0, batteryChargeW - solarToBatteryW));
+        remainingImport -= gridToBatteryW;
+      }
+
+      if (hasEv && isEvActive) {
+        gridToEvW = Math.min(remainingImport, Math.max(0, evUnmetW - batteryToEvW));
+        remainingImport -= gridToEvW;
+      }
+    }
+    
+    
+    // Set Flow Animations
+    const isStress = false;
+    setFlow(el.flowSolarHome, solarToHomeW, isStress || (liveSolarW > idleThresh && solarToHomeW > idleThresh), 'solar_home');
+    setFlow(el.flowSolarBattery, solarToBatteryW, isStress || (hasBatt && liveSolarW > idleThresh && solarToBatteryW > idleThresh), 'solar_battery');
+    setFlow(el.flowSolarEV, solarToEvW, isStress || (hasEv && liveSolarW > idleThresh && solarToEvW > idleThresh), 'solar_ev');
+    setFlow(el.flowSolarTesla, solarToEvW, isStress || (hasEv && liveSolarW > idleThresh && solarToEvW > idleThresh), 'solar_tesla');
+    setFlow(el.flowSolarGrid, solarToGridW, isStress || (liveSolarW > idleThresh && solarToGridW > idleThresh), 'solar_grid');
+
+    setFlow(el.flowGridHome, gridToHomeW, isStress || (liveImportW > idleThresh && gridToHomeW > idleThresh), 'grid_home');
+    setFlow(el.flowGridBattery, gridToBatteryW, isStress || (hasBatt && liveImportW > idleThresh && gridToBatteryW > idleThresh), 'grid_battery');
+    setFlow(el.flowGridEV, gridToEvW, isStress || (hasEv && liveImportW > idleThresh && gridToEvW > idleThresh), 'grid_ev');
+    setFlow(el.flowGridTesla, gridToEvW, isStress || (hasEv && liveImportW > idleThresh && gridToEvW > idleThresh), 'grid_tesla');
+
+    setFlow(el.flowBatteryHome, batteryToHomeW, isStress || (hasBatt && batteryDischarging && batteryToHomeW > idleThresh), 'battery_home');
+    setFlow(el.flowBatteryEV, batteryToEvW, isStress || (hasBatt && hasEv && batteryDischarging && batteryToEvW > idleThresh), 'battery_ev');
+    setFlow(el.flowBatteryGrid, batteryToGridW, isStress || (hasBatt && batteryDischarging && batteryToGridW > idleThresh), 'battery_grid');
+    
+    // UI Formatting
+    const fmtPwr = (w) => (w >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
+    const fmtKwh = (kwh) => (kwh ? kwh.toFixed(2) : '0.00');
+
+    // Solar UI updates
+    el.pwrSolar.textContent = fmtPwr(liveSolarW);
+    el.kwhSolar.textContent = `${fmtKwh(this._parseEnergy(eSolarYield))} kWh today`;
+
+    const showFc = (this._config?.show_solar_forecast !== false);
+    if (showFc && eSolcastToday) {
+      const fcToday = this._parseEnergy(eSolcastToday);
+      el.badgeSolarForecast.textContent = `${fcToday.toFixed(1)} kWh EST`;
+      el.badgeSolarForecast.style.display = 'inline-block';
+
+      if (eSolcastRem) {
+        const fcRem = this._parseEnergy(eSolcastRem);
+        el.kwhSolarRem.textContent = `${fcRem.toFixed(1)} kWh remaining`;
+        el.kwhSolarRem.style.display = 'block';
+      }
+
+      if (fcToday > 0) {
+        const pct = Math.min(100, Math.round((this._parseEnergy(eSolarYield) / fcToday) * 100));
+        el.barSolarForecastFill.style.width = `${pct}%`;
+        el.barSolarForecastBox.style.display = 'block';
+      }
+    } else {
+      el.badgeSolarForecast.style.display = 'none';
+      el.kwhSolarRem.style.display = 'none';
+      el.barSolarForecastBox.style.display = 'none';
+    }
+
+    // Grid In UI updates
+    el.pwrGrid.textContent = fmtPwr(liveImportW);
+    el.kwhGrid.textContent = `${fmtKwh(this._parseEnergy(eGridImport))} kWh imported`;
+
+    const icpLimit = (this._config.contract_power_limit_kw || 4.2) * 1000;
+    const icpWarnRatio = this._config.contract_warning_pct || 0.85;
+    if (liveImportW >= icpLimit * icpWarnRatio) {
+      el.badgeGridGuard.textContent = `${(icpLimit / 1000).toFixed(1)} kW MAX`;
+      el.badgeGridGuard.style.display = 'inline-block';
+    } else {
+      el.badgeGridGuard.style.display = 'none';
+    }
+
+    // Home UI updates
+    const kwhSolarYield = this._parseEnergy(eSolarYield);
+    const kwhGridImport = this._parseEnergy(eGridImport);
+    const kwhGridExport = this._parseEnergy(eGridExport);
+    const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
+    const homeSolarKwh = (hasEv && evDailyKwh > 0) ? Math.max(0, selfConsumedKwh - evDailyKwh) : selfConsumedKwh;
+
+    el.pwrHome.textContent = fmtPwr(liveHomeW);
+    el.kwhHome.textContent = `${fmtKwh(homeSolarKwh)} kWh solar`;
+
+    // Battery UI updates
+    if (hasBatt && el.pwrBattery) {
+      el.pwrBattery.textContent = fmtPwr(Math.abs(rawBattW));
+      const showBattSoc = (this._config?.show_battery_soc !== false);
+      if (batterySoc !== null && showBattSoc) {
+        el.kwhBattery.textContent = `${batterySoc}% SoC`;
+        if (el.barBatterySocFill) el.barBatterySocFill.style.width = `${Math.min(100, Math.max(0, batterySoc))}%`;
+        if (el.barBatterySocBox) el.barBatterySocBox.style.display = 'block';
       } else {
-        // 'middle' priority: middle takes grid shortfall first (if any), rest goes to home
-        let middleUnmetW = 0;
-        if (isBattery && batteryCharging) {
-          middleUnmetW = Math.max(0, batteryChargeW - solarToMiddleW);
-        } else if (!isBattery && isMiddleActive) {
-          middleUnmetW = Math.max(0, liveMiddleW - solarToMiddleW);
-        }
-        gridToMiddleW = Math.min(liveImportW, middleUnmetW);
-        gridToHomeW = Math.max(0, liveImportW - gridToMiddleW);
+        el.kwhBattery.textContent = `${fmtKwh(batteryKwh)} kWh`;
+        if (el.barBatterySocBox) el.barBatterySocBox.style.display = 'none';
+      }
+
+      const showBattBadge = (this._config?.show_battery_badge !== false);
+
+      if (batteryCharging) {
+        el.badgeBattery.textContent = 'CHARGING';
+        el.badgeBattery.style.display = showBattBadge ? 'inline-block' : 'none';
+      } else if (batteryDischarging) {
+        el.badgeBattery.textContent = 'DISCHARGING';
+        el.badgeBattery.style.display = showBattBadge ? 'inline-block' : 'none';
+      } else {
+        el.badgeBattery.style.display = 'none';
       }
     }
 
-    setFlow(el.flowSolarHome, solarToHomeW, liveSolarW > idleThresh && solarToHomeW > idleThresh, 'solar_home');
-    setFlow(el.flowSolarTesla, solarToMiddleW, liveSolarW > idleThresh && solarToMiddleW > idleThresh, 'solar_tesla');
-    setFlow(el.flowSolarGrid, solarToGridW, liveSolarW > idleThresh && solarToGridW > idleThresh, 'solar_grid');
-    setFlow(el.flowGridHome, gridToHomeW, liveImportW > idleThresh && gridToHomeW > idleThresh, 'grid_home');
-    setFlow(el.flowGridTesla, gridToMiddleW, liveImportW > idleThresh && gridToMiddleW > idleThresh, 'grid_tesla');
-    setFlow(el.flowBatteryHome, batteryToHomeW, isBattery && batteryDischarging && batteryToHomeW > idleThresh, 'battery_home');
-    setFlow(el.flowBatteryGrid, batteryToGridW, isBattery && batteryDischarging && batteryToGridW > idleThresh, 'battery_grid');
+    // EV UI updates
+    if (hasEv && el.pwrEv) {
+      el.pwrEv.textContent = fmtPwr(liveEvW);
+      el.kwhEv.textContent = `${fmtKwh(evDailyKwh)} kWh charged`;
+      el.badgeEv.textContent = 'CHARGING';
+      const showEvBadge = (this._config?.show_ev_badge !== false);
+      el.badgeEv.style.display = (isEvActive && showEvBadge) ? 'inline-block' : 'none';
+    }
 
-    // Apply autarky scorecard math
+    // Grid Out UI updates
+    el.pwrExport.textContent = fmtPwr(liveExportW);
+    el.kwhExport.textContent = `${fmtKwh(this._parseEnergy(eGridExport))} kWh exported`;
+
+    // Autarky Scorecard Math & Rings
     const c1 = 427.26;
     const c2 = 339.29;
     const c3 = 251.33;
@@ -1791,39 +2143,42 @@ class HaEnergyFlowCard extends HTMLElement {
   }
 }
 
-// Dual Custom Element Registration (ChromaFlow & Ares Energy Flow backwards compatibility)
-class AresEnergyFlowCard extends HaEnergyFlowCard {}
+
+// Dev Lab Custom Element Registration
+try {
+  if (!customElements.get('ares-energy-flow-card-dev')) {
+    class AresEnergyFlowCard extends HaEnergyFlowCard {}
 
 try {
   if (!customElements.get('ha-energy-flow-card')) {
     customElements.define('ha-energy-flow-card', HaEnergyFlowCard);
   }
-} catch (e) {
-  console.warn('[ChromaFlow] ha-energy-flow-card registration notice:', e);
-}
+} catch (e) {}
 
 try {
   if (!customElements.get('ares-energy-flow-card')) {
     customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
   }
+} catch (e) {}
+  }
 } catch (e) {
-  console.warn('[ChromaFlow] ares-energy-flow-card registration notice:', e);
+  console.warn('[ChromaFlow Dev] registration notice:', e);
 }
 
-// Lovelace Card Picker Registration (In-Place Mutation — Preserves Array Reference)
+// In-Place Registration (Preserves Array Reference)
 window.customCards = window.customCards || [];
 
 const cardMeta = {
   type: 'ares-energy-flow-card',
   name: 'ChromaFlow: Energy Flow and Autarky Card',
-  description: 'Real-time energy flow and autarky scorecard with dynamic flow rails, visual theme presets, and a built-in color studio.',
+  description: 'Real-time energy flow and autarky scorecard with simultaneous Dual Battery + EV mode, multi-port dynamic flow lines, and built-in Color Studio.',
   preview: true,
   documentationURL: 'https://github.com/Aresitoo/chromaflow'
 };
 
 // 1. Remove old ha-energy-flow-card in-place without breaking array reference
 for (let i = window.customCards.length - 1; i >= 0; i--) {
-  if (window.customCards[i] && window.customCards[i].type === 'ha-energy-flow-card') {
+  if (window.customCards[i] && (window.customCards[i].type === 'ha-energy-flow-card' || window.customCards[i].type === 'ares-energy-flow-card-dev')) {
     window.customCards.splice(i, 1);
   }
 }
@@ -1836,11 +2191,13 @@ if (aresIdx >= 0) {
   window.customCards.push(cardMeta);
 }
 
-/**
- * Visual Config Editor for ha-energy-flow-card
- * Provides zero-YAML form editing across 6 collapsible accordion cards.
- */
+
 class HaEnergyFlowCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
   _colorToHex(colorStr, fallbackHex = '#ffd54f') {
     if (!colorStr || typeof colorStr !== 'string') return fallbackHex;
     colorStr = colorStr.trim();
@@ -1858,28 +2215,21 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     return fallbackHex;
   }
 
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this._rendered = false;
-    this._forms = {};
+  setConfig(config) {
+    this._config = config;
+    if (this._rendered) {
+      this._updateFormValues();
+    }
   }
 
   set hass(hass) {
     this._hass = hass;
-    if (this._rendered) {
-      for (const key of Object.keys(this._forms)) {
-        if (this._forms[key]) this._forms[key].hass = hass;
-      }
-    }
-  }
-
-  setConfig(config) {
-    this._config = { ...config };
     if (!this._rendered) {
       this._render();
     } else {
-      this._updateFormValues();
+      for (const form of Object.values(this._forms || {})) {
+        if (form) form.hass = hass;
+      }
     }
   }
 
@@ -1897,19 +2247,19 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
     return {
       solar_power: resolve('solar_power', ['sensor.shellyem_e4525b_channel_2_power', 'sensor.solar_power', 'sensor.envoy_current_power_production', 'sensor.pv_power']),
-      solar_daily_yield: resolve('solar_daily_yield', ['sensor.solar_daily_yield', 'sensor.solar_today']),
+      solar_daily_yield: resolve('solar_daily_yield', ['sensor.solar_daily_yield', 'sensor.solar_today', 'sensor.energy_production_today']),
       grid_power: resolve('grid_power', ['sensor.return_to_grid_new', 'sensor.grid_power', 'sensor.power_meter']),
       grid_export_power: resolve('grid_export_power', ['sensor.true_grid_export_power', 'sensor.grid_export_power']),
       grid_daily_import: resolve('grid_daily_import', ['sensor.living_room_shellyem_e4525b_channel_1_grid_daily_import_energy', 'sensor.grid_daily_import_energy']),
       grid_daily_export: resolve('grid_daily_export', ['sensor.grid_daily_export_energy', 'sensor.energy_exported_today']),
-      load_power: resolve('load_power', ['sensor.load_power', 'sensor.house_consumption_power']),
-      ev_power: resolve('ev_power', ['sensor.evse_192_168_0_249_charge_power', 'sensor.ev_power']),
-      ev_charging: resolve('ev_charging', ['binary_sensor.evse_192_168_0_249_charging', 'binary_sensor.ev_charging']),
-      ev_daily_energy: resolve('ev_daily_energy', ['sensor.v2c_charging_stats', 'sensor.evse_192_168_0_249_charge_energy']),
-      battery_power: resolve('battery_power', ['sensor.battery_power', 'sensor.bess_power']),
-      battery_soc: resolve('battery_soc', ['sensor.battery_soc', 'sensor.battery_state_of_charge']),
-      battery_daily_charge: resolve('battery_daily_charge', ['sensor.battery_daily_charge_energy']),
-      battery_daily_discharge: resolve('battery_daily_discharge', ['sensor.battery_daily_discharge_energy']),
+      load_power: resolve('load_power', ['sensor.load_power', 'sensor.house_consumption_power', 'sensor.home_power']),
+      battery_power: resolve('battery_power', ['sensor.battery_power', 'sensor.bess_power', 'sensor.powerwall_battery_now']),
+      battery_soc: resolve('battery_soc', ['sensor.battery_soc', 'sensor.battery_state_of_charge', 'sensor.powerwall_charge']),
+      battery_daily_charge: resolve('battery_daily_charge', ['sensor.battery_daily_charge_energy', 'sensor.battery_charge_today']),
+      battery_daily_discharge: resolve('battery_daily_discharge', ['sensor.battery_daily_discharge_energy', 'sensor.battery_discharge_today']),
+      ev_power: resolve('ev_power', ['sensor.evse_192_168_0_249_charge_power', 'sensor.v2c_trydan_power', 'sensor.wallbox_power']),
+      ev_charging: resolve('ev_charging', ['binary_sensor.evse_192_168_0_249_charging', 'binary_sensor.v2c_trydan_charging', 'binary_sensor.wallbox_charging']),
+      ev_daily_energy: resolve('ev_daily_energy', ['sensor.v2c_charging_stats', 'sensor.evse_192_168_0_249_charge_energy', 'sensor.wallbox_energy_added']),
       solcast_today: resolve('solcast_today', ['sensor.solcast_pv_forecast_forecast_today', 'sensor.solcast_forecast_today']),
       solcast_remaining: resolve('solcast_remaining', ['sensor.solcast_pv_forecast_forecast_remaining_today', 'sensor.solcast_forecast_remaining_today'])
     };
@@ -2006,11 +2356,6 @@ class HaEnergyFlowCardEditor extends HTMLElement {
           color: rgba(255, 255, 255, 0.9);
           margin-bottom: 14px;
         }
-        .color-studio-tip a {
-          color: #00e5ff;
-          text-decoration: underline;
-          font-weight: 700;
-        }
         .color-group-box {
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2096,9 +2441,9 @@ class HaEnergyFlowCardEditor extends HTMLElement {
           <div class="panel-content"><ha-form id="form-grid"></ha-form></div>
         </ha-expansion-panel>
 
-        <!-- Section 3: Battery / EV -->
+        <!-- Section 3: Dual Battery & EV Storage -->
         <ha-expansion-panel outlined>
-          <div slot="header"><span class="header-icon">🔋</span>Home Battery or 🚗 Electric Vehicle</div>
+          <div slot="header"><span class="header-icon">🔋</span>Home Battery & 🚗 EV Storage (Dual Mode)</div>
           <div class="panel-content"><ha-form id="form-device"></ha-form></div>
         </ha-expansion-panel>
 
@@ -2180,150 +2525,164 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "☀️ 1. Solar Panels Box",
         items: [
-          { key: "bg_solar", label: "Box Background Tint", desc: "Semi-transparent backdrop for solar card", default: "rgba(255, 213, 79, 0.12)" },
-          { key: "border_solar", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(255, 213, 79, 0.3)" },
-          { key: "title_solar", label: "Title Text & ☀️ Icon", desc: "Title label text ('Solar') and emoji icon", default: "#ffd54f" },
-          { key: "pwr_solar", label: "Solar Generation Power (kW)", desc: "Big real-time wattage number (e.g. 3.84 kW)", default: "#ffffff" },
-          { key: "kwh_solar", label: "Daily Solar Energy (kWh)", desc: "Today's total cumulative yield (e.g. 17.20 kWh today)", default: "rgba(255, 255, 255, 0.6)" },
-          { key: "kwh_solar_rem", label: "Remaining Forecast (kWh)", desc: "Estimated rest-of-day yield (e.g. 7.7 kWh remaining)", default: "#ffd54f" },
-          { key: "badge_solar_text", label: "Solcast EST Badge Text", desc: "Today's forecast estimated yield badge text", default: "#ffd54f" },
-          { key: "badge_solar_bg", label: "Solcast EST Badge Background", desc: "Background pill color for forecast badge", default: "rgba(255, 213, 79, 0.12)" },
-          { key: "bar_solar_forecast", label: "Forecast Progress Bar Fill", desc: "Progress bar showing percentage of forecast achieved", default: "#ffd54f" }
+          { key: "bg_solar", label: "Box Background Tint", default: "rgba(255, 213, 79, 0.12)" },
+          { key: "border_solar", label: "Box Border & Glow", default: "rgba(255, 213, 79, 0.3)" },
+          { key: "title_solar", label: "Title Text & ☀️ Icon", default: "#ffd54f" },
+          { key: "pwr_solar", label: "Solar Generation Power (kW)", default: "#ffffff" },
+          { key: "kwh_solar", label: "Daily Solar Energy (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "kwh_solar_rem", label: "Remaining Forecast (kWh)", default: "#ffd54f" },
+          { key: "badge_solar_text", label: "Solcast EST Badge Text", default: "#ffd54f" },
+          { key: "badge_solar_bg", label: "Solcast EST Badge Background", default: "rgba(255, 213, 79, 0.12)" },
+          { key: "bar_solar_forecast", label: "Forecast Progress Bar Fill", default: "#ffd54f" }
         ]
       },
       {
         title: "🏭 2. Grid In (Import) Box",
         items: [
-          { key: "bg_grid", label: "Box Background Tint", desc: "Semi-transparent backdrop for grid in card", default: "rgba(255, 112, 67, 0.12)" },
-          { key: "border_grid", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(255, 112, 67, 0.3)" },
-          { key: "title_grid", label: "Title Text & 🏭 Icon", desc: "Title label text ('Grid In') and emoji icon", default: "#ff7043" },
-          { key: "pwr_grid", label: "Imported Power (kW/W)", desc: "Real-time utility import reading", default: "#ffffff" },
-          { key: "kwh_grid", label: "Imported Energy (kWh)", desc: "Cumulative energy imported today", default: "rgba(255, 255, 255, 0.6)" },
-          { key: "badge_grid_text", label: "Grid Limit Warning Badge Text", desc: "Alert warning badge when approaching grid power limit", default: "#ff7043" },
-          { key: "badge_grid_bg", label: "Grid Limit Warning Badge Background", desc: "Background pill color for warning alert badge", default: "rgba(255, 112, 67, 0.12)" },
-          { key: "bar_grid_limit", label: "Grid Limit Progress Bar Fill", desc: "Bar showing percentage of contracted kW capacity used", default: "#ff7043" }
+          { key: "bg_grid", label: "Box Background Tint", default: "rgba(255, 112, 67, 0.12)" },
+          { key: "border_grid", label: "Box Border & Glow", default: "rgba(255, 112, 67, 0.3)" },
+          { key: "title_grid", label: "Title Text & 🏭 Icon", default: "#ff7043" },
+          { key: "pwr_grid", label: "Imported Power (kW/W)", default: "#ffffff" },
+          { key: "kwh_grid", label: "Imported Energy (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_grid_text", label: "Grid Limit Warning Badge Text", default: "#ff7043" },
+          { key: "badge_grid_bg", label: "Grid Limit Warning Badge Background", default: "rgba(255, 112, 67, 0.12)" },
+          { key: "bar_grid_limit", label: "Grid Limit Progress Bar Fill", default: "#ff7043" }
         ]
       },
       {
         title: "🏠 3. Home Consumption Box",
         items: [
-          { key: "bg_home", label: "Box Background Tint", desc: "Semi-transparent backdrop for home card", default: "rgba(0, 229, 255, 0.12)" },
-          { key: "border_home", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(0, 229, 255, 0.3)" },
-          { key: "title_home", label: "Title Text & 🏠 Icon", desc: "Word 'Home' and home emoji icon", default: "#00e5ff" },
-          { key: "pwr_home", label: "Home Consumption Power (kW/W)", desc: "Live home demand power number", default: "#ffffff" },
-          { key: "kwh_home", label: "Solar Energy Used (kWh)", desc: "Clean solar energy consumed by home today", default: "rgba(255, 255, 255, 0.6)" },
-          { key: "badge_home_text", label: "Solar Autarky Badge Text", desc: "Badge showing solar coverage (e.g. 100% SOLAR)", default: "#00e5ff" },
-          { key: "badge_home_bg", label: "Solar Autarky Badge Background", desc: "Background pill color for solar coverage badge", default: "rgba(0, 229, 255, 0.12)" }
+          { key: "bg_home", label: "Box Background Tint", default: "rgba(0, 229, 255, 0.12)" },
+          { key: "border_home", label: "Box Border & Glow", default: "rgba(0, 229, 255, 0.3)" },
+          { key: "title_home", label: "Title Text & 🏠 Icon", default: "#00e5ff" },
+          { key: "pwr_home", label: "Home Consumption Power (kW/W)", default: "#ffffff" },
+          { key: "kwh_home", label: "Solar Energy Used (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_home_text", label: "Solar Autarky Badge Text", default: "#00e5ff" },
+          { key: "badge_home_bg", label: "Solar Autarky Badge Background", default: "rgba(0, 229, 255, 0.12)" }
         ]
       },
       {
-        title: "🔋/🚗 4. Battery / Electric Vehicle Box",
+        title: "🔋 4. Battery Storage (BESS) Box",
         items: [
-          { key: "bg_device", label: "Box Background Tint", desc: "Semi-transparent backdrop for battery/EV card", default: "rgba(179, 136, 255, 0.12)" },
-          { key: "border_device", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(179, 136, 255, 0.3)" },
-          { key: "title_device", label: "Title Text & Icon", desc: "Custom name (e.g. Tesla / BESS) and emoji icon", default: "#b388ff" },
-          { key: "pwr_device", label: "Charge / Discharge Power (kW/W)", desc: "Live charging or discharging rate", default: "#ffffff" },
-          { key: "kwh_device", label: "Charged Energy / SoC %", desc: "Daily energy charged or battery percentage", default: "rgba(255, 255, 255, 0.6)" },
-          { key: "badge_device_text", label: "State Badge Text", desc: "Status badge (e.g. CHARGING / IDLE)", default: "#b388ff" },
-          { key: "badge_device_bg", label: "State Badge Background", desc: "Background pill color for state badge", default: "rgba(179, 136, 255, 0.12)" },
-          { key: "bar_device_soc", label: "Battery State-of-Charge Bar Fill", desc: "Progress bar showing battery charge %", default: "#b388ff" }
+          { key: "bg_battery", label: "Box Background Tint", default: "rgba(16, 185, 129, 0.12)" },
+          { key: "border_battery", label: "Box Border & Glow", default: "rgba(16, 185, 129, 0.3)" },
+          { key: "title_battery", label: "Title Text & 🔋 Icon", default: "#10b981" },
+          { key: "pwr_battery", label: "Charge/Discharge Power (kW)", default: "#ffffff" },
+          { key: "kwh_battery", label: "Battery State of Charge (SoC %)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_battery_text", label: "Battery State Badge Text", default: "#10b981" },
+          { key: "badge_battery_bg", label: "Battery State Badge Background", default: "rgba(16, 185, 129, 0.12)" },
+          { key: "bar_battery_soc", label: "Battery SoC Progress Bar Fill", default: "#10b981" }
         ]
       },
       {
-        title: "⚡ 5. Grid Out (Export) Box",
+        title: "🚗 5. Electric Vehicle (EV) Box",
         items: [
-          { key: "bg_export", label: "Box Background Tint", desc: "Semi-transparent backdrop for export card", default: "rgba(0, 230, 118, 0.12)" },
-          { key: "border_export", label: "Box Border & Glow", desc: "Outlining border and ambient glow", default: "rgba(0, 230, 118, 0.25)" },
-          { key: "title_export", label: "Title Text & ⚡ Icon", desc: "Word 'Grid Out' and electric emoji icon", default: "#00e676" },
-          { key: "pwr_export", label: "Export Power (kW/W)", desc: "Live power feeding back into utility grid", default: "#ffffff" },
-          { key: "kwh_export", label: "Exported Energy (kWh)", desc: "Clean surplus solar exported to grid today", default: "rgba(255, 255, 255, 0.6)" }
+          { key: "bg_ev", label: "Box Background Tint", default: "rgba(179, 136, 255, 0.12)" },
+          { key: "border_ev", label: "Box Border & Glow", default: "rgba(179, 136, 255, 0.3)" },
+          { key: "title_ev", label: "Title Text & 🚗 Icon", default: "#b388ff" },
+          { key: "pwr_ev", label: "EV Charging Power (kW)", default: "#ffffff" },
+          { key: "kwh_ev", label: "Daily EV Energy Charged (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_ev_text", label: "Charging Badge Text", default: "#b388ff" },
+          { key: "badge_ev_bg", label: "Charging Badge Background", default: "rgba(179, 136, 255, 0.12)" }
         ]
       },
       {
-        title: "〰️ 6. Energy Flow Lines (Dual-Color Gradients)",
+        title: "⚡ 6. Grid Out (Export) Box",
         items: [
-          { key: "flow_solar_home_start", label: "Solar ➔ Home: Start Color", desc: "Left outlet of Solar line", default: "#ffd54f" },
-          { key: "flow_solar_home_end", label: "Solar ➔ Home: End Color", desc: "Right inlet of Home line", default: "#00e5ff" },
-
-          { key: "flow_solar_tesla_start", label: "Solar ➔ Battery/EV: Start Color", desc: "Left outlet of Solar line", default: "#ffd54f" },
-          { key: "flow_solar_tesla_end", label: "Solar ➔ Battery/EV: End Color", desc: "Target inlet of Battery/EV line", default: "#b388ff" },
-
-          { key: "flow_solar_grid_start", label: "Solar ➔ Grid Out: Start Color", desc: "Left outlet of Solar line", default: "#ffd54f" },
-          { key: "flow_solar_grid_end", label: "Solar ➔ Grid Out: End Color", desc: "Target inlet of Grid Out line", default: "#00e676" },
-
-          { key: "flow_grid_home_start", label: "Grid In ➔ Home: Start Color", desc: "Left outlet of Grid In line", default: "#ff7043" },
-          { key: "flow_grid_home_end", label: "Grid In ➔ Home: End Color", desc: "Right inlet of Home line", default: "#00e5ff" },
-
-          { key: "flow_grid_tesla_start", label: "Grid In ➔ Battery/EV: Start Color", desc: "Left outlet of Grid In line", default: "#ff7043" },
-          { key: "flow_grid_tesla_end", label: "Grid In ➔ Battery/EV: End Color", desc: "Target inlet of Battery/EV line", default: "#b388ff" },
-
-          { key: "flow_battery_home_start", label: "Battery ➔ Home: Start Color", desc: "Start outlet of Battery discharge", default: "#b388ff" },
-          { key: "flow_battery_home_end", label: "Battery ➔ Home: End Color", desc: "Target inlet of Home line", default: "#00e5ff" },
-
-          { key: "flow_battery_grid_start", label: "Battery ➔ Grid Out: Start Color", desc: "Start outlet of Battery discharge", default: "#b388ff" },
-          { key: "flow_battery_grid_end", label: "Battery ➔ Grid Out: End Color", desc: "Target inlet of Grid Out line", default: "#00e676" },
-
-          { key: "flow_rails", label: "Inactive Rail Lines Track", desc: "Faint background rails when power is idle or zero", default: "rgba(255, 255, 255, 0.05)" }
+          { key: "bg_export", label: "Box Background Tint", default: "rgba(0, 230, 118, 0.12)" },
+          { key: "border_export", label: "Box Border & Glow", default: "rgba(0, 230, 118, 0.25)" },
+          { key: "title_export", label: "Title Text & ⚡ Icon", default: "#00e676" },
+          { key: "pwr_export", label: "Export Power (kW/W)", default: "#ffffff" },
+          { key: "kwh_export", label: "Exported Energy (kWh)", default: "rgba(255, 255, 255, 0.6)" }
         ]
       },
       {
-        title: "⭕ 7. Autarky & Activity Rings",
+        title: "〰️ 7. Dynamic Energy Flow Lines",
         items: [
-          { key: "ring_autarky", label: "Autarky Ring (Outer Circle)", desc: "Ring representing % of home power from self-generation", default: "#00e676" },
-          { key: "ring_import", label: "Grid Reliance Ring (Middle Circle)", desc: "Ring representing % of load taken from the grid", default: "#ff7043" },
-          { key: "ring_export", label: "Solar Ratio Ring (Inner Circle)", desc: "Ring representing solar generation pacing and surplus", default: "#ffd54f" },
-          { key: "autarky_center_pct", label: "Autarky Big Percentage Number", desc: "Large percentage number inside center ring (e.g. 91%)", default: "#ffffff" },
-          { key: "autarky_center_lbl", label: "Autarky Center Label Text", desc: "Label below big number (e.g. AUTARKY)", default: "#00e676" },
-          { key: "ring_bg_track", label: "Activity Rings Unfilled Track", desc: "Subtle background circle track beneath active arcs", default: "rgba(255, 255, 255, 0.05)" }
+          { key: "flow_solar_home_start", label: "Solar ➔ Home: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_home_end", label: "Solar ➔ Home: End Color", default: "#00e5ff" },
+
+          { key: "flow_solar_battery_start", label: "Solar ➔ Battery: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_battery_end", label: "Solar ➔ Battery: End Color", default: "#10b981" },
+
+          { key: "flow_solar_ev_start", label: "Solar ➔ EV: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_ev_end", label: "Solar ➔ EV: End Color", default: "#b388ff" },
+
+          { key: "flow_solar_grid_start", label: "Solar ➔ Grid Out: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_grid_end", label: "Solar ➔ Grid Out: End Color", default: "#00e676" },
+
+          { key: "flow_grid_home_start", label: "Grid In ➔ Home: Start Color", default: "#ff7043" },
+          { key: "flow_grid_home_end", label: "Grid In ➔ Home: End Color", default: "#00e5ff" },
+
+          { key: "flow_grid_battery_start", label: "Grid In ➔ Battery: Start Color", default: "#ff7043" },
+          { key: "flow_grid_battery_end", label: "Grid In ➔ Battery: End Color", default: "#10b981" },
+
+          { key: "flow_grid_ev_start", label: "Grid In ➔ EV: Start Color", default: "#ff7043" },
+          { key: "flow_grid_ev_end", label: "Grid In ➔ EV: End Color", default: "#b388ff" },
+
+          { key: "flow_battery_home_start", label: "Battery ➔ Home: Start Color", default: "#10b981" },
+          { key: "flow_battery_home_end", label: "Battery ➔ Home: End Color", default: "#00e5ff" },
+
+          { key: "flow_battery_ev_start", label: "Battery ➔ EV: Start Color", default: "#10b981" },
+          { key: "flow_battery_ev_end", label: "Battery ➔ EV: End Color", default: "#b388ff" },
+
+          { key: "flow_battery_grid_start", label: "Battery ➔ Grid Out: Start Color", default: "#10b981" },
+          { key: "flow_battery_grid_end", label: "Battery ➔ Grid Out: End Color", default: "#00e676" },
+
+          { key: "flow_rails", label: "Inactive Rail Lines Track", default: "rgba(255, 255, 255, 0.05)" }
         ]
       },
       {
-        title: "📊 8. Scorecard Tabular Summary Rows",
+        title: "⭕ 8. Autarky & Activity Rings",
         items: [
-          { key: "bg_scorecard", label: "Scorecard Container Background", desc: "Backdrop for the tabular breakdown section", default: "rgba(255, 255, 255, 0.02)" },
-          { key: "border_scorecard", label: "Scorecard Container Border", desc: "Border outlining the tabular summary box", default: "rgba(255, 255, 255, 0.06)" },
-          { key: "row_self_consumed_title", label: "Row 1 Title (Solar Self-Consumed)", desc: "Word 'SOLAR SELF-CONSUMED' in row 1", default: "#00e676" },
-          { key: "row_self_consumed_kwh", label: "Row 1 Subtitle & Values", desc: "kWh energy and free power breakdown", default: "#ffffff" },
-          { key: "row_self_consumed_bar", label: "Row 1 Progress Bar Fill", desc: "Horizontal bar fill for self-consumed percentage", default: "#00e676" },
-          { key: "row_grid_reliance_title", label: "Row 2 Title (Utility Grid Reliance)", desc: "Word 'UTILITY GRID RELIANCE' in row 2", default: "#ff7043" },
-          { key: "row_grid_reliance_kwh", label: "Row 2 Subtitle & Values", desc: "Imported kWh energy and reliance percentage", default: "#ffffff" },
-          { key: "row_grid_reliance_bar", label: "Row 2 Progress Bar Fill", desc: "Horizontal bar fill for grid reliance percentage", default: "#ff7043" },
-          { key: "row_exported_title", label: "Row 3 Title (Exported to Grid)", desc: "Word 'EXPORTED TO GRID' in row 3", default: "#ffd54f" },
-          { key: "row_exported_kwh", label: "Row 3 Subtitle & Values", desc: "Exported kWh energy and solar surplus percentage", default: "#ffffff" },
-          { key: "row_exported_bar", label: "Row 3 Progress Bar Fill", desc: "Horizontal bar fill for export percentage", default: "#ffd54f" }
+          { key: "ring_autarky", label: "Autarky Ring (Outer Circle)", default: "#00e676" },
+          { key: "ring_import", label: "Grid Reliance Ring (Middle Circle)", default: "#ff7043" },
+          { key: "ring_export", label: "Grid Export Ring (Inner Circle)", default: "#ffd54f" },
+          { key: "autarky_center_pct", label: "Scorecard Center % Text", default: "#ffffff" },
+          { key: "autarky_center_lbl", label: "Scorecard Center 'AUTARKY' Label", default: "#00e676" },
+          { key: "ring_bg_track", label: "Inactive Rings Background Track", default: "rgba(255, 255, 255, 0.05)" }
+        ]
+      },
+      {
+        title: "📊 9. Tabular KPI Rows",
+        items: [
+          { key: "bg_scorecard", label: "Scorecard Container Background", default: "rgba(255, 255, 255, 0.02)" },
+          { key: "border_scorecard", label: "Scorecard Container Border", default: "rgba(255, 255, 255, 0.06)" },
+          { key: "row_self_consumed_title", label: "Row 1 (Self-Consumed) Title & %", default: "#00e676" },
+          { key: "row_self_consumed_kwh", label: "Row 1 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_self_consumed_bar", label: "Row 1 Progress Bar Fill", default: "#00e676" },
+
+          { key: "row_grid_reliance_title", label: "Row 2 (Grid Reliance) Title & %", default: "#ff7043" },
+          { key: "row_grid_reliance_kwh", label: "Row 2 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_grid_reliance_bar", label: "Row 2 Progress Bar Fill", default: "#ff7043" },
+
+          { key: "row_exported_title", label: "Row 3 (Exported) Title & %", default: "#ffd54f" },
+          { key: "row_exported_kwh", label: "Row 3 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_exported_bar", label: "Row 3 Progress Bar Fill", default: "#ffd54f" }
         ]
       }
     ];
 
-    const userColors = (this._config && this._config.colors) || {};
-
     let html = `
-      <div class="color-studio-tip">
-        <span>🎨 Click any color square to open the color wheel, or type hex, rgba, or CSS names. Browse <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/named-color" target="_blank" rel="noopener noreferrer">MDN Named Colors ↗</a></span>
-      </div>
       <div class="color-studio-toolbar">
-        <button type="button" class="studio-btn btn-random-palette" id="btn-random-palette">🎲 Random Palette</button>
-        <button type="button" class="studio-btn btn-wild-shuffle" id="btn-wild-shuffle">🔀 Wild Shuffle</button>
-        <button type="button" class="studio-btn btn-reset-colors" id="btn-reset-colors">↺ Reset Colors</button>
+        <button id="btn-random-palette" class="studio-btn btn-random-palette">🎲 Harmonized Palette</button>
+        <button id="btn-wild-shuffle" class="studio-btn btn-wild-shuffle">🔀 Wild Shuffle</button>
+        <button id="btn-reset-colors" class="studio-btn btn-reset-colors">↺ Reset All Colors</button>
+      </div>
+      <div class="color-studio-tip">
+        <span>💡 Tap any color square or enter hex codes. Every box, flow rail, and scorecard row can be independently styled.</span>
       </div>
     `;
 
     for (const grp of groups) {
       html += `<div class="color-group-box"><div class="color-group-title">${grp.title}</div>`;
       for (const item of grp.items) {
-        const userVal = userColors[item.key] || '';
-        const activeVal = userVal || item.default;
-        const hexVal = colorToHex(activeVal, '#ffd54f');
-
         html += `
           <div class="color-row">
-            <div class="color-label">
-              <div style="font-weight: 700; font-size: 12.5px; color: #ffffff;">${item.label}</div>
-              <div style="font-size: 10.5px; color: rgba(255, 255, 255, 0.5); margin-top: 1px;">${item.desc}</div>
-            </div>
+            <div class="color-label">${item.label}</div>
             <div class="color-input-pair">
-              <input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${hexVal}" />
-              <input type="text" class="color-text-input" data-color-key="${item.key}" value="${userVal}" placeholder="${item.default}" />
+              <input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${colorToHex(item.default, '#ffd54f')}">
+              <input type="text" class="color-text-input" data-color-key="${item.key}" placeholder="${item.default}">
             </div>
           </div>
         `;
@@ -2333,137 +2692,26 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
     container.innerHTML = html;
 
-    // Attach dual input listeners
-    const wheels = container.querySelectorAll('.color-wheel-btn');
-    const texts = container.querySelectorAll('.color-text-input');
+    // Attach Color Listeners
+    const inputs = container.querySelectorAll('.color-text-input, .color-wheel-btn');
+    inputs.forEach(inp => {
+      inp.addEventListener('input', (ev) => {
+        const key = ev.target.getAttribute('data-color-key');
+        let val = ev.target.value;
+        const textInp = container.querySelector(`.color-text-input[data-color-key="${key}"]`);
+        const wheelInp = container.querySelector(`.color-wheel-btn[data-color-key="${key}"]`);
 
-    const updateColorKey = (key, val) => {
-      const cfg = { ...this._config };
-      cfg.colors = { ...(cfg.colors || {}) };
-      if (val && val.trim() !== '') {
-        cfg.colors[key] = val.trim();
-      } else {
-        delete cfg.colors[key];
-      }
-      this._config = cfg;
-      this.dispatchEvent(new CustomEvent('config-changed', {
-        detail: { config: this._config },
-        bubbles: true,
-        composed: true
-      }));
-    };
-
-    wheels.forEach(w => {
-      w.addEventListener('input', (ev) => {
-        const k = w.getAttribute('data-color-key');
-        const hex = ev.target.value;
-        const matchingText = container.querySelector(`.color-text-input[data-color-key="${k}"]`);
-        if (matchingText) matchingText.value = hex;
-        updateColorKey(k, hex);
-      });
-    });
-
-    texts.forEach(t => {
-      t.addEventListener('input', (ev) => {
-        const k = t.getAttribute('data-color-key');
-        const val = ev.target.value.trim();
-        const matchingWheel = container.querySelector(`.color-wheel-btn[data-color-key="${k}"]`);
-        if (matchingWheel) {
-          const hex = colorToHex(val, matchingWheel.value);
-          matchingWheel.value = hex;
+        if (ev.target.classList.contains('color-wheel-btn')) {
+          if (textInp) textInp.value = val;
+        } else {
+          if (wheelInp) wheelInp.value = colorToHex(val, wheelInp.value);
         }
-        updateColorKey(k, val);
-      });
-    });
-
-    // 🎲 Randomize Harmonized Palette Button
-    const btnRandom = container.querySelector('#btn-random-palette');
-    if (btnRandom) {
-      btnRandom.addEventListener('click', () => {
-        const baseHue = Math.floor(Math.random() * 360);
-        const cSolar = getRandomVibrantHex(baseHue);
-        const cGrid = getRandomVibrantHex((baseHue + 72) % 360);
-        const cHome = getRandomVibrantHex((baseHue + 144) % 360);
-        const cDevice = getRandomVibrantHex((baseHue + 216) % 360);
-        const cExport = getRandomVibrantHex((baseHue + 288) % 360);
-
-        const newCols = {
-          // Solar Box
-          bg_solar: hexToRgba(cSolar, 0.15),
-          border_solar: hexToRgba(cSolar, 0.35),
-          title_solar: cSolar,
-          kwh_solar_rem: cSolar,
-          badge_solar_text: cSolar,
-          badge_solar_bg: hexToRgba(cSolar, 0.15),
-          bar_solar_forecast: cSolar,
-
-          // Grid Box
-          bg_grid: hexToRgba(cGrid, 0.15),
-          border_grid: hexToRgba(cGrid, 0.35),
-          title_grid: cGrid,
-          badge_grid_text: cGrid,
-          badge_grid_bg: hexToRgba(cGrid, 0.15),
-          bar_grid_limit: cGrid,
-
-          // Home Box
-          bg_home: hexToRgba(cHome, 0.12),
-          border_home: hexToRgba(cHome, 0.3),
-          title_home: cHome,
-          badge_home_text: cHome,
-          badge_home_bg: hexToRgba(cHome, 0.12),
-
-          // Battery / EV Box
-          bg_device: hexToRgba(cDevice, 0.15),
-          border_device: hexToRgba(cDevice, 0.35),
-          title_device: cDevice,
-          badge_device_text: cDevice,
-          badge_device_bg: hexToRgba(cDevice, 0.15),
-          bar_device_soc: cDevice,
-
-          // Export Box
-          bg_export: hexToRgba(cExport, 0.15),
-          border_export: hexToRgba(cExport, 0.3),
-          title_export: cExport,
-
-          // Flow Lines
-          flow_solar_home_start: cSolar,
-          flow_solar_home_end: cHome,
-          flow_solar_tesla_start: cSolar,
-          flow_solar_tesla_end: cDevice,
-          flow_solar_grid_start: cSolar,
-          flow_solar_grid_end: cExport,
-          flow_grid_home_start: cGrid,
-          flow_grid_home_end: cHome,
-          flow_grid_tesla_start: cGrid,
-          flow_grid_tesla_end: cDevice,
-          flow_battery_home_start: cDevice,
-          flow_battery_home_end: cHome,
-          flow_battery_grid_start: cDevice,
-          flow_battery_grid_end: cExport,
-
-          // Rings
-          ring_autarky: cSolar,
-          ring_import: cGrid,
-          ring_export: cExport,
-          autarky_center_lbl: cSolar,
-
-          // Scorecard
-          row_self_consumed_title: cSolar,
-          row_self_consumed_bar: cSolar,
-          row_grid_reliance_title: cGrid,
-          row_grid_reliance_bar: cGrid,
-          row_exported_title: cExport,
-          row_exported_bar: cExport
-        };
 
         const cfg = { ...this._config };
-        cfg.colors = { ...(cfg.colors || {}), ...newCols };
-        for (const [k, val] of Object.entries(newCols)) {
-          const txt = container.querySelector(`.color-text-input[data-color-key="${k}"]`);
-          const whl = container.querySelector(`.color-wheel-btn[data-color-key="${k}"]`);
-          if (txt) txt.value = val;
-          if (whl) whl.value = colorToHex(val, whl.value);
-        }
+        cfg.colors = { ...(cfg.colors || {}) };
+        if (val) cfg.colors[key] = val;
+        else delete cfg.colors[key];
+
         this._config = cfg;
         this.dispatchEvent(new CustomEvent('config-changed', {
           detail: { config: this._config },
@@ -2471,43 +2719,9 @@ class HaEnergyFlowCardEditor extends HTMLElement {
           composed: true
         }));
       });
-    }
+    });
 
-    // 🔀 Wild Shuffle Button (Every setting gets an independent random color)
-    const btnWild = container.querySelector('#btn-wild-shuffle');
-    if (btnWild) {
-      btnWild.addEventListener('click', () => {
-        const newCols = {};
-        for (const grp of groups) {
-          for (const item of grp.items) {
-            const hex = getRandomVibrantHex();
-            if (item.key.startsWith('bg_')) {
-              newCols[item.key] = hexToRgba(hex, 0.15);
-            } else if (item.key.startsWith('border_')) {
-              newCols[item.key] = hexToRgba(hex, 0.35);
-            } else {
-              newCols[item.key] = hex;
-            }
-          }
-        }
-        const cfg = { ...this._config };
-        cfg.colors = { ...(cfg.colors || {}), ...newCols };
-        for (const [k, val] of Object.entries(newCols)) {
-          const txt = container.querySelector(`.color-text-input[data-color-key="${k}"]`);
-          const whl = container.querySelector(`.color-wheel-btn[data-color-key="${k}"]`);
-          if (txt) txt.value = val;
-          if (whl) whl.value = colorToHex(val, whl.value);
-        }
-        this._config = cfg;
-        this.dispatchEvent(new CustomEvent('config-changed', {
-          detail: { config: this._config },
-          bubbles: true,
-          composed: true
-        }));
-      });
-    }
-
-    // ↺ Reset Colors Button
+    // Reset button
     const btnReset = container.querySelector('#btn-reset-colors');
     if (btnReset) {
       btnReset.addEventListener('click', () => {
@@ -2529,6 +2743,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       });
     }
   }
+
   _updateFormValues() {
     if (!this._config) return;
     const ents = this._getEditorEntities();
@@ -2560,8 +2775,21 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     }
 
     if (this._forms.device) {
+      const hasBattConfigured = (typeof this._config.show_battery === 'boolean')
+        ? this._config.show_battery
+        : Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge || this._config.device_type === 'battery' || this._config.bess === true);
+      const hasEvConfigured = (typeof this._config.show_ev === 'boolean')
+        ? this._config.show_ev
+        : (this._config.device_type === 'battery' ? Boolean(ents.ev_power || ents.ev_charging || ents.ev_daily_energy) : true);
+
       this._forms.device.data = {
-        device_type: this._config.device_type || 'ev',
+        show_battery: hasBattConfigured,
+        battery_position: this._config.battery_position || 'left',
+        show_ev: hasEvConfigured,
+        allow_battery_to_ev: Boolean(this._config.allow_battery_to_ev),
+        show_battery_soc: this._config.show_battery_soc !== false,
+        show_battery_badge: this._config.show_battery_badge !== false,
+        show_ev_badge: this._config.show_ev_badge !== false,
         battery_power: ents.battery_power || '',
         battery_positive_charging: this._config.battery_positive_charging !== false,
         battery_soc: ents.battery_soc || '',
@@ -2596,7 +2824,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
     if (this._forms.display) {
       this._forms.display.data = {
-        solar_priority: this._config?.solar_priority || 'middle',
+          solar_priority: this._config?.solar_priority || 'home',
         font_scale: this._config.font_scale ?? 1.0,
         speed_multiplier: this._config.speed_multiplier ?? 1.0,
         palette: this._config.palette || 'solar',
@@ -2604,11 +2832,14 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         min_flow_threshold_w: this._config.min_flow_threshold_w ?? 2,
         max_expected_power_kw: this._config.max_expected_power_kw ?? 7.5,
         speed_solar_home: this._config.line_speeds?.solar_home ?? 1.0,
-        speed_solar_tesla: this._config.line_speeds?.solar_tesla ?? 1.0,
+        speed_solar_battery: this._config.line_speeds?.solar_battery ?? 1.0,
+        speed_solar_ev: this._config.line_speeds?.solar_ev ?? 1.0,
         speed_solar_grid: this._config.line_speeds?.solar_grid ?? 1.0,
         speed_grid_home: this._config.line_speeds?.grid_home ?? 1.0,
-        speed_grid_tesla: this._config.line_speeds?.grid_tesla ?? 1.0,
+        speed_grid_battery: this._config.line_speeds?.grid_battery ?? 1.0,
+        speed_grid_ev: this._config.line_speeds?.grid_ev ?? 1.0,
         speed_battery_home: this._config.line_speeds?.battery_home ?? 1.0,
+        speed_battery_ev: this._config.line_speeds?.battery_ev ?? 1.0,
         speed_battery_grid: this._config.line_speeds?.battery_grid ?? 1.0
       };
       if (this._hass) this._forms.display.hass = this._hass;
@@ -2656,8 +2887,15 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       const rawWarnVal = parseFloat(val.contract_warning_pct);
       cfg.contract_warning_pct = (rawWarnVal > 1) ? (rawWarnVal / 100.0) : (rawWarnVal || 0.85);
     } else if (secId === 'device') {
-      cfg.device_type = val.device_type || 'ev';
+      cfg.show_battery = Boolean(val.show_battery);
+      cfg.battery_position = val.battery_position || 'left';
+      cfg.show_ev = Boolean(val.show_ev);
+      cfg.allow_battery_to_ev = Boolean(val.allow_battery_to_ev);
+      cfg.show_battery_soc = Boolean(val.show_battery_soc);
+      cfg.show_battery_badge = Boolean(val.show_battery_badge);
+      cfg.show_ev_badge = Boolean(val.show_ev_badge);
       cfg.battery_positive_charging = val.battery_positive_charging !== false;
+
       const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge'];
       for (const k of bKeys) {
         if (val[k]) cfg.entities[k] = val[k];
@@ -2699,11 +2937,16 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       cfg.max_expected_power_kw = typeof val.max_expected_power_kw === 'number' ? val.max_expected_power_kw : 7.5;
       cfg.line_speeds = {
         solar_home: parseFloat(val.speed_solar_home) || 1.0,
-        solar_tesla: parseFloat(val.speed_solar_tesla) || 1.0,
+        solar_battery: parseFloat(val.speed_solar_battery) || 1.0,
+        solar_ev: parseFloat(val.speed_solar_ev) || 1.0,
+        solar_tesla: parseFloat(val.speed_solar_ev) || 1.0,
         solar_grid: parseFloat(val.speed_solar_grid) || 1.0,
         grid_home: parseFloat(val.speed_grid_home) || 1.0,
-        grid_tesla: parseFloat(val.speed_grid_tesla) || 1.0,
+        grid_battery: parseFloat(val.speed_grid_battery) || 1.0,
+        grid_ev: parseFloat(val.speed_grid_ev) || 1.0,
+        grid_tesla: parseFloat(val.speed_grid_ev) || 1.0,
         battery_home: parseFloat(val.speed_battery_home) || 1.0,
+        battery_ev: parseFloat(val.speed_battery_ev) || 1.0,
         battery_grid: parseFloat(val.speed_battery_grid) || 1.0
       };
     }
@@ -2718,11 +2961,568 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
   _getSolarSchema() {
     return [
-      { name: "solar_power", label: "Current Solar Power Sensor (W or kW)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "solar_daily_yield", label: "Today's Total Solar Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "solcast_today", label: "Solcast Today's Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "solcast_remaining", label: "Solcast Remaining Today Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "show_solar_forecast", label: "Show Solar Forecast (Progress Bar & Estimated Yield)", selector: { boolean: {} } }
+      { name: "solar_power", label: "Live Solar Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "solar_daily_yield", label: "Today's Solar Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "solcast_today", label: "Solcast Today Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "solcast_remaining", label: "Solcast Remaining Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } }
+    ];
+  }
+
+  _getGridSchema() {
+    return [
+      { name: "grid_power", label: "Grid Power Sensor (+ Import from grid, - Export to grid)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "grid_export_power", label: "Dedicated Grid Export Sensor (Optional — only if meter uses separate export sensor)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "grid_daily_import", label: "Today's Grid Import Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "grid_daily_export", label: "Today's Grid Export Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "load_power", label: "Whole House Consumption Sensor (Optional — automatically calculated if empty)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "contract_power_limit_kw", label: "Contracted Grid Power Limit (kW) — sets threshold for overload warning badge", selector: { number: { min: 1, max: 50, step: 0.1, mode: "box" } } },
+      { name: "contract_warning_pct", label: "Warning Alert Level (% of contracted limit to trigger warning badge)", selector: { number: { min: 50, max: 100, step: 5, unit_of_measurement: "%", mode: "slider" } } }
+    ];
+  }
+
+  _getDeviceSchema() {
+    return [
+      { name: "show_battery", label: "Show Home Battery Box", selector: { boolean: {} } },
+      { name: "battery_position", label: "Battery Column Placement (When EV is hidden)", selector: { select: { options: [
+        { value: "left", label: "Left Column (Under Solar)" },
+        { value: "right", label: "Right Column (Between Home & Grid Out)" }
+      ] } } },
+      { name: "show_ev", label: "Show Electric Vehicle / Charger Box", selector: { boolean: {} } },
+      { name: "allow_battery_to_ev", label: "Allow Battery to Charge EV (Enables direct battery-to-car flow line)", selector: { boolean: {} } },
+      { name: "show_battery_soc", label: "Show Battery Charge Percentage & Fill Bar", selector: { boolean: {} } },
+      { name: "show_battery_badge", label: "Show Battery Status Badge (Charging / Discharging / Idle)", selector: { boolean: {} } },
+      { name: "show_ev_badge", label: "Show EV Status Badge (Charging / Idle)", selector: { boolean: {} } },
+      { name: "battery_power", label: "Battery Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_positive_charging", label: "Battery Power Direction: Check if positive (+) numbers mean Charging", selector: { boolean: {} } },
+      { name: "battery_soc", label: "Battery State of Charge Sensor (% SoC)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_daily_charge", label: "Today's Battery Charged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_daily_discharge", label: "Today's Battery Discharged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "ev_power", label: "EV Charger Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "ev_charging", label: "EV Charging Status Sensor (Binary sensor: on = charging)", selector: { entity: { domain: ["binary_sensor"] } } },
+      { name: "ev_daily_energy", label: "Today's EV Charged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } }
+    ];
+  }
+
+  _getLabelsSchema() {
+    return [
+      { name: "lbl_solar", label: "Solar Box Name (Default: Solar)", selector: { text: {} } },
+      { name: "lbl_home", label: "Home Box Name (Default: Home)", selector: { text: {} } },
+      { name: "lbl_grid_in", label: "Grid In Box Name (Default: Grid In)", selector: { text: {} } },
+      { name: "lbl_grid_out", label: "Grid Out Box Name (Default: Grid Out)", selector: { text: {} } },
+      { name: "battery_name", label: "Battery Box Name (Default: BESS)", selector: { text: {} } },
+      { name: "ev_name", label: "EV Box Name (Default: Tesla)", selector: { text: {} } },
+      { name: "lbl_autarky", label: "Scorecard Ring Center Title (Default: AUTARKY)", selector: { text: {} } },
+      { name: "lbl_autarky_sub", label: "Scorecard Ring Subtitle (Default: Grid-Free)", selector: { text: {} } },
+      { name: "lbl_self_consumed", label: "Scorecard Row 1 Title (Default: SOLAR SELF-CONSUMED)", selector: { text: {} } },
+      { name: "lbl_self_consumed_sub", label: "Scorecard Row 1 Subtitle (Default: 100% Free)", selector: { text: {} } },
+      { name: "lbl_grid_reliance", label: "Scorecard Row 2 Title (Default: UTILITY GRID RELIANCE)", selector: { text: {} } },
+      { name: "lbl_grid_reliance_sub", label: "Scorecard Row 2 Subtitle (Default: Night/Backup)", selector: { text: {} } },
+      { name: "lbl_exported", label: "Scorecard Row 3 Title (Default: EXPORTED TO GRID)", selector: { text: {} } },
+      { name: "lbl_exported_sub", label: "Scorecard Row 3 Subtitle (Default: Clean Surplus)", selector: { text: {} } }
+    ];
+  }
+
+  _getDisplaySchema() {
+    return [
+      { name: "solar_priority", label: "Solar Power Priority: Which load should solar satisfy first?", selector: { select: { options: [
+        { value: "home", label: "Home First (Standard)" },
+        { value: "battery", label: "Battery First" },
+        { value: "ev", label: "EV First" }
+      ] } } },
+      { name: "font_scale", label: "Card Sizing & Typography Scale (0.8x = Compact, 1.0x = Normal, 1.25x = Large)", selector: { number: { min: 0.8, max: 1.3, step: 0.05, mode: "slider" } } },
+      { name: "speed_multiplier", label: "Overall Flow Animation Speed (0.5x = Relaxed, 1.0x = Normal, 2.0x = Fast)", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_solar_home", label: "Flow Speed: Solar ➔ Home", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_solar_battery", label: "Flow Speed: Solar ➔ Battery", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_solar_ev", label: "Flow Speed: Solar ➔ EV", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_solar_grid", label: "Flow Speed: Solar ➔ Grid Out", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_grid_home", label: "Flow Speed: Grid In ➔ Home", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_grid_battery", label: "Flow Speed: Grid In ➔ Battery", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_grid_ev", label: "Flow Speed: Grid In ➔ EV", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_battery_home", label: "Flow Speed: Battery ➔ Home", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_battery_ev", label: "Flow Speed: Battery ➔ EV", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "speed_battery_grid", label: "Flow Speed: Battery ➔ Grid Out", selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } } },
+      { name: "palette", label: "Color Theme Preset", selector: { select: { options: [
+        { value: "solar", label: "Solar Harmonized (Amber / Cyan / Green)" },
+        { value: "fitness", label: "Fitness Activity (Apple Watch Neon Style)" }
+      ] } } },
+      { name: "power_unit", label: "Power Units Display Mode", selector: { select: { options: [
+        { value: "auto", label: "Auto-Detect (Watts under 1 kW, kW above)" },
+        { value: "w", label: "Force Watts (W)" },
+        { value: "kw", label: "Force Kilowatts (kW)" },
+        { value: "mw", label: "Force Megawatts (MW)" }
+      ] } } },
+      { name: "min_flow_threshold_w", label: "Idle Flow Cutoff (Watts) — flows below this wattage stop animating (Default: 2 W)", selector: { number: { min: 0, max: 50, step: 1, unit_of_measurement: "W", mode: "box" } } },
+      { name: "max_expected_power_kw", label: "Maximum System Power (kW) — calibrates top animation speed to system capacity (Default: 7.5 kW)", selector: { number: { min: 1.0, max: 50.0, step: 0.5, unit_of_measurement: "kW", mode: "box" } } }
+    ];
+  }
+
+  _renderColorsStudio() {
+    const container = this.shadowRoot.getElementById('panel-colors-studio');
+    if (!container) return;
+
+    function colorToHex(colorStr, fallbackHex) {
+      if (!colorStr) return fallbackHex || '#ffd54f';
+      colorStr = colorStr.trim();
+      if (colorStr.startsWith('#')) {
+        if (colorStr.length === 7) return colorStr;
+        if (colorStr.length === 4) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
+      }
+      const rgbaMatch = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (rgbaMatch) {
+        const r = parseInt(rgbaMatch[1], 10).toString(16).padStart(2, '0');
+        const g = parseInt(rgbaMatch[2], 10).toString(16).padStart(2, '0');
+        const b = parseInt(rgbaMatch[3], 10).toString(16).padStart(2, '0');
+        return `#${r}${g}${b}`;
+      }
+      return fallbackHex || '#ffd54f';
+    }
+
+    const groups = [
+      {
+        title: "☀️ 1. Solar Panels Box",
+        items: [
+          { key: "bg_solar", label: "Box Background Tint", default: "rgba(255, 213, 79, 0.12)" },
+          { key: "border_solar", label: "Box Border & Glow", default: "rgba(255, 213, 79, 0.3)" },
+          { key: "title_solar", label: "Title Text & ☀️ Icon", default: "#ffd54f" },
+          { key: "pwr_solar", label: "Solar Generation Power (kW)", default: "#ffffff" },
+          { key: "kwh_solar", label: "Daily Solar Energy (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "kwh_solar_rem", label: "Remaining Forecast (kWh)", default: "#ffd54f" },
+          { key: "badge_solar_text", label: "Solcast EST Badge Text", default: "#ffd54f" },
+          { key: "badge_solar_bg", label: "Solcast EST Badge Background", default: "rgba(255, 213, 79, 0.12)" },
+          { key: "bar_solar_forecast", label: "Forecast Progress Bar Fill", default: "#ffd54f" }
+        ]
+      },
+      {
+        title: "🏭 2. Grid In (Import) Box",
+        items: [
+          { key: "bg_grid", label: "Box Background Tint", default: "rgba(255, 112, 67, 0.12)" },
+          { key: "border_grid", label: "Box Border & Glow", default: "rgba(255, 112, 67, 0.3)" },
+          { key: "title_grid", label: "Title Text & 🏭 Icon", default: "#ff7043" },
+          { key: "pwr_grid", label: "Imported Power (kW/W)", default: "#ffffff" },
+          { key: "kwh_grid", label: "Imported Energy (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_grid_text", label: "Grid Limit Warning Badge Text", default: "#ff7043" },
+          { key: "badge_grid_bg", label: "Grid Limit Warning Badge Background", default: "rgba(255, 112, 67, 0.12)" },
+          { key: "bar_grid_limit", label: "Grid Limit Progress Bar Fill", default: "#ff7043" }
+        ]
+      },
+      {
+        title: "🏠 3. Home Consumption Box",
+        items: [
+          { key: "bg_home", label: "Box Background Tint", default: "rgba(0, 229, 255, 0.12)" },
+          { key: "border_home", label: "Box Border & Glow", default: "rgba(0, 229, 255, 0.3)" },
+          { key: "title_home", label: "Title Text & 🏠 Icon", default: "#00e5ff" },
+          { key: "pwr_home", label: "Home Consumption Power (kW/W)", default: "#ffffff" },
+          { key: "kwh_home", label: "Solar Energy Used (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_home_text", label: "Solar Autarky Badge Text", default: "#00e5ff" },
+          { key: "badge_home_bg", label: "Solar Autarky Badge Background", default: "rgba(0, 229, 255, 0.12)" }
+        ]
+      },
+      {
+        title: "🔋 4. Battery Storage (BESS) Box",
+        items: [
+          { key: "bg_battery", label: "Box Background Tint", default: "rgba(16, 185, 129, 0.12)" },
+          { key: "border_battery", label: "Box Border & Glow", default: "rgba(16, 185, 129, 0.3)" },
+          { key: "title_battery", label: "Title Text & 🔋 Icon", default: "#10b981" },
+          { key: "pwr_battery", label: "Charge/Discharge Power (kW)", default: "#ffffff" },
+          { key: "kwh_battery", label: "Battery State of Charge (SoC %)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_battery_text", label: "Battery State Badge Text", default: "#10b981" },
+          { key: "badge_battery_bg", label: "Battery State Badge Background", default: "rgba(16, 185, 129, 0.12)" },
+          { key: "bar_battery_soc", label: "Battery SoC Progress Bar Fill", default: "#10b981" }
+        ]
+      },
+      {
+        title: "🚗 5. Electric Vehicle (EV) Box",
+        items: [
+          { key: "bg_ev", label: "Box Background Tint", default: "rgba(179, 136, 255, 0.12)" },
+          { key: "border_ev", label: "Box Border & Glow", default: "rgba(179, 136, 255, 0.3)" },
+          { key: "title_ev", label: "Title Text & 🚗 Icon", default: "#b388ff" },
+          { key: "pwr_ev", label: "EV Charging Power (kW)", default: "#ffffff" },
+          { key: "kwh_ev", label: "Daily EV Energy Charged (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "badge_ev_text", label: "Charging Badge Text", default: "#b388ff" },
+          { key: "badge_ev_bg", label: "Charging Badge Background", default: "rgba(179, 136, 255, 0.12)" }
+        ]
+      },
+      {
+        title: "⚡ 6. Grid Out (Export) Box",
+        items: [
+          { key: "bg_export", label: "Box Background Tint", default: "rgba(0, 230, 118, 0.12)" },
+          { key: "border_export", label: "Box Border & Glow", default: "rgba(0, 230, 118, 0.25)" },
+          { key: "title_export", label: "Title Text & ⚡ Icon", default: "#00e676" },
+          { key: "pwr_export", label: "Export Power (kW/W)", default: "#ffffff" },
+          { key: "kwh_export", label: "Exported Energy (kWh)", default: "rgba(255, 255, 255, 0.6)" }
+        ]
+      },
+      {
+        title: "〰️ 7. Dynamic Energy Flow Lines",
+        items: [
+          { key: "flow_solar_home_start", label: "Solar ➔ Home: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_home_end", label: "Solar ➔ Home: End Color", default: "#00e5ff" },
+
+          { key: "flow_solar_battery_start", label: "Solar ➔ Battery: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_battery_end", label: "Solar ➔ Battery: End Color", default: "#10b981" },
+
+          { key: "flow_solar_ev_start", label: "Solar ➔ EV: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_ev_end", label: "Solar ➔ EV: End Color", default: "#b388ff" },
+
+          { key: "flow_solar_grid_start", label: "Solar ➔ Grid Out: Start Color", default: "#ffd54f" },
+          { key: "flow_solar_grid_end", label: "Solar ➔ Grid Out: End Color", default: "#00e676" },
+
+          { key: "flow_grid_home_start", label: "Grid In ➔ Home: Start Color", default: "#ff7043" },
+          { key: "flow_grid_home_end", label: "Grid In ➔ Home: End Color", default: "#00e5ff" },
+
+          { key: "flow_grid_battery_start", label: "Grid In ➔ Battery: Start Color", default: "#ff7043" },
+          { key: "flow_grid_battery_end", label: "Grid In ➔ Battery: End Color", default: "#10b981" },
+
+          { key: "flow_grid_ev_start", label: "Grid In ➔ EV: Start Color", default: "#ff7043" },
+          { key: "flow_grid_ev_end", label: "Grid In ➔ EV: End Color", default: "#b388ff" },
+
+          { key: "flow_battery_home_start", label: "Battery ➔ Home: Start Color", default: "#10b981" },
+          { key: "flow_battery_home_end", label: "Battery ➔ Home: End Color", default: "#00e5ff" },
+
+          { key: "flow_battery_ev_start", label: "Battery ➔ EV: Start Color", default: "#10b981" },
+          { key: "flow_battery_ev_end", label: "Battery ➔ EV: End Color", default: "#b388ff" },
+
+          { key: "flow_battery_grid_start", label: "Battery ➔ Grid Out: Start Color", default: "#10b981" },
+          { key: "flow_battery_grid_end", label: "Battery ➔ Grid Out: End Color", default: "#00e676" },
+
+          { key: "flow_rails", label: "Inactive Rail Lines Track", default: "rgba(255, 255, 255, 0.05)" }
+        ]
+      },
+      {
+        title: "⭕ 8. Autarky & Activity Rings",
+        items: [
+          { key: "ring_autarky", label: "Autarky Ring (Outer Circle)", default: "#00e676" },
+          { key: "ring_import", label: "Grid Reliance Ring (Middle Circle)", default: "#ff7043" },
+          { key: "ring_export", label: "Grid Export Ring (Inner Circle)", default: "#ffd54f" },
+          { key: "autarky_center_pct", label: "Scorecard Center % Text", default: "#ffffff" },
+          { key: "autarky_center_lbl", label: "Scorecard Center 'AUTARKY' Label", default: "#00e676" },
+          { key: "ring_bg_track", label: "Inactive Rings Background Track", default: "rgba(255, 255, 255, 0.05)" }
+        ]
+      },
+      {
+        title: "📊 9. Tabular KPI Rows",
+        items: [
+          { key: "bg_scorecard", label: "Scorecard Container Background", default: "rgba(255, 255, 255, 0.02)" },
+          { key: "border_scorecard", label: "Scorecard Container Border", default: "rgba(255, 255, 255, 0.06)" },
+          { key: "row_self_consumed_title", label: "Row 1 (Self-Consumed) Title & %", default: "#00e676" },
+          { key: "row_self_consumed_kwh", label: "Row 1 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_self_consumed_bar", label: "Row 1 Progress Bar Fill", default: "#00e676" },
+
+          { key: "row_grid_reliance_title", label: "Row 2 (Grid Reliance) Title & %", default: "#ff7043" },
+          { key: "row_grid_reliance_kwh", label: "Row 2 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_grid_reliance_bar", label: "Row 2 Progress Bar Fill", default: "#ff7043" },
+
+          { key: "row_exported_title", label: "Row 3 (Exported) Title & %", default: "#ffd54f" },
+          { key: "row_exported_kwh", label: "Row 3 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_exported_bar", label: "Row 3 Progress Bar Fill", default: "#ffd54f" }
+        ]
+      }
+    ];
+
+    let html = `
+      <div class="color-studio-toolbar">
+        <button id="btn-random-palette" class="studio-btn btn-random-palette">🎲 Harmonized Palette</button>
+        <button id="btn-wild-shuffle" class="studio-btn btn-wild-shuffle">🔀 Wild Shuffle</button>
+        <button id="btn-reset-colors" class="studio-btn btn-reset-colors">↺ Reset All Colors</button>
+      </div>
+      <div class="color-studio-tip">
+        <span>💡 Tap any color square or enter hex codes. Every box, flow rail, and scorecard row can be independently styled.</span>
+      </div>
+    `;
+
+    for (const grp of groups) {
+      html += `<div class="color-group-box"><div class="color-group-title">${grp.title}</div>`;
+      for (const item of grp.items) {
+        html += `
+          <div class="color-row">
+            <div class="color-label">${item.label}</div>
+            <div class="color-input-pair">
+              <input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${colorToHex(item.default, '#ffd54f')}">
+              <input type="text" class="color-text-input" data-color-key="${item.key}" placeholder="${item.default}">
+            </div>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+
+    container.innerHTML = html;
+
+    // Attach Color Listeners
+    const inputs = container.querySelectorAll('.color-text-input, .color-wheel-btn');
+    inputs.forEach(inp => {
+      inp.addEventListener('input', (ev) => {
+        const key = ev.target.getAttribute('data-color-key');
+        let val = ev.target.value;
+        const textInp = container.querySelector(`.color-text-input[data-color-key="${key}"]`);
+        const wheelInp = container.querySelector(`.color-wheel-btn[data-color-key="${key}"]`);
+
+        if (ev.target.classList.contains('color-wheel-btn')) {
+          if (textInp) textInp.value = val;
+        } else {
+          if (wheelInp) wheelInp.value = colorToHex(val, wheelInp.value);
+        }
+
+        const cfg = { ...this._config };
+        cfg.colors = { ...(cfg.colors || {}) };
+        if (val) cfg.colors[key] = val;
+        else delete cfg.colors[key];
+
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+      });
+    });
+
+    // Reset button
+    const btnReset = container.querySelector('#btn-reset-colors');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        const cfg = { ...this._config };
+        cfg.colors = {};
+        const txts = container.querySelectorAll('.color-text-input');
+        const whls = container.querySelectorAll('.color-wheel-btn');
+        txts.forEach(t => { t.value = ''; });
+        whls.forEach(w => {
+          const def = w.getAttribute('data-default') || '#ffd54f';
+          w.value = colorToHex(def, '#ffd54f');
+        });
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+      });
+    }
+  }
+
+  _updateFormValues() {
+    if (!this._config) return;
+    const ents = this._getEditorEntities();
+    const lbls = this._config.labels || {};
+    const colors = this._config.colors || {};
+
+    if (this._forms.solar) {
+      this._forms.solar.data = {
+        solar_power: ents.solar_power || '',
+        solar_daily_yield: ents.solar_daily_yield || '',
+        solcast_today: ents.solcast_today || '',
+        solcast_remaining: ents.solcast_remaining || '',
+        show_solar_forecast: this._config.show_solar_forecast !== false
+      };
+      if (this._hass) this._forms.solar.hass = this._hass;
+    }
+
+    if (this._forms.grid) {
+      this._forms.grid.data = {
+        grid_power: ents.grid_power || '',
+        grid_export_power: ents.grid_export_power || '',
+        grid_daily_import: ents.grid_daily_import || '',
+        grid_daily_export: ents.grid_daily_export || '',
+        load_power: ents.load_power || '',
+        contract_power_limit_kw: this._config.contract_power_limit_kw ?? 4.2,
+        contract_warning_pct: Math.round((this._config.contract_warning_pct ?? 0.85) <= 1.0 ? (this._config.contract_warning_pct ?? 0.85) * 100 : (this._config.contract_warning_pct ?? 0.85))
+      };
+      if (this._hass) this._forms.grid.hass = this._hass;
+    }
+
+    if (this._forms.device) {
+      const hasBattConfigured = (typeof this._config.show_battery === 'boolean')
+        ? this._config.show_battery
+        : Boolean(ents.battery_power || ents.battery_soc || ents.battery_daily_charge || ents.battery_daily_discharge || this._config.device_type === 'battery' || this._config.bess === true);
+      const hasEvConfigured = (typeof this._config.show_ev === 'boolean')
+        ? this._config.show_ev
+        : (this._config.device_type === 'battery' ? Boolean(ents.ev_power || ents.ev_charging || ents.ev_daily_energy) : true);
+
+      this._forms.device.data = {
+        show_battery: hasBattConfigured,
+        battery_position: this._config.battery_position || 'left',
+        show_ev: hasEvConfigured,
+        allow_battery_to_ev: Boolean(this._config.allow_battery_to_ev),
+        show_battery_soc: this._config.show_battery_soc !== false,
+        show_battery_badge: this._config.show_battery_badge !== false,
+        show_ev_badge: this._config.show_ev_badge !== false,
+        battery_power: ents.battery_power || '',
+        battery_positive_charging: this._config.battery_positive_charging !== false,
+        battery_soc: ents.battery_soc || '',
+        battery_daily_charge: ents.battery_daily_charge || '',
+        battery_daily_discharge: ents.battery_daily_discharge || '',
+        ev_power: ents.ev_power || '',
+        ev_charging: ents.ev_charging || '',
+        ev_daily_energy: ents.ev_daily_energy || ''
+      };
+      if (this._hass) this._forms.device.hass = this._hass;
+    }
+
+    if (this._forms.labels) {
+      this._forms.labels.data = {
+        lbl_solar: lbls.solar || this._config.solar_name || '',
+        lbl_home: lbls.home || this._config.home_name || '',
+        lbl_grid_in: lbls.grid_in || this._config.grid_in_name || '',
+        lbl_grid_out: lbls.grid_out || this._config.grid_out_name || '',
+        battery_name: this._config.battery_name || lbls.battery || 'BESS',
+        ev_name: this._config.ev_name || lbls.ev || 'Tesla',
+        lbl_autarky: lbls.autarky || '',
+        lbl_autarky_sub: lbls.autarky_sub || '',
+        lbl_self_consumed: lbls.self_consumed || '',
+        lbl_self_consumed_sub: lbls.self_consumed_sub || '',
+        lbl_grid_reliance: lbls.grid_reliance || '',
+        lbl_grid_reliance_sub: lbls.grid_reliance_sub || '',
+        lbl_exported: lbls.exported || '',
+        lbl_exported_sub: lbls.exported_sub || ''
+      };
+      if (this._hass) this._forms.labels.hass = this._hass;
+    }
+
+    if (this._forms.display) {
+      this._forms.display.data = {
+          solar_priority: this._config?.solar_priority || 'home',
+        font_scale: this._config.font_scale ?? 1.0,
+        speed_multiplier: this._config.speed_multiplier ?? 1.0,
+        palette: this._config.palette || 'solar',
+        power_unit: this._config.power_unit || '',
+        min_flow_threshold_w: this._config.min_flow_threshold_w ?? 2,
+        max_expected_power_kw: this._config.max_expected_power_kw ?? 7.5,
+        speed_solar_home: this._config.line_speeds?.solar_home ?? 1.0,
+        speed_solar_battery: this._config.line_speeds?.solar_battery ?? 1.0,
+        speed_solar_ev: this._config.line_speeds?.solar_ev ?? 1.0,
+        speed_solar_grid: this._config.line_speeds?.solar_grid ?? 1.0,
+        speed_grid_home: this._config.line_speeds?.grid_home ?? 1.0,
+        speed_grid_battery: this._config.line_speeds?.grid_battery ?? 1.0,
+        speed_grid_ev: this._config.line_speeds?.grid_ev ?? 1.0,
+        speed_battery_home: this._config.line_speeds?.battery_home ?? 1.0,
+        speed_battery_ev: this._config.line_speeds?.battery_ev ?? 1.0,
+        speed_battery_grid: this._config.line_speeds?.battery_grid ?? 1.0
+      };
+      if (this._hass) this._forms.display.hass = this._hass;
+    }
+
+    // Populate Color Studio inputs
+    const container = this.shadowRoot.getElementById('panel-colors-studio');
+    if (container) {
+      const texts = container.querySelectorAll('.color-text-input');
+      const wheels = container.querySelectorAll('.color-wheel-btn');
+      texts.forEach(t => {
+        const k = t.getAttribute('data-color-key');
+        t.value = colors[k] || '';
+      });
+      wheels.forEach(w => {
+        const k = w.getAttribute('data-color-key');
+        const def = w.getAttribute('data-default') || '#ffd54f';
+        const cur = (colors && colors[k]) || def;
+        w.value = this._colorToHex(cur, '#ffd54f');
+      });
+    }
+  }
+
+  _sectionValueChanged(secId, ev) {
+    if (!this._config || !this._hass) return;
+    const val = ev.detail.value;
+    const cfg = { ...this._config };
+    cfg.entities = { ...(cfg.entities || {}) };
+    cfg.labels = { ...(cfg.labels || {}) };
+
+    if (secId === 'solar') {
+      const keys = ['solar_power', 'solar_daily_yield', 'solcast_today', 'solcast_remaining'];
+      for (const k of keys) {
+        if (val[k]) cfg.entities[k] = val[k];
+        else delete cfg.entities[k];
+      }
+      cfg.show_solar_forecast = Boolean(val.show_solar_forecast);
+    } else if (secId === 'grid') {
+      const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
+      for (const k of keys) {
+        if (val[k]) cfg.entities[k] = val[k];
+        else delete cfg.entities[k];
+      }
+      cfg.contract_power_limit_kw = parseFloat(val.contract_power_limit_kw) || 4.2;
+      const rawWarnVal = parseFloat(val.contract_warning_pct);
+      cfg.contract_warning_pct = (rawWarnVal > 1) ? (rawWarnVal / 100.0) : (rawWarnVal || 0.85);
+    } else if (secId === 'device') {
+      cfg.show_battery = Boolean(val.show_battery);
+      cfg.battery_position = val.battery_position || 'left';
+      cfg.show_ev = Boolean(val.show_ev);
+      cfg.allow_battery_to_ev = Boolean(val.allow_battery_to_ev);
+      cfg.show_battery_soc = Boolean(val.show_battery_soc);
+      cfg.show_battery_badge = Boolean(val.show_battery_badge);
+      cfg.show_ev_badge = Boolean(val.show_ev_badge);
+      cfg.battery_positive_charging = val.battery_positive_charging !== false;
+
+      const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge'];
+      for (const k of bKeys) {
+        if (val[k]) cfg.entities[k] = val[k];
+        else delete cfg.entities[k];
+      }
+      const evKeys = ['ev_power', 'ev_charging', 'ev_daily_energy'];
+      for (const k of evKeys) {
+        if (val[k]) cfg.entities[k] = val[k];
+        else delete cfg.entities[k];
+      }
+    } else if (secId === 'labels') {
+      const lMap = {
+        lbl_solar: 'solar',
+        lbl_home: 'home',
+        lbl_grid_in: 'grid_in',
+        lbl_grid_out: 'grid_out',
+        lbl_autarky: 'autarky',
+        lbl_autarky_sub: 'autarky_sub',
+        lbl_self_consumed: 'self_consumed',
+        lbl_self_consumed_sub: 'self_consumed_sub',
+        lbl_grid_reliance: 'grid_reliance',
+        lbl_grid_reliance_sub: 'grid_reliance_sub',
+        lbl_exported: 'exported',
+        lbl_exported_sub: 'exported_sub'
+      };
+      for (const [formKey, lKey] of Object.entries(lMap)) {
+        if (val[formKey]) cfg.labels[lKey] = val[formKey];
+        else delete cfg.labels[lKey];
+      }
+      if (val.battery_name) cfg.battery_name = val.battery_name;
+      if (val.ev_name) cfg.ev_name = val.ev_name;
+    } else if (secId === 'display') {
+      if (val.solar_priority) cfg.solar_priority = val.solar_priority;
+      cfg.font_scale = typeof val.font_scale === 'number' ? val.font_scale : 1.0;
+      cfg.speed_multiplier = typeof val.speed_multiplier === 'number' ? val.speed_multiplier : 1.0;
+      cfg.palette = val.palette || 'solar';
+      cfg.power_unit = val.power_unit || '';
+      cfg.min_flow_threshold_w = typeof val.min_flow_threshold_w === 'number' ? val.min_flow_threshold_w : 2;
+      cfg.max_expected_power_kw = typeof val.max_expected_power_kw === 'number' ? val.max_expected_power_kw : 7.5;
+      cfg.line_speeds = {
+        solar_home: parseFloat(val.speed_solar_home) || 1.0,
+        solar_battery: parseFloat(val.speed_solar_battery) || 1.0,
+        solar_ev: parseFloat(val.speed_solar_ev) || 1.0,
+        solar_tesla: parseFloat(val.speed_solar_ev) || 1.0,
+        solar_grid: parseFloat(val.speed_solar_grid) || 1.0,
+        grid_home: parseFloat(val.speed_grid_home) || 1.0,
+        grid_battery: parseFloat(val.speed_grid_battery) || 1.0,
+        grid_ev: parseFloat(val.speed_grid_ev) || 1.0,
+        grid_tesla: parseFloat(val.speed_grid_ev) || 1.0,
+        battery_home: parseFloat(val.speed_battery_home) || 1.0,
+        battery_ev: parseFloat(val.speed_battery_ev) || 1.0,
+        battery_grid: parseFloat(val.speed_battery_grid) || 1.0
+      };
+    }
+
+    this._config = cfg;
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this._config },
+      bubbles: true,
+      composed: true
+    }));
+  }
+
+  _getSolarSchema() {
+    return [
+      { name: "solar_power", label: "Live Solar Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "solar_daily_yield", label: "Today's Solar Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "solcast_today", label: "Solcast Today Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "solcast_remaining", label: "Solcast Remaining Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } }
     ];
   }
 
@@ -2740,24 +3540,22 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
   _getDeviceSchema() {
     return [
-      {
-        name: "device_type",
-        label: "Middle Box Mode (Battery or EV)",
-        selector: {
-          select: {
-            options: [
-              { value: "ev", label: "🚗 Electric Vehicle / EV Charger (Tesla, Wallbox, Easee...)" },
-              { value: "battery", label: "🔋 Home Battery Storage (Powerwall, BYD, Enphase, DIY...)" }
-            ]
-          }
-        }
-      },
-      { name: "battery_power", label: "Battery Power Sensor (W or kW)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "show_battery", label: "Show Home Battery Box", selector: { boolean: {} } },
+      { name: "battery_position", label: "Battery Column Placement (When EV is hidden)", selector: { select: { options: [
+        { value: "left", label: "Left Column (Under Solar)" },
+        { value: "right", label: "Right Column (Between Home & Grid Out)" }
+      ] } } },
+      { name: "show_ev", label: "Show Electric Vehicle / Charger Box", selector: { boolean: {} } },
+      { name: "allow_battery_to_ev", label: "Allow Battery to Charge EV (Enables direct battery-to-car flow line)", selector: { boolean: {} } },
+      { name: "show_battery_soc", label: "Show Battery Charge Percentage & Fill Bar", selector: { boolean: {} } },
+      { name: "show_battery_badge", label: "Show Battery Status Badge (Charging / Discharging / Idle)", selector: { boolean: {} } },
+      { name: "show_ev_badge", label: "Show EV Status Badge (Charging / Idle)", selector: { boolean: {} } },
+      { name: "battery_power", label: "Battery Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_positive_charging", label: "Battery Power Direction: Check if positive (+) numbers mean Charging", selector: { boolean: {} } },
-      { name: "battery_soc", label: "Battery State of Charge (%)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_soc", label: "Battery State of Charge Sensor (% SoC)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_charge", label: "Today's Battery Charged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_discharge", label: "Today's Battery Discharged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "ev_power", label: "EV Charger Power Sensor (W or kW)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "ev_power", label: "EV Charger Power Sensor (Watts or kW)", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_charging", label: "EV Charging Status Sensor (Binary sensor: on = charging)", selector: { entity: { domain: ["binary_sensor"] } } },
       { name: "ev_daily_energy", label: "Today's EV Charged Energy Sensor (kWh)", selector: { entity: { domain: ["sensor"] } } }
     ];
@@ -2765,20 +3563,20 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
   _getLabelsSchema() {
     return [
-      { name: "lbl_solar", label: "Solar Box Title (Default: Solar)", selector: { text: {} } },
-      { name: "lbl_home", label: "Home Box Title (Default: Home)", selector: { text: {} } },
-      { name: "lbl_grid_in", label: "Grid In Box Title (Default: Grid In)", selector: { text: {} } },
-      { name: "lbl_grid_out", label: "Grid Out Box Title (Default: Grid Out)", selector: { text: {} } },
-      { name: "battery_name", label: "Battery Box Title (Default: BESS)", selector: { text: {} } },
-      { name: "ev_name", label: "EV Box Title (Default: Tesla)", selector: { text: {} } },
-      { name: "lbl_autarky", label: "Autarky Ring Label (Default: AUTARKY)", selector: { text: {} } },
-      { name: "lbl_autarky_sub", label: "Autarky Ring Subtitle (Default: Grid-Free)", selector: { text: {} } },
-      { name: "lbl_self_consumed", label: "Row 1 Title (Default: SOLAR SELF-CONSUMED)", selector: { text: {} } },
-      { name: "lbl_self_consumed_sub", label: "Row 1 Subtitle (Default: 100% Free)", selector: { text: {} } },
-      { name: "lbl_grid_reliance", label: "Row 2 Title (Default: UTILITY GRID RELIANCE)", selector: { text: {} } },
-      { name: "lbl_grid_reliance_sub", label: "Row 2 Subtitle (Default: Night/Backup)", selector: { text: {} } },
-      { name: "lbl_exported", label: "Row 3 Title (Default: EXPORTED TO GRID)", selector: { text: {} } },
-      { name: "lbl_exported_sub", label: "Row 3 Subtitle (Default: Clean Surplus)", selector: { text: {} } }
+      { name: "lbl_solar", label: "Solar Box Name (Default: Solar)", selector: { text: {} } },
+      { name: "lbl_home", label: "Home Box Name (Default: Home)", selector: { text: {} } },
+      { name: "lbl_grid_in", label: "Grid In Box Name (Default: Grid In)", selector: { text: {} } },
+      { name: "lbl_grid_out", label: "Grid Out Box Name (Default: Grid Out)", selector: { text: {} } },
+      { name: "battery_name", label: "Battery Box Name (Default: BESS)", selector: { text: {} } },
+      { name: "ev_name", label: "EV Box Name (Default: Tesla)", selector: { text: {} } },
+      { name: "lbl_autarky", label: "Scorecard Ring Center Title (Default: AUTARKY)", selector: { text: {} } },
+      { name: "lbl_autarky_sub", label: "Scorecard Ring Subtitle (Default: Grid-Free)", selector: { text: {} } },
+      { name: "lbl_self_consumed", label: "Scorecard Row 1 Title (Default: SOLAR SELF-CONSUMED)", selector: { text: {} } },
+      { name: "lbl_self_consumed_sub", label: "Scorecard Row 1 Subtitle (Default: 100% Free)", selector: { text: {} } },
+      { name: "lbl_grid_reliance", label: "Scorecard Row 2 Title (Default: UTILITY GRID RELIANCE)", selector: { text: {} } },
+      { name: "lbl_grid_reliance_sub", label: "Scorecard Row 2 Subtitle (Default: Night/Backup)", selector: { text: {} } },
+      { name: "lbl_exported", label: "Scorecard Row 3 Title (Default: EXPORTED TO GRID)", selector: { text: {} } },
+      { name: "lbl_exported_sub", label: "Scorecard Row 3 Subtitle (Default: Clean Surplus)", selector: { text: {} } }
     ];
   }
 
@@ -2786,24 +3584,25 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     return [
       {
         name: "solar_priority",
-        label: "☀️ Solar Distribution Priority",
+        label: "Solar Surplus Priority: Where should solar generation flow first?",
         selector: {
           select: {
             options: [
-              { value: "middle", label: "🚗 Electric Vehicle / Battery First (Original Crossing Lines)" },
-              { value: "home", label: "🏠 Home Baseload First" }
+              { value: "home", label: "🏠 Home Consumption First (Standard household balance)" },
+              { value: "battery", label: "🔋 Home Battery First (Store solar before home load)" },
+              { value: "ev", label: "🚗 Electric Vehicle First (Solar EV charging priority)" }
             ]
           }
         }
       },
       {
         name: "font_scale",
-        label: "Card Text Size Multiplier (0.8x small to 1.3x large)",
+        label: "Typography & Content Scale (0.8x = Compact, 1.0x = Default, 1.25x = Bold)",
         selector: { number: { min: 0.8, max: 1.3, step: 0.05, mode: "slider" } }
       },
       {
         name: "speed_multiplier",
-        label: "Master Animation Speed Multiplier (0.2x calm to 3.0x fast)",
+        label: "Overall Energy Flow Speed Multiplier (0.5x = Relaxed, 1.0x = Real-Time, 2.0x = Rapid)",
         selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
       },
       {
@@ -2812,8 +3611,13 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
       },
       {
-        name: "speed_solar_tesla",
-        label: "Line Speed: Solar ➔ Battery/EV (1.0x = Auto)",
+        name: "speed_solar_battery",
+        label: "Line Speed: Solar ➔ Battery (1.0x = Auto)",
+        selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
+      },
+      {
+        name: "speed_solar_ev",
+        label: "Line Speed: Solar ➔ EV (1.0x = Auto)",
         selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
       },
       {
@@ -2827,13 +3631,23 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
       },
       {
-        name: "speed_grid_tesla",
-        label: "Line Speed: Grid In ➔ Battery/EV (1.0x = Auto)",
+        name: "speed_grid_battery",
+        label: "Line Speed: Grid In ➔ Battery (1.0x = Auto)",
+        selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
+      },
+      {
+        name: "speed_grid_ev",
+        label: "Line Speed: Grid In ➔ EV (1.0x = Auto)",
         selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
       },
       {
         name: "speed_battery_home",
         label: "Line Speed: Battery ➔ Home (1.0x = Auto)",
+        selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
+      },
+      {
+        name: "speed_battery_ev",
+        label: "Line Speed: Battery ➔ EV (1.0x = Auto)",
         selector: { number: { min: 0.2, max: 3.0, step: 0.1, mode: "slider" } }
       },
       {
@@ -2889,20 +3703,22 @@ class HaEnergyFlowCardEditor extends HTMLElement {
   }
 }
 
-class AresEnergyFlowCardEditor extends HaEnergyFlowCardEditor {}
+try {
+  if (!customElements.get('ares-energy-flow-card-dev-editor')) {
+    class AresEnergyFlowCardEditor extends HaEnergyFlowCardEditor {}
 
 try {
   if (!customElements.get('ha-energy-flow-card-editor')) {
     customElements.define('ha-energy-flow-card-editor', HaEnergyFlowCardEditor);
   }
-} catch (e) {
-  console.warn('[ChromaFlow] ha-energy-flow-card-editor registration notice:', e);
-}
+} catch (e) {}
 
 try {
   if (!customElements.get('ares-energy-flow-card-editor')) {
     customElements.define('ares-energy-flow-card-editor', AresEnergyFlowCardEditor);
   }
+} catch (e) {}
+  }
 } catch (e) {
-  console.warn('[ChromaFlow] ares-energy-flow-card-editor registration notice:', e);
+  console.warn('[ChromaFlow Dev Editor] registration notice:', e);
 }
