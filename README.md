@@ -85,6 +85,7 @@ ChromaFlow v2.1.0 introduces simultaneous Dual Mode for homes with both stationa
 - **Autarky Scorecard**: 3 concentric rings showing self-consumption, grid reliance, and solar export percentages.
 - **Solar Priority Toggle**: Choose whether grid imports route directly to Home or to your EV / battery charger when solar production is low.
 - **Bidirectional Battery Export**: Track home batteries discharging surplus energy back to the grid.
+- **Multiple Solar Sources**: Homes with two or more inverters or arrays can list each one under `solar_sources`. The Solar box keeps the combined total and adds a sub-tile per source with live power, today's yield and share of current output.
 - **Solcast Forecast Pacing**: Progress bar showing today's actual solar generation compared to the Solcast daily prediction.
 - **Grid Power Limit Warning**: Displays a warning badge when power consumption approaches your contracted breaker limit.
 - **Responsive Layout**: Adapts cleanly across desktop cards, mobile screens, and card picker previews.
@@ -177,6 +178,18 @@ entities:
   ev_power: sensor.ev_charger_power
   ev_charging: binary_sensor.ev_charging
   ev_daily_energy: sensor.ev_charger_energy
+
+# Optional: Multiple Solar Sources (2+ inverters / arrays)
+# Shown as sub-tiles inside the Solar box. If entities.solar_power / solar_daily_yield
+# are not set, the Solar totals are the sum of these sources.
+solar_sources:
+  - name: Roof North
+    power: sensor.inverter_1_power # W or kW
+    daily_yield: sensor.inverter_1_energy_today # optional (kWh)
+  - name: Garage
+    power: sensor.inverter_2_power
+    daily_yield: sensor.inverter_2_energy_today
+    color: "#ff9800" # optional accent for this sub-tile
 
 # Optional: Custom Color Overrides (Hex, RGBA, or CSS Named Colors)
 colors:
