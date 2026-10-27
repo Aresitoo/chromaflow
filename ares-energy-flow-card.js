@@ -1792,11 +1792,22 @@ class HaEnergyFlowCard extends HTMLElement {
 }
 
 // Dual Custom Element Registration (ChromaFlow & Ares Energy Flow backwards compatibility)
-if (!customElements.get('ha-energy-flow-card')) {
-  customElements.define('ha-energy-flow-card', HaEnergyFlowCard);
+class AresEnergyFlowCard extends HaEnergyFlowCard {}
+
+try {
+  if (!customElements.get('ha-energy-flow-card')) {
+    customElements.define('ha-energy-flow-card', HaEnergyFlowCard);
+  }
+} catch (e) {
+  console.warn('[ChromaFlow] ha-energy-flow-card registration notice:', e);
 }
-if (!customElements.get('ares-energy-flow-card')) {
-  customElements.define('ares-energy-flow-card', HaEnergyFlowCard);
+
+try {
+  if (!customElements.get('ares-energy-flow-card')) {
+    customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
+  }
+} catch (e) {
+  console.warn('[ChromaFlow] ares-energy-flow-card registration notice:', e);
 }
 
 // Lovelace Card Picker Registration (In-Place Mutation — Preserves Array Reference)
@@ -2878,9 +2889,20 @@ class HaEnergyFlowCardEditor extends HTMLElement {
   }
 }
 
-if (!customElements.get('ha-energy-flow-card-editor')) {
-  customElements.define('ha-energy-flow-card-editor', HaEnergyFlowCardEditor);
+class AresEnergyFlowCardEditor extends HaEnergyFlowCardEditor {}
+
+try {
+  if (!customElements.get('ha-energy-flow-card-editor')) {
+    customElements.define('ha-energy-flow-card-editor', HaEnergyFlowCardEditor);
+  }
+} catch (e) {
+  console.warn('[ChromaFlow] ha-energy-flow-card-editor registration notice:', e);
 }
-if (!customElements.get('ares-energy-flow-card-editor')) {
-  customElements.define('ares-energy-flow-card-editor', HaEnergyFlowCardEditor);
+
+try {
+  if (!customElements.get('ares-energy-flow-card-editor')) {
+    customElements.define('ares-energy-flow-card-editor', AresEnergyFlowCardEditor);
+  }
+} catch (e) {
+  console.warn('[ChromaFlow] ares-energy-flow-card-editor registration notice:', e);
 }
