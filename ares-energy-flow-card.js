@@ -166,6 +166,23 @@ class HaEnergyFlowCard extends HTMLElement {
         'sensor.ev_charge_power',
         'sensor.charger_power'
       ]),
+      tesla_soc: resolve('tesla_soc', [
+        'sensor.tesla_ble_garage_charge_level',
+        'sensor.tesla_battery_level',
+        'sensor.ev_battery_level',
+        'sensor.battery_level',
+        'sensor.ev_soc'
+      ]),
+      tesla_range: resolve('tesla_range', [
+        'sensor.tesla_ble_garage_range',
+        'sensor.tesla_range',
+        'sensor.ev_range'
+      ]),
+      tesla_charging_state: resolve('tesla_charging_state', [
+        'sensor.tesla_ble_garage_charging_state',
+        'sensor.tesla_charging_state',
+        'sensor.ev_status'
+      ]),
       ev_charging: resolve('ev_charging', [
         'binary_sensor.evse_192_168_0_249_charging',
         'binary_sensor.v2c_trydan_charging',
@@ -1402,6 +1419,17 @@ class HaEnergyFlowCard extends HTMLElement {
       }
     });
     this._resizeObserver.observe(this._canvasArea);
+
+    // Tesla node tap toggle (read-only telemetry flip)
+    if (this._el?.nodeEv && !this._el.nodeEv._hasTapListener) {
+      this._el.nodeEv._hasTapListener = true;
+      this._el.nodeEv.setAttribute('title', 'Tap to switch between Charging Power and Battery/Range');
+      this._el.nodeEv.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this._teslaViewMode = (this._teslaViewMode === 'battery') ? 'power' : 'battery';
+        this._update();
+      });
+    }
     this._applyConfigVisibility();
 
     // Trigger multiple layout passes so card dialog preview renders 100% attached
@@ -1771,17 +1799,26 @@ class HaEnergyFlowCard extends HTMLElement {
       const evBinary = eEvCharging ? (eEvCharging.state === 'on') : false;
       isEvActive = (liveEvW > 15) || evBinary;
 
-      const latest = eEvEnergy?.attributes?.latest;
-      if (latest && typeof latest.start === 'string') {
-        if (this._isSameDay(latest.start)) {
-          evDailyKwh = Number(latest.energy_kwh ?? latest.energy ?? eEvEnergy.state) || 0;
+      const sessions = Array.isArray(eEvEnergy?.attributes?.sessions) ? eEvEnergy.attributes.sessions : null;
+      if (sessions && sessions.length > 0) {
+        const todaySessions = sessions.filter(s => s && typeof s.start === 'string' && this._isSameDay(s.start));
+        if (todaySessions.length > 0) {
+          evDailyKwh = todaySessions.reduce((acc, s) => acc + (Number(s.energy_kwh ?? s.energy) || 0), 0);
         } else {
           evDailyKwh = 0.0;
         }
       } else {
-        evDailyKwh = this._parseEnergy(eEvEnergy);
+        const latest = eEvEnergy?.attributes?.latest;
+        if (latest && typeof latest.start === 'string') {
+          if (this._isSameDay(latest.start)) {
+            evDailyKwh = Number(latest.energy_kwh ?? latest.energy ?? eEvEnergy.state) || 0;
+          } else {
+            evDailyKwh = 0.0;
+          }
+        } else {
+          evDailyKwh = this._parseEnergy(eEvEnergy);
+        }
       }
-
       const liveSessionEnt = this._hass.states['sensor.evse_192_168_0_249_charge_energy'] ||
                              this._hass.states['sensor.v2c_trydan_charge_energy'] ||
                              this._hass.states['sensor.wallbox_energy_added'];
@@ -1990,6 +2027,68 @@ class HaEnergyFlowCard extends HTMLElement {
     el.pwrHome.textContent = fmtPwr(liveHomeW);
     el.kwhHome.textContent = `${fmtKwh(homeSolarKwh)} kWh solar`;
 
+    // Dynamic Home Badge (restored from original design)
+    const showHomeBadge = (this._config?.show_home_badge !== false);
+    if (showHomeBadge && el.badgeHome) {
+      let homeBadgeText = 'IDLE';
+      let homeBadgeColor = 'rgba(255, 255, 255, 0.4)';
+      let homeBadgeBg = 'rgba(255, 255, 255, 0.06)';
+      let homeBadgeBorder = 'rgba(255, 255, 255, 0.12)';
+
+      if (liveHomeW > idleThresh) {
+        if (gridToHomeW <= idleThresh) {
+          if (batteryToHomeW > idleThresh && solarToHomeW <= idleThresh) {
+            homeBadgeText = '100% BESS';
+            homeBadgeColor = '#00e5ff';
+            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
+            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+          } else if (batteryToHomeW > idleThresh) {
+            homeBadgeText = 'SOLAR + BESS';
+            homeBadgeColor = '#00e5ff';
+            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
+            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+          } else {
+            homeBadgeText = '100% SOLAR';
+            homeBadgeColor = '#00e5ff';
+            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
+            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+          }
+        } else if (solarToHomeW <= idleThresh && batteryToHomeW <= idleThresh) {
+          homeBadgeText = 'GRID';
+          homeBadgeColor = '#ff7043';
+          homeBadgeBg = 'rgba(255, 112, 67, 0.15)';
+          homeBadgeBorder = 'rgba(255, 112, 67, 0.4)';
+        } else {
+          const greenW = solarToHomeW + batteryToHomeW;
+          const covPct = Math.min(100, Math.round((greenW / liveHomeW) * 100));
+          if (covPct >= 99) {
+            homeBadgeText = '100% SOLAR';
+            homeBadgeColor = '#00e5ff';
+            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
+            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+          } else if (covPct <= 0) {
+            homeBadgeText = 'GRID';
+            homeBadgeColor = '#ff7043';
+            homeBadgeBg = 'rgba(255, 112, 67, 0.15)';
+            homeBadgeBorder = 'rgba(255, 112, 67, 0.4)';
+          } else {
+            homeBadgeText = `${covPct}% SOLAR`;
+            homeBadgeColor = '#00e5ff';
+            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
+            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+          }
+        }
+      }
+
+      el.badgeHome.textContent = homeBadgeText;
+      el.badgeHome.style.color = homeBadgeColor;
+      el.badgeHome.style.background = homeBadgeBg;
+      el.badgeHome.style.borderColor = homeBadgeBorder;
+      el.badgeHome.style.display = 'inline-block';
+    } else if (el.badgeHome) {
+      el.badgeHome.style.display = 'none';
+    }
+
     // Battery UI updates
     if (hasBatt && el.pwrBattery) {
       el.pwrBattery.textContent = fmtPwr(Math.abs(rawBattW));
@@ -2016,13 +2115,61 @@ class HaEnergyFlowCard extends HTMLElement {
       }
     }
 
-    // EV UI updates
+    // EV UI updates (with SoC badge & read-only tap toggle)
     if (hasEv && el.pwrEv) {
-      el.pwrEv.textContent = fmtPwr(liveEvW);
-      el.kwhEv.textContent = `${fmtKwh(evDailyKwh)} kWh charged`;
-      el.badgeEv.textContent = 'CHARGING';
+      const eTeslaSoc = this._hass?.states[ents.tesla_soc];
+      const eTeslaRange = this._hass?.states[ents.tesla_range];
+      const eTeslaState = this._hass?.states[ents.tesla_charging_state];
+
+      let rawSoc = eTeslaSoc ? parseFloat(eTeslaSoc.state) : null;
+      let rawRange = eTeslaRange ? parseFloat(eTeslaRange.state) : null;
+
+      // In simulation fallback if entity not configured
+      if (this._activePreset && rawSoc === null) {
+        rawSoc = 68;
+        rawRange = 295;
+      }
+
+      const hasSoc = typeof rawSoc === 'number' && !isNaN(rawSoc);
+      const hasRange = typeof rawRange === 'number' && !isNaN(rawRange);
+      const isBatteryView = (this._teslaViewMode === 'battery');
+
+      if (isBatteryView) {
+        el.pwrEv.textContent = hasSoc ? `${Math.round(rawSoc)}%` : fmtPwr(liveEvW);
+        el.kwhEv.textContent = hasRange ? `${Math.round(rawRange)} km range` : `${fmtKwh(evDailyKwh)} kWh charged`;
+      } else {
+        el.pwrEv.textContent = fmtPwr(liveEvW);
+        el.kwhEv.textContent = `${fmtKwh(evDailyKwh)} kWh charged`;
+      }
+
+      // Micro SoC progress bar under node
+      if (el.barEvSocBox) {
+        const showSocBar = (this._config?.show_ev_soc !== false) && hasSoc;
+        el.barEvSocBox.style.display = showSocBar ? 'block' : 'none';
+        if (el.barEvSocFill && hasSoc) {
+          el.barEvSocFill.style.width = `${Math.min(100, Math.max(0, rawSoc))}%`;
+        }
+      }
+
+      // Header Badge
       const showEvBadge = (this._config?.show_ev_badge !== false);
-      el.badgeEv.style.display = (isEvActive && showEvBadge) ? 'inline-block' : 'none';
+      if (showEvBadge) {
+        if (isEvActive) {
+          el.badgeEv.textContent = '⚡ CHARGING';
+          el.badgeEv.style.display = 'inline-block';
+        } else if (isBatteryView) {
+          const stateTxt = eTeslaState?.state ? eTeslaState.state.toUpperCase() : 'PARKED';
+          el.badgeEv.textContent = stateTxt;
+          el.badgeEv.style.display = 'inline-block';
+        } else if (hasSoc) {
+          el.badgeEv.textContent = `🔋 ${Math.round(rawSoc)}%`;
+          el.badgeEv.style.display = 'inline-block';
+        } else {
+          el.badgeEv.style.display = 'none';
+        }
+      } else {
+        el.badgeEv.style.display = 'none';
+      }
     }
 
     // Grid Out UI updates
