@@ -722,13 +722,27 @@ class HaEnergyFlowCard extends HTMLElement {
     const cRowExportKwh = colors.row_exported_kwh || d.row_exported_kwh;
     const cRowExportBar = colors.row_exported_bar || d.row_exported_bar;
 
+    // Card chrome: optionally follow the active Home Assistant theme (use_ha_theme),
+    // with optional colors.card_bg / colors.card_border / colors.card_glow overrides
+    const useHaTheme = this._config.use_ha_theme === true;
+    const cCardBg = colors.card_bg || (useHaTheme ? 'var(--ha-card-background, var(--card-background-color, #11141a))' : 'linear-gradient(145deg, #11141a 0%, #1a1e26 100%)');
+    const cCardBorder = colors.card_border || (useHaTheme ? 'var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.12)))' : pal.card_border);
+    const cCardRadius = useHaTheme ? 'var(--ha-card-border-radius, 12px)' : '20px';
+    const cCardShadow = useHaTheme ? 'var(--ha-card-box-shadow, none)' : '0 12px 40px rgba(0, 0, 0, 0.5)';
+    const cCardFont = useHaTheme ? 'var(--primary-font-family, -apple-system, BlinkMacSystemFont, Roboto, sans-serif)' : "-apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif";
+    const cCardGlow = colors.card_glow
+      ? `radial-gradient(circle at 50% 0%, ${colors.card_glow} 0%, transparent 60%)`
+      : (useHaTheme
+        ? 'radial-gradient(circle at 50% 0%, rgba(var(--rgb-primary-color, 0, 229, 255), 0.10) 0%, transparent 60%)'
+        : `radial-gradient(circle at 50% 0%, ${isFitness ? 'rgba(250, 17, 79, 0.08)' : 'rgba(0, 229, 255, 0.08)'} 0%, rgba(14, 17, 24, 0.98) 60%)`);
+
     this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
           width: 100%;
           box-sizing: border-box;
-          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif;
+          font-family: ${cCardFont};
           --ares-font-scale: ${this._fontScale || 1.0};
         }
         ha-card {
@@ -736,11 +750,11 @@ class HaEnergyFlowCard extends HTMLElement {
           width: 100%;
           box-sizing: border-box;
           padding: 10px 14px 14px;
-          border-radius: 20px;
+          border-radius: ${cCardRadius};
           overflow: hidden;
-          background: linear-gradient(145deg, #11141a 0%, #1a1e26 100%);
-          border: 1px solid ${pal.card_border};
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+          background: ${cCardBg};
+          border: 1px solid ${cCardBorder};
+          box-shadow: ${cCardShadow};
           isolation: isolate;
           container-type: inline-size;
           container-name: chromaflow;
@@ -749,7 +763,7 @@ class HaEnergyFlowCard extends HTMLElement {
         .bg-glow {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 50% 0%, ${isFitness ? 'rgba(250, 17, 79, 0.08)' : 'rgba(0, 229, 255, 0.08)'} 0%, rgba(14, 17, 24, 0.98) 60%);
+          background: ${cCardGlow};
           pointer-events: none;
           z-index: 0;
         }
@@ -2899,6 +2913,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         font_scale: this._config.font_scale ?? 1.0,
         speed_multiplier: this._config.speed_multiplier ?? 1.0,
         palette: this._config.palette || 'solar',
+        use_ha_theme: this._config.use_ha_theme === true,
         power_unit: this._config.power_unit || '',
         min_flow_threshold_w: this._config.min_flow_threshold_w ?? 2,
         max_expected_power_kw: this._config.max_expected_power_kw ?? 7.5,
@@ -3023,6 +3038,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       cfg.font_scale = typeof val.font_scale === 'number' ? val.font_scale : 1.0;
       cfg.speed_multiplier = typeof val.speed_multiplier === 'number' ? val.speed_multiplier : 1.0;
       cfg.palette = val.palette || 'solar';
+      if (val.use_ha_theme) cfg.use_ha_theme = true;
+      else delete cfg.use_ha_theme;
       cfg.power_unit = val.power_unit || '';
       cfg.min_flow_threshold_w = typeof val.min_flow_threshold_w === 'number' ? val.min_flow_threshold_w : 2;
       cfg.max_expected_power_kw = typeof val.max_expected_power_kw === 'number' ? val.max_expected_power_kw : 7.5;
@@ -3228,6 +3245,11 @@ class HaEnergyFlowCardEditor extends HTMLElement {
             ]
           }
         }
+      },
+      {
+        name: "use_ha_theme",
+        label: "Match Home Assistant Theme (card background, border, corners & font follow your HA theme)",
+        selector: { boolean: {} }
       },
       {
         name: "power_unit",
