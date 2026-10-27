@@ -97,3 +97,28 @@ entities:
 #   grid_daily_export: sensor.shelly_em_grid_energy_returned
 #   ev_power: sensor.wallbox_power
 #   ev_daily_energy: sensor.wallbox_daily_energy
+
+
+# ------------------------------------------------------------------------------
+# 5. Multiple Solar Sources (two or more inverters / arrays)
+# ------------------------------------------------------------------------------
+# Each source gets its own sub-tile inside the Solar box (live power, today's kWh
+# and share of current output). The Solar total is the sum of the sources unless
+# entities.solar_power / entities.solar_daily_yield are set explicitly.
+#
+# type: custom:ares-energy-flow-card
+# device_type: battery
+# solar_sources:
+#   - name: "Hybrid"
+#     power: sensor.hybrid_inverter_pv_power          # W or kW
+#     daily_yield: sensor.hybrid_inverter_pv_today    # optional (kWh)
+#   - name: "String"
+#     power: sensor.string_inverter_power
+#     daily_yield: sensor.string_inverter_energy_today
+#     color: "#ff9800"                                # optional sub-tile accent
+# entities:
+#   grid_power: sensor.grid_power
+#   grid_daily_import: sensor.grid_daily_import
+#   grid_daily_export: sensor.grid_daily_export
+#   battery_power: sensor.battery_power
+#   battery_soc: sensor.battery_soc
