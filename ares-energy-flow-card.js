@@ -319,6 +319,11 @@ class HaEnergyFlowCard extends HTMLElement {
 
     const resolve = (key, candidates) => {
       if (cfgEnts[key]) return cfgEnts[key];
+      // First pass: find a candidate that actually has a valid, non-unknown, non-unavailable state
+      for (const cand of candidates) {
+        if (states[cand] && states[cand].state !== 'unknown' && states[cand].state !== 'unavailable') return cand;
+      }
+      // Fallback: any candidate present in states
       for (const cand of candidates) {
         if (states[cand]) return cand;
       }
@@ -381,6 +386,8 @@ class HaEnergyFlowCard extends HTMLElement {
         'sensor.charger_power'
       ]),
       tesla_soc: resolve('tesla_soc', [
+        'sensor.mr_white_battery_level',
+        'sensor.mr_white_usable_battery_level',
         'sensor.tesla_ble_garage_charge_level',
         'sensor.tesla_battery_level',
         'sensor.ev_battery_level',
@@ -388,11 +395,14 @@ class HaEnergyFlowCard extends HTMLElement {
         'sensor.ev_soc'
       ]),
       tesla_range: resolve('tesla_range', [
+        'sensor.mr_white_battery_range',
+        'sensor.mr_white_ideal_battery_range',
         'sensor.tesla_ble_garage_range',
         'sensor.tesla_range',
         'sensor.ev_range'
       ]),
       tesla_charging_state: resolve('tesla_charging_state', [
+        'sensor.mr_white_charging_state',
         'sensor.tesla_ble_garage_charging_state',
         'sensor.tesla_charging_state',
         'sensor.ev_status'
@@ -1137,22 +1147,7 @@ class HaEnergyFlowCard extends HTMLElement {
             width: clamp(86px, 34%, 102px) !important;
           }
   
-        /* Multiple solar sources (solar_sources): per-source sub-tiles inside the Solar node */
-        ha-card.has-solar-sources .canvas-area {
-          height: calc(290px + max(0px, (var(--ares-font-scale, 1) - 1) * 130px));
-        }
-        ha-card.layout-dual.has-solar-sources .canvas-area, ha-card.layout-battery-left.has-solar-sources .canvas-area {
-          height: calc(330px + max(0px, (var(--ares-font-scale, 1) - 1) * 130px));
-        }
-        .solar-sources { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
-        ha-card.has-solar-sources .solar-sources { display: flex; }
-        .solar-src { border: 1px solid; border-radius: 7px; padding: 3px 6px 4px; background: rgba(0, 0, 0, 0.18); min-width: 0; }
-        .solar-src-row { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; min-width: 0; }
-        .solar-src-name { font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-        .solar-src-pwr { font-size: calc(12.5px * var(--ares-font-scale, 1)); font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .solar-src-kwh, .solar-src-pct { font-size: calc(9px * var(--ares-font-scale, 1)); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
-        .solar-src-track { margin-top: 3px; height: 2px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
-        .solar-src-bar { height: 100%; width: 0%; transition: width 0.4s ease; }
+        
 
         .node {
             padding: 3px 5px !important;
@@ -1210,22 +1205,7 @@ class HaEnergyFlowCard extends HTMLElement {
             width: clamp(78px, 32%, 92px) !important;
           }
   
-        /* Multiple solar sources (solar_sources): per-source sub-tiles inside the Solar node */
-        ha-card.has-solar-sources .canvas-area {
-          height: calc(290px + max(0px, (var(--ares-font-scale, 1) - 1) * 130px));
-        }
-        ha-card.layout-dual.has-solar-sources .canvas-area, ha-card.layout-battery-left.has-solar-sources .canvas-area {
-          height: calc(330px + max(0px, (var(--ares-font-scale, 1) - 1) * 130px));
-        }
-        .solar-sources { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
-        ha-card.has-solar-sources .solar-sources { display: flex; }
-        .solar-src { border: 1px solid; border-radius: 7px; padding: 3px 6px 4px; background: rgba(0, 0, 0, 0.18); min-width: 0; }
-        .solar-src-row { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; min-width: 0; }
-        .solar-src-name { font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-        .solar-src-pwr { font-size: calc(12.5px * var(--ares-font-scale, 1)); font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .solar-src-kwh, .solar-src-pct { font-size: calc(9px * var(--ares-font-scale, 1)); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
-        .solar-src-track { margin-top: 3px; height: 2px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
-        .solar-src-bar { height: 100%; width: 0%; transition: width 0.4s ease; }
+        
 
         .node {
             padding: 2.5px 4px !important;
@@ -2555,13 +2535,18 @@ const mode = this._getLayoutMode();
       }
 
       // Header Badge
+      const rawState = eTeslaState?.state ? String(eTeslaState.state).toLowerCase() : '';
+      const stateTxt = (rawState && rawState !== 'unknown' && rawState !== 'unavailable') ? rawState.toUpperCase() : (isEvActive ? 'CHARGING' : 'PARKED');
+
       const showEvBadge = (this._config?.show_ev_badge !== false) && (this._config?.show_ev_soc_badge !== false);
-      if (showEvBadge) {
+      if (showEvBadge && el.badgeEv) {
         if (isEvActive) {
           el.badgeEv.textContent = '⚡ CHARGING';
           el.badgeEv.style.display = 'inline-block';
+        } else if (hasSoc && activeViewMode === 'power_energy') {
+          el.badgeEv.textContent = `🔋 ${Math.round(rawSoc)}%`;
+          el.badgeEv.style.display = 'inline-block';
         } else if (activeViewMode === 'soc_range') {
-          const stateTxt = eTeslaState?.state ? eTeslaState.state.toUpperCase() : 'PARKED';
           el.badgeEv.textContent = stateTxt;
           el.badgeEv.style.display = 'inline-block';
         } else if (hasSoc) {
@@ -2570,7 +2555,7 @@ const mode = this._getLayoutMode();
         } else {
           el.badgeEv.style.display = 'none';
         }
-      } else {
+      } else if (el.badgeEv) {
         el.badgeEv.style.display = 'none';
       }
     }
@@ -2682,6 +2667,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     this._config = config;
     if (this._rendered) {
       this._updateFormValues();
+      this._renderColorsStudio();
     }
   }
 
@@ -3129,7 +3115,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       }
     ];
 
-    const curPal = this._config.palette || 'solar';
+    const curPal = (this._config && this._config.palette) || "solar";
     let html = `
       <div style="margin-bottom: 12px;">
         <label style="display: block; font-size: 12.5px; font-weight: 700; color: rgba(255, 255, 255, 0.9); margin-bottom: 6px;">
@@ -3336,11 +3322,14 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       this._forms.device.data = {
         show_battery: hasBattConfigured,
         battery_position: this._config.battery_position || 'left',
-        show_ev: hasEvConfigured,
-        allow_battery_to_ev: Boolean(this._config.allow_battery_to_ev),
         show_battery_soc: this._config.show_battery_soc !== false,
         show_battery_badge: this._config.show_battery_badge !== false,
-        show_ev_badge: this._config.show_ev_badge !== false,
+        show_ev: hasEvConfigured,
+        allow_battery_to_ev: Boolean(this._config.allow_battery_to_ev),
+        show_ev_soc_bar: this._config.show_ev_soc_bar !== false,
+        show_ev_soc_badge: (this._config.show_ev_soc_badge !== false) && (this._config.show_ev_badge !== false),
+        ev_primary_view: this._config.ev_primary_view || 'power_energy',
+        ev_secondary_view: this._config.ev_secondary_view || 'soc_range',
         battery_power: ents.battery_power || '',
         battery_positive_charging: this._config.battery_positive_charging !== false,
         battery_soc: ents.battery_soc || '',
@@ -3466,11 +3455,15 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     } else if (secId === 'device') {
       cfg.show_battery = Boolean(val.show_battery);
       cfg.battery_position = val.battery_position || 'left';
-      cfg.show_ev = Boolean(val.show_ev);
-      cfg.allow_battery_to_ev = Boolean(val.allow_battery_to_ev);
       cfg.show_battery_soc = Boolean(val.show_battery_soc);
       cfg.show_battery_badge = Boolean(val.show_battery_badge);
-      cfg.show_ev_badge = Boolean(val.show_ev_badge);
+      cfg.show_ev = Boolean(val.show_ev);
+      cfg.allow_battery_to_ev = Boolean(val.allow_battery_to_ev);
+      cfg.show_ev_soc_bar = Boolean(val.show_ev_soc_bar);
+      cfg.show_ev_soc_badge = Boolean(val.show_ev_soc_badge);
+      cfg.show_ev_badge = Boolean(val.show_ev_soc_badge);
+      cfg.ev_primary_view = val.ev_primary_view || 'power_energy';
+      cfg.ev_secondary_view = val.ev_secondary_view || 'soc_range';
       cfg.battery_positive_charging = val.battery_positive_charging !== false;
 
       const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge'];
@@ -3587,15 +3580,17 @@ class HaEnergyFlowCardEditor extends HTMLElement {
   _getDeviceSchema() {
     return [
       { name: "show_battery", label: "Show Home Battery", selector: { boolean: {} } },
-      { name: "battery_position", label: "Battery Position", selector: { select: { options: [
+      { name: "battery_position", label: "Home Battery Position", selector: { select: { options: [
         { value: "left", label: "Left Column (Under Solar)" },
         { value: "right", label: "Right Column (Between Home & Grid Out)" }
       ] } } },
-      { name: "show_ev", label: "Show EV Charger", selector: { boolean: {} } },
-      { name: "allow_battery_to_ev", label: "Allow Battery to Charge EV", selector: { boolean: {} } },
-      { name: "show_battery_soc", label: "Show Battery % and Progress Bar", selector: { boolean: {} } },
-      { name: "show_battery_badge", label: "Show Battery State Badge", selector: { boolean: {} } },
-      { name: "show_ev_badge", label: "Show EV State Badge", selector: { boolean: {} } },
+      { name: "show_battery_soc", label: "Show Home Battery % and Progress Bar", selector: { boolean: {} } },
+      { name: "show_battery_badge", label: "Show Home Battery State Badge", selector: { boolean: {} } },
+
+      { name: "show_ev", label: "Show Electric Vehicle (EV)", selector: { boolean: {} } },
+      { name: "allow_battery_to_ev", label: "Allow Home Battery to Charge EV", selector: { boolean: {} } },
+      { name: "show_ev_soc_bar", label: "Show EV Battery Progress Bar", selector: { boolean: {} } },
+      { name: "show_ev_soc_badge", label: "Show EV Battery % / State Badge", selector: { boolean: {} } },
       { name: "ev_primary_view", label: "Vehicle Card: Default Display Mode", selector: { select: { options: [
         { value: "power_energy", label: "Live Power & Today's Energy Charged (Default)" },
         { value: "soc_range", label: "Battery Level (%) & Rated Range (km / mi)" },
