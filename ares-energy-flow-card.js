@@ -1570,6 +1570,8 @@ class HaEnergyFlowCard extends HTMLElement {
     `;
 
     this._solarSrcTheme = { border: cSolarBorder, title: cTitleSolar, pwr: cPwrSolar, kwh: cKwhSolar, bar: cBarSolar };
+    // Remember the configured Grid In border so the ICP warning can restore it (clearing it falls back to currentColor)
+    this._gridBorderColor = cGridBorder;
     this._canvasArea = this.shadowRoot.querySelector('.canvas-area');
     this._svg = this.shadowRoot.getElementById('flow-svg');
 
@@ -2349,13 +2351,13 @@ class HaEnergyFlowCard extends HTMLElement {
       el.badgeGridGuard.style.display = 'inline-block';
       if (el.nodeGrid) {
         el.nodeGrid.classList.remove('pulse-icp-alert');
-        el.nodeGrid.style.borderColor = '';
+        el.nodeGrid.style.borderColor = this._gridBorderColor || '';
       }
     } else {
       el.badgeGridGuard.style.display = 'none';
       if (el.nodeGrid) {
         el.nodeGrid.classList.remove('pulse-icp-alert');
-        el.nodeGrid.style.borderColor = '';
+        el.nodeGrid.style.borderColor = this._gridBorderColor || '';
       }
     }
 
