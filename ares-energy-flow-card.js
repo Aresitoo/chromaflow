@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.2.0 (Dual Battery & EV Simultaneous Mode, Multi-Port Geometry, Solar Sub-Arrays & ELI5 Visual Editor)
+ * Version: v2.3.0 (Zero-Export Mode Toggle, Phantom Grid-to-Battery Fix, Battery Time-to-Full/Empty)
  */
 
 const PALETTES = {
@@ -477,6 +477,16 @@ class HaEnergyFlowCard extends HTMLElement {
         'sensor.solcast_pv_forecast_forecast_remaining_today',
         'sensor.solcast_forecast_remaining_today',
         'sensor.solcast_remaining_today'
+      ]),
+      battery_time_to_full: resolve('battery_time_to_full', [
+        'sensor.battery_time_to_full',
+        'sensor.battery_time_until_full',
+        'sensor.powerwall_time_to_full'
+      ]),
+      battery_time_to_empty: resolve('battery_time_to_empty', [
+        'sensor.battery_time_to_empty',
+        'sensor.battery_time_until_empty',
+        'sensor.powerwall_time_to_empty'
       ])
     };
   }
@@ -679,6 +689,10 @@ class HaEnergyFlowCard extends HTMLElement {
       show_solar_forecast: true,
       battery_positive_charging: true,
       allow_battery_to_ev: false,
+      allow_grid_to_battery: false,
+      show_grid_out: true,
+      show_export: true,
+      battery_capacity_kwh: 0,
       solar_priority: 'home',
       show_sim_toolbar: true,
       ...config
@@ -1496,7 +1510,7 @@ class HaEnergyFlowCard extends HTMLElement {
                 <circle id="ring-import" cx="78" cy="78" r="54" fill="none" stroke="${cImportRing}" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.29" stroke-dashoffset="339.29" style="transition: stroke-dashoffset 0.6s ease;" />
 
                 <!-- Ring 3 (Inner): Grid Export -->
-                <circle cx="78" cy="78" r="40" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
+                <circle id="ring-track-export" cx="78" cy="78" r="40" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
                 <circle id="ring-export" cx="78" cy="78" r="40" fill="none" stroke="${cExportRing}" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33" style="transition: stroke-dashoffset 0.6s ease;" />
               </svg>
               <div class="rings-center-text" style="position: absolute; text-align: center; pointer-events: none; width: 72px;">
@@ -1543,7 +1557,7 @@ class HaEnergyFlowCard extends HTMLElement {
               </div>
 
               <!-- Row 3: Exported to Grid -->
-              <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
+              <div id="row-export-container" style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-exported">${lbls.exported}</span></span>
                   <span id="row-export-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowExportTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
@@ -1663,6 +1677,8 @@ class HaEnergyFlowCard extends HTMLElement {
       ringAutarky: getEl('ring-autarky'),
       ringImport: getEl('ring-import'),
       ringExport: getEl('ring-export'),
+      ringTrackExport: getEl('ring-track-export'),
+      rowExportContainer: getEl('row-export-container'),
       autarkyCenterPct: getEl('autarky-center-pct'),
 
       rowAutarkyPct: getEl('row-autarky-pct'),
@@ -1925,6 +1941,12 @@ const mode = this._getLayoutMode();
       pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
     }
 
+    const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
+    if (!showExport) {
+      pSolarGrid = '';
+      pBatteryGrid = '';
+    }
+
     const setAttr = (el, d) => {
       if (el) el.setAttribute('d', d || '');
     };
@@ -1970,12 +1992,18 @@ const mode = this._getLayoutMode();
     const hasEv = (mode === 'dual' || mode === 'ev-only');
     const isStress = false;
     const allowBattToEv = Boolean(this._config?.allow_battery_to_ev) || (false) || isStress || (false);
+    const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
 
+    if (this._el.nodeExport) this._el.nodeExport.style.display = showExport ? 'flex' : 'none';
+    if (this._el.railSolarGrid) this._el.railSolarGrid.style.display = showExport ? 'block' : 'none';
     if (this._el.railSolarBattery) this._el.railSolarBattery.style.display = hasBatt ? 'block' : 'none';
     if (this._el.railGridBattery) this._el.railGridBattery.style.display = hasBatt ? 'block' : 'none';
     if (this._el.railBatteryHome) this._el.railBatteryHome.style.display = hasBatt ? 'block' : 'none';
-    if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = hasBatt ? 'block' : 'none';
+    if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = (showExport && hasBatt) ? 'block' : 'none';
     if (this._el.railBatteryEV) this._el.railBatteryEV.style.display = (mode === 'dual' && allowBattToEv) ? 'block' : 'none';
+    if (this._el.ringExport) this._el.ringExport.style.display = showExport ? 'block' : 'none';
+    if (this._el.ringTrackExport) this._el.ringTrackExport.style.display = showExport ? 'block' : 'none';
+    if (this._el.rowExportContainer) this._el.rowExportContainer.style.display = showExport ? 'flex' : 'none';
 
 
     const showBattSoc = (this._config?.show_battery_soc !== false);
@@ -2326,12 +2354,14 @@ const mode = this._getLayoutMode();
       batteryToHomeW = Math.min(remainingDischargeW, homeUnmetW);
     }
 
+    const allowGridToBatt = (this._config?.allow_grid_to_battery === true);
     if (liveImportW > idleThresh) {
       let remainingImport = liveImportW;
       gridToHomeW = Math.min(remainingImport, Math.max(0, homeUnmetW - batteryToHomeW));
       remainingImport -= gridToHomeW;
 
-      if (hasBatt && batteryCharging) {
+      // Only allow grid charging if explicitly configured or during solar idle (e.g. night off-peak tariff)
+      if (hasBatt && batteryCharging && (allowGridToBatt || liveSolarW <= idleThresh)) {
         gridToBatteryW = Math.min(remainingImport, Math.max(0, batteryChargeW - solarToBatteryW));
         remainingImport -= gridToBatteryW;
       }
@@ -2339,6 +2369,11 @@ const mode = this._getLayoutMode();
       if (hasEv && isEvActive) {
         gridToEvW = Math.min(remainingImport, Math.max(0, evUnmetW - batteryToEvW));
         remainingImport -= gridToEvW;
+      }
+
+      // Any remaining import jitter absorbs cleanly into household load
+      if (remainingImport > 0) {
+        gridToHomeW += remainingImport;
       }
     }
     
@@ -2349,7 +2384,8 @@ const mode = this._getLayoutMode();
     setFlow(el.flowSolarBattery, solarToBatteryW, isStress || (hasBatt && liveSolarW > idleThresh && solarToBatteryW > idleThresh), 'solar_battery');
     setFlow(el.flowSolarEV, solarToEvW, isStress || (hasEv && liveSolarW > idleThresh && solarToEvW > idleThresh), 'solar_ev');
     setFlow(el.flowSolarTesla, solarToEvW, isStress || (hasEv && liveSolarW > idleThresh && solarToEvW > idleThresh), 'solar_tesla');
-    setFlow(el.flowSolarGrid, solarToGridW, isStress || (liveSolarW > idleThresh && solarToGridW > idleThresh), 'solar_grid');
+    const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
+    setFlow(el.flowSolarGrid, showExport ? solarToGridW : 0, isStress || (showExport && liveSolarW > idleThresh && solarToGridW > idleThresh), 'solar_grid');
 
     setFlow(el.flowGridHome, gridToHomeW, isStress || (liveImportW > idleThresh && gridToHomeW > idleThresh), 'grid_home');
     setFlow(el.flowGridBattery, gridToBatteryW, isStress || (hasBatt && liveImportW > idleThresh && gridToBatteryW > idleThresh), 'grid_battery');
@@ -2358,7 +2394,7 @@ const mode = this._getLayoutMode();
 
     setFlow(el.flowBatteryHome, batteryToHomeW, isStress || (hasBatt && batteryDischarging && batteryToHomeW > idleThresh), 'battery_home');
     setFlow(el.flowBatteryEV, batteryToEvW, isStress || (hasBatt && hasEv && batteryDischarging && batteryToEvW > idleThresh), 'battery_ev');
-    setFlow(el.flowBatteryGrid, batteryToGridW, isStress || (hasBatt && batteryDischarging && batteryToGridW > idleThresh), 'battery_grid');
+    setFlow(el.flowBatteryGrid, showExport ? batteryToGridW : 0, isStress || (showExport && hasBatt && batteryDischarging && batteryToGridW > idleThresh), 'battery_grid');
     
     // UI Formatting
     const fmtPwr = (w) => (w >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
@@ -2567,12 +2603,45 @@ const mode = this._getLayoutMode();
     if (hasBatt && el.pwrBattery) {
       el.pwrBattery.textContent = fmtPwr(Math.abs(rawBattW));
       const showBattSoc = (this._config?.show_battery_soc !== false);
+      const battCapKwh = parseFloat(this._config?.battery_capacity_kwh) || 0;
+
+      let battTimeStr = '';
+      if (batteryCharging && Math.abs(rawBattW) > 20) {
+        if (ents.battery_time_to_full && this._hass?.states[ents.battery_time_to_full]) {
+          const s = this._hass.states[ents.battery_time_to_full].state;
+          if (s && s !== 'unknown' && s !== 'unavailable') battTimeStr = `${s} to full`;
+        } else if (battCapKwh > 0 && batterySoc !== null && batterySoc < 100) {
+          const remKwh = ((100 - batterySoc) / 100) * battCapKwh;
+          const hrs = (remKwh * 1000) / Math.abs(rawBattW);
+          if (hrs < 1) battTimeStr = `${Math.max(1, Math.round(hrs * 60))}m to full`;
+          else if (hrs < 24) {
+            const h = Math.floor(hrs);
+            const m = Math.round((hrs % 1) * 60);
+            battTimeStr = m > 0 ? `${h}h ${m}m to full` : `${h}h to full`;
+          }
+        }
+      } else if (batteryDischarging && Math.abs(rawBattW) > 20) {
+        if (ents.battery_time_to_empty && this._hass?.states[ents.battery_time_to_empty]) {
+          const s = this._hass.states[ents.battery_time_to_empty].state;
+          if (s && s !== 'unknown' && s !== 'unavailable') battTimeStr = `${s} left`;
+        } else if (battCapKwh > 0 && batterySoc !== null && batterySoc > 0) {
+          const remKwh = (batterySoc / 100) * battCapKwh;
+          const hrs = (remKwh * 1000) / Math.abs(rawBattW);
+          if (hrs < 1) battTimeStr = `${Math.max(1, Math.round(hrs * 60))}m left`;
+          else if (hrs < 24) {
+            const h = Math.floor(hrs);
+            const m = Math.round((hrs % 1) * 60);
+            battTimeStr = m > 0 ? `${h}h ${m}m left` : `${h}h left`;
+          }
+        }
+      }
+
       if (batterySoc !== null && showBattSoc) {
-        el.kwhBattery.textContent = `${batterySoc}% SoC`;
+        el.kwhBattery.textContent = battTimeStr ? `${batterySoc}% SoC • ${battTimeStr}` : `${batterySoc}% SoC`;
         if (el.barBatterySocFill) el.barBatterySocFill.style.width = `${Math.min(100, Math.max(0, batterySoc))}%`;
         if (el.barBatterySocBox) el.barBatterySocBox.style.display = 'block';
       } else {
-        el.kwhBattery.textContent = `${fmtKwh(batteryKwh)} kWh`;
+        el.kwhBattery.textContent = battTimeStr ? `${fmtKwh(batteryKwh)} kWh • ${battTimeStr}` : `${fmtKwh(batteryKwh)} kWh`;
         if (el.barBatterySocBox) el.barBatterySocBox.style.display = 'none';
       }
 
@@ -2722,6 +2791,12 @@ try {
 try {
   if (!customElements.get('ares-energy-flow-card')) {
     customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
+  }
+} catch (e) {}
+
+try {
+  if (!customElements.get('ares-energy-flow-card-dev')) {
+    customElements.define('ares-energy-flow-card-dev', AresEnergyFlowCard);
   }
 } catch (e) {}
 
@@ -3524,6 +3599,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
     if (this._forms.grid) {
       this._forms.grid.data = {
+        show_grid_out: this._config.show_grid_out !== false && this._config.show_export !== false,
         grid_power: ents.grid_power || '',
         grid_export_power: ents.grid_export_power || '',
         grid_daily_import: ents.grid_daily_import || '',
@@ -3546,6 +3622,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       this._forms.device.data = {
         show_battery: hasBattConfigured,
         battery_position: this._config.battery_position || 'left',
+        allow_grid_to_battery: Boolean(this._config.allow_grid_to_battery),
+        battery_capacity_kwh: parseFloat(this._config.battery_capacity_kwh) || '',
         show_battery_soc: this._config.show_battery_soc !== false,
         show_battery_badge: this._config.show_battery_badge !== false,
         show_ev: hasEvConfigured,
@@ -3559,6 +3637,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         battery_soc: ents.battery_soc || '',
         battery_daily_charge: ents.battery_daily_charge || '',
         battery_daily_discharge: ents.battery_daily_discharge || '',
+        battery_time_to_full: ents.battery_time_to_full || '',
+        battery_time_to_empty: ents.battery_time_to_empty || '',
         ev_power: ents.ev_power || '',
         ev_charging: ents.ev_charging || '',
         ev_daily_energy: ents.ev_daily_energy || ''
@@ -3668,6 +3748,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       if (srcs.length) cfg.solar_sources = srcs;
       else delete cfg.solar_sources;
     } else if (secId === 'grid') {
+      cfg.show_grid_out = Boolean(val.show_grid_out);
+      cfg.show_export = Boolean(val.show_grid_out);
       const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
       for (const k of keys) {
         if (val[k]) cfg.entities[k] = val[k];
@@ -3679,6 +3761,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
     } else if (secId === 'device') {
       cfg.show_battery = Boolean(val.show_battery);
       cfg.battery_position = val.battery_position || 'left';
+      cfg.allow_grid_to_battery = Boolean(val.allow_grid_to_battery);
+      cfg.battery_capacity_kwh = parseFloat(val.battery_capacity_kwh) || 0;
       cfg.show_battery_soc = Boolean(val.show_battery_soc);
       cfg.show_battery_badge = Boolean(val.show_battery_badge);
       cfg.show_ev = Boolean(val.show_ev);
@@ -3690,7 +3774,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       cfg.ev_secondary_view = val.ev_secondary_view || 'soc_range';
       cfg.battery_positive_charging = val.battery_positive_charging !== false;
 
-      const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge'];
+      const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge', 'battery_time_to_full', 'battery_time_to_empty'];
       for (const k of bKeys) {
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
@@ -3791,6 +3875,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
   }
   _getGridSchema() {
     return [
+      { name: "show_grid_out", label: "Show Grid Out (Export Node & Gauge Ring)", selector: { boolean: {} } },
       { name: "grid_power", label: "Grid Meter (Import / Export)", selector: { entity: { domain: ["sensor"] } } },
       { name: "grid_export_power", label: "Separate Export Meter (Optional)", selector: { entity: { domain: ["sensor"] } } },
       { name: "grid_daily_import", label: "Today's Grid Import", selector: { entity: { domain: ["sensor"] } } },
@@ -3808,6 +3893,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         { value: "left", label: "Left Column (Under Solar)" },
         { value: "right", label: "Right Column (Between Home & Grid Out)" }
       ] } } },
+      { name: "allow_grid_to_battery", label: "Allow Grid to Charge Battery (Off-Peak schedule)", selector: { boolean: {} } },
+      { name: "battery_capacity_kwh", label: "Usable Battery Capacity (kWh, for time to full/empty)", selector: { number: { min: 0, max: 200, step: 0.1, mode: "box", unit_of_measurement: "kWh" } } },
       { name: "show_battery_soc", label: "Show Home Battery % and Progress Bar", selector: { boolean: {} } },
       { name: "show_battery_badge", label: "Show Home Battery State Badge", selector: { boolean: {} } },
 
@@ -3832,6 +3919,8 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       { name: "battery_soc", label: "Battery Charge Level (%)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_charge", label: "Today's Battery Charge", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_discharge", label: "Today's Battery Discharge", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_time_to_full", label: "Battery Time to Full Sensor (Optional override)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_time_to_empty", label: "Battery Time to Empty Sensor (Optional override)", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_power", label: "EV Charging Power", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_charging", label: "EV Charging Active Status (Binary Sensor)", selector: { entity: { domain: ["binary_sensor"] } } },
       { name: "ev_daily_energy", label: "Today's EV Energy Charged (kWh)", selector: { entity: { domain: ["sensor"] } } }
@@ -4001,5 +4090,11 @@ try {
 try {
   if (!customElements.get('ares-energy-flow-card-editor')) {
     customElements.define('ares-energy-flow-card-editor', AresEnergyFlowCardEditor);
+  }
+} catch (e) {}
+
+try {
+  if (!customElements.get('ares-energy-flow-card-dev-editor')) {
+    customElements.define('ares-energy-flow-card-dev-editor', AresEnergyFlowCardEditor);
   }
 } catch (e) {}
