@@ -17,19 +17,19 @@ const PALETTES = {
     autarky: '#00e676',
     import_ring: '#ff7043',
     export_ring: '#ffd54f',
-    bg_solar: 'rgba(255, 213, 79, 0.12)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(255, 213, 79, 0.3)',
-    bg_grid: 'rgba(255, 112, 67, 0.12)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(255, 112, 67, 0.3)',
-    bg_home: 'rgba(0, 229, 255, 0.12)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(0, 229, 255, 0.3)',
-    bg_device: 'rgba(179, 136, 255, 0.12)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(179, 136, 255, 0.3)',
-    bg_battery: 'rgba(16, 185, 129, 0.12)',
+    bg_battery: 'rgba(255, 255, 255, 0.03)',
     border_battery: 'rgba(16, 185, 129, 0.3)',
-    bg_ev: 'rgba(179, 136, 255, 0.12)',
+    bg_ev: 'rgba(255, 255, 255, 0.03)',
     border_ev: 'rgba(179, 136, 255, 0.3)',
-    bg_export: 'rgba(0, 230, 118, 0.12)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(0, 230, 118, 0.25)',
     card_border: 'rgba(0, 230, 118, 0.25)',
     scorecard_radial: 'rgba(0, 229, 255, 0.05)'
@@ -44,15 +44,15 @@ const PALETTES = {
     autarky: '#fa114f',
     import_ring: '#a6e22e',
     export_ring: '#00e5ff',
-    bg_solar: 'rgba(250, 17, 79, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(250, 17, 79, 0.3)',
-    bg_grid: 'rgba(166, 226, 46, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(166, 226, 46, 0.3)',
-    bg_home: 'rgba(0, 229, 255, 0.12)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(0, 229, 255, 0.3)',
-    bg_device: 'rgba(179, 136, 255, 0.12)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(179, 136, 255, 0.3)',
-    bg_export: 'rgba(0, 229, 255, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(0, 229, 255, 0.25)',
     card_border: 'rgba(250, 17, 79, 0.3)',
     scorecard_radial: 'rgba(250, 17, 79, 0.08)'
@@ -67,15 +67,15 @@ const PALETTES = {
     autarky: '#ff7518',
     import_ring: '#9d4edd',
     export_ring: '#39ff14',
-    bg_solar: 'rgba(255, 117, 24, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(255, 117, 24, 0.35)',
-    bg_grid: 'rgba(157, 78, 221, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(157, 78, 221, 0.35)',
-    bg_home: 'rgba(57, 255, 20, 0.12)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(57, 255, 20, 0.3)',
-    bg_device: 'rgba(247, 37, 133, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(247, 37, 133, 0.3)',
-    bg_export: 'rgba(255, 0, 85, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(255, 0, 85, 0.3)',
     card_border: 'rgba(255, 117, 24, 0.35)',
     scorecard_radial: 'rgba(157, 78, 221, 0.08)'
@@ -90,15 +90,15 @@ const PALETTES = {
     autarky: '#2b9348',
     import_ring: '#d90429',
     export_ring: '#ffd700',
-    bg_solar: 'rgba(255, 215, 0, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(255, 215, 0, 0.35)',
-    bg_grid: 'rgba(217, 4, 41, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(217, 4, 41, 0.35)',
-    bg_home: 'rgba(43, 147, 72, 0.15)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(43, 147, 72, 0.35)',
-    bg_device: 'rgba(128, 185, 24, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(128, 185, 24, 0.3)',
-    bg_export: 'rgba(248, 249, 250, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(248, 249, 250, 0.3)',
     card_border: 'rgba(217, 4, 41, 0.35)',
     scorecard_radial: 'rgba(43, 147, 72, 0.08)'
@@ -113,15 +113,15 @@ const PALETTES = {
     autarky: '#00ffff',
     import_ring: '#ff007f',
     export_ring: '#00ff66',
-    bg_solar: 'rgba(0, 255, 255, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(0, 255, 255, 0.35)',
-    bg_grid: 'rgba(255, 0, 127, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(255, 0, 127, 0.35)',
-    bg_home: 'rgba(255, 255, 0, 0.12)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(255, 255, 0, 0.3)',
-    bg_device: 'rgba(189, 0, 255, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(189, 0, 255, 0.35)',
-    bg_export: 'rgba(0, 255, 102, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(0, 255, 102, 0.3)',
     card_border: 'rgba(0, 255, 255, 0.35)',
     scorecard_radial: 'rgba(255, 0, 127, 0.08)'
@@ -136,15 +136,15 @@ const PALETTES = {
     autarky: '#00f5d4',
     import_ring: '#ff0054',
     export_ring: '#ff9e00',
-    bg_solar: 'rgba(255, 158, 0, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(255, 158, 0, 0.35)',
-    bg_grid: 'rgba(255, 0, 84, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(255, 0, 84, 0.35)',
-    bg_home: 'rgba(0, 245, 212, 0.12)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(0, 245, 212, 0.3)',
-    bg_device: 'rgba(155, 93, 229, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(155, 93, 229, 0.35)',
-    bg_export: 'rgba(254, 228, 64, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(254, 228, 64, 0.3)',
     card_border: 'rgba(255, 0, 84, 0.35)',
     scorecard_radial: 'rgba(0, 245, 212, 0.08)'
@@ -159,15 +159,15 @@ const PALETTES = {
     autarky: '#a3be8c',
     import_ring: '#bf616a',
     export_ring: '#88c0d0',
-    bg_solar: 'rgba(235, 203, 139, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(235, 203, 139, 0.3)',
-    bg_grid: 'rgba(191, 97, 106, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(191, 97, 106, 0.3)',
-    bg_home: 'rgba(136, 192, 208, 0.15)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(136, 192, 208, 0.3)',
-    bg_device: 'rgba(180, 142, 173, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(180, 142, 173, 0.3)',
-    bg_export: 'rgba(163, 190, 140, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(163, 190, 140, 0.3)',
     card_border: 'rgba(136, 192, 208, 0.3)',
     scorecard_radial: 'rgba(136, 192, 208, 0.08)'
@@ -182,15 +182,15 @@ const PALETTES = {
     autarky: '#38bdf8',
     import_ring: '#f59e0b',
     export_ring: '#10b981',
-    bg_solar: 'rgba(56, 189, 248, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(56, 189, 248, 0.3)',
-    bg_grid: 'rgba(245, 158, 11, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(245, 158, 11, 0.3)',
-    bg_home: 'rgba(226, 232, 240, 0.12)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(226, 232, 240, 0.3)',
-    bg_device: 'rgba(168, 85, 247, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(168, 85, 247, 0.3)',
-    bg_export: 'rgba(16, 185, 129, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(16, 185, 129, 0.3)',
     card_border: 'rgba(56, 189, 248, 0.3)',
     scorecard_radial: 'rgba(56, 189, 248, 0.08)'
@@ -205,15 +205,15 @@ const PALETTES = {
     autarky: '#10b981',
     import_ring: '#eab308',
     export_ring: '#34d399',
-    bg_solar: 'rgba(163, 230, 53, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(163, 230, 53, 0.3)',
-    bg_grid: 'rgba(234, 179, 8, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(234, 179, 8, 0.3)',
-    bg_home: 'rgba(52, 211, 153, 0.15)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(52, 211, 153, 0.3)',
-    bg_device: 'rgba(5, 150, 105, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(5, 150, 105, 0.3)',
-    bg_export: 'rgba(16, 185, 129, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(16, 185, 129, 0.3)',
     card_border: 'rgba(16, 185, 129, 0.3)',
     scorecard_radial: 'rgba(52, 211, 153, 0.08)'
@@ -228,15 +228,15 @@ const PALETTES = {
     autarky: '#2dd4bf',
     import_ring: '#f43f5e',
     export_ring: '#38bdf8',
-    bg_solar: 'rgba(56, 189, 248, 0.15)',
+    bg_solar: 'rgba(255, 255, 255, 0.03)',
     border_solar: 'rgba(56, 189, 248, 0.3)',
-    bg_grid: 'rgba(244, 63, 94, 0.15)',
+    bg_grid: 'rgba(255, 255, 255, 0.03)',
     border_grid: 'rgba(244, 63, 94, 0.3)',
-    bg_home: 'rgba(6, 182, 212, 0.15)',
+    bg_home: 'rgba(255, 255, 255, 0.03)',
     border_home: 'rgba(6, 182, 212, 0.3)',
-    bg_device: 'rgba(99, 102, 241, 0.15)',
+    bg_device: 'rgba(255, 255, 255, 0.03)',
     border_device: 'rgba(99, 102, 241, 0.3)',
-    bg_export: 'rgba(45, 212, 191, 0.15)',
+    bg_export: 'rgba(255, 255, 255, 0.03)',
     border_export: 'rgba(45, 212, 191, 0.3)',
     card_border: 'rgba(6, 182, 212, 0.3)',
     scorecard_radial: 'rgba(6, 182, 212, 0.08)'
@@ -342,6 +342,10 @@ class HaEnergyFlowCard extends HTMLElement {
         'sensor.solar_daily_yield',
         'sensor.solar_today',
         'sensor.energy_production_today'
+      ]),
+      solar_daily_peak: resolve('solar_daily_peak', [
+        'sensor.solar_daily_peak_power',
+        'sensor.living_room_shellyem_e4525b_channel_2_solar_peak_today'
       ]),
       grid_power: resolve('grid_power', [
         'sensor.shellyem_e4525b_channel_1_power',
@@ -2301,8 +2305,13 @@ const mode = this._getLayoutMode();
       if (el.sparklineSolarFill) el.sparklineSolarFill.setAttribute('d', dFill);
       if (el.solarChartLiveVal) el.solarChartLiveVal.textContent = fmtPwr(liveSolarW);
       if (el.solarChartPeakVal) {
-        const peakEstW = Math.max(liveSolarW, 3600);
-        el.solarChartPeakVal.textContent = `PEAK: ${fmtPwr(peakEstW)}`;
+        const eSolarPeak = ents.solar_daily_peak ? this._hass.states[ents.solar_daily_peak] : null;
+        const sensorPeakW = eSolarPeak ? this._parsePower(eSolarPeak) : 0;
+        const realPeakW = Math.max(liveSolarW, sensorPeakW, this._todayPeakSolarW || 0);
+        if (liveSolarW > 0) {
+          this._todayPeakSolarW = realPeakW;
+        }
+        el.solarChartPeakVal.textContent = realPeakW > 0 ? `PEAK: ${fmtPwr(realPeakW)}` : 'PEAK: --';
       }
     }
 
@@ -2895,7 +2904,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
         <!-- Section 3: Dual Battery & EV Storage -->
         <ha-expansion-panel outlined>
-          <div slot="header"><span class="header-icon">🔋</span>Home Battery & 🚗 EV Storage (Dual Mode)</div>
+          <div slot="header"><span class="header-icon">🔋</span>Home Battery & 🚗 Electric Vehicle (EV)</div>
           <div class="panel-content"><ha-form id="form-device"></ha-form></div>
         </ha-expansion-panel>
 
@@ -2977,7 +2986,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "☀️ 1. Solar Panels Box",
         items: [
-          { key: "bg_solar", label: "Box Background Tint", default: "rgba(255, 213, 79, 0.12)" },
+          { key: "bg_solar", label: "Box Background Tint", default: "rgba(255, 255, 255, 0.03)" },
           { key: "border_solar", label: "Box Border & Glow", default: "rgba(255, 213, 79, 0.3)" },
           { key: "title_solar", label: "Title Text & ☀️ Icon", default: "#ffd54f" },
           { key: "pwr_solar", label: "Solar Generation Power (kW)", default: "#ffffff" },
@@ -2991,7 +3000,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "🏭 2. Grid In (Import) Box",
         items: [
-          { key: "bg_grid", label: "Box Background Tint", default: "rgba(255, 112, 67, 0.12)" },
+          { key: "bg_grid", label: "Box Background Tint", default: "rgba(255, 255, 255, 0.03)" },
           { key: "border_grid", label: "Box Border & Glow", default: "rgba(255, 112, 67, 0.3)" },
           { key: "title_grid", label: "Title Text & 🏭 Icon", default: "#ff7043" },
           { key: "pwr_grid", label: "Imported Power (kW/W)", default: "#ffffff" },
@@ -3004,7 +3013,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "🏠 3. Home Consumption Box",
         items: [
-          { key: "bg_home", label: "Box Background Tint", default: "rgba(0, 229, 255, 0.12)" },
+          { key: "bg_home", label: "Box Background Tint", default: "rgba(255, 255, 255, 0.03)" },
           { key: "border_home", label: "Box Border & Glow", default: "rgba(0, 229, 255, 0.3)" },
           { key: "title_home", label: "Title Text & 🏠 Icon", default: "#00e5ff" },
           { key: "pwr_home", label: "Home Consumption Power (kW/W)", default: "#ffffff" },
@@ -3016,7 +3025,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "🔋 4. Battery Storage (BESS) Box",
         items: [
-          { key: "bg_battery", label: "Box Background Tint", default: "rgba(16, 185, 129, 0.12)" },
+          { key: "bg_battery", label: "Box Background Tint", default: "rgba(255, 255, 255, 0.03)" },
           { key: "border_battery", label: "Box Border & Glow", default: "rgba(16, 185, 129, 0.3)" },
           { key: "title_battery", label: "Title Text & 🔋 Icon", default: "#10b981" },
           { key: "pwr_battery", label: "Charge/Discharge Power (kW)", default: "#ffffff" },
@@ -3029,7 +3038,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "🚗 5. Electric Vehicle (EV) Box",
         items: [
-          { key: "bg_ev", label: "Box Background Tint", default: "rgba(179, 136, 255, 0.12)" },
+          { key: "bg_ev", label: "Box Background Tint", default: "rgba(255, 255, 255, 0.03)" },
           { key: "border_ev", label: "Box Border & Glow", default: "rgba(179, 136, 255, 0.3)" },
           { key: "title_ev", label: "Title Text & 🚗 Icon", default: "#b388ff" },
           { key: "pwr_ev", label: "EV Charging Power (kW)", default: "#ffffff" },
@@ -3041,7 +3050,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       {
         title: "⚡ 6. Grid Out (Export) Box",
         items: [
-          { key: "bg_export", label: "Box Background Tint", default: "rgba(0, 230, 118, 0.12)" },
+          { key: "bg_export", label: "Box Background Tint", default: "rgba(255, 255, 255, 0.03)" },
           { key: "border_export", label: "Box Border & Glow", default: "rgba(0, 230, 118, 0.25)" },
           { key: "title_export", label: "Title Text & ⚡ Icon", default: "#00e676" },
           { key: "pwr_export", label: "Export Power (kW/W)", default: "#ffffff" },
@@ -3208,16 +3217,122 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       });
     }
 
-    // Harmonized Palette (Random Curated Theme)
+    // Harmonized Palette (Algorithmic Harmony with Clean Neutral Boxes)
     const btnRandom = container.querySelector('#btn-random-palette');
     if (btnRandom) {
       btnRandom.addEventListener('click', () => {
-        const presets = ['solar', 'synthwave', 'cyberpunk', 'nord', 'midnight', 'emerald', 'ocean', 'fitness', 'halloween', 'christmas'];
-        const current = this._config.palette || 'solar';
-        const available = presets.filter(p => p !== current);
-        const next = available[Math.floor(Math.random() * available.length)];
-        const cfg = { ...this._config, palette: next };
-        delete cfg.colors;
+        function hslToHex(h, s, l) {
+          l /= 100;
+          const a = s * Math.min(l, 1 - l) / 100;
+          const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+          };
+          return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        const baseH = Math.floor(Math.random() * 360);
+        const cSolar = hslToHex(baseH, 95, 62);
+        const cHome = hslToHex((baseH + 60) % 360, 92, 58);
+        const cGrid = hslToHex((baseH + 180) % 360, 95, 60);
+        const cBatt = hslToHex((baseH + 120) % 360, 85, 54);
+        const cEv = hslToHex((baseH + 240) % 360, 90, 68);
+        const cExport = hslToHex((baseH + 90) % 360, 95, 60);
+
+        const cfg = { ...this._config };
+        delete cfg.palette;
+        cfg.colors = {
+          title_solar: cSolar,
+          border_solar: cSolar,
+          bg_solar: 'rgba(255, 255, 255, 0.03)',
+          pwr_solar: '#ffffff',
+          kwh_solar: 'rgba(255, 255, 255, 0.6)',
+          kwh_solar_rem: cSolar,
+          badge_solar_text: cSolar,
+          badge_solar_bg: 'rgba(255, 255, 255, 0.05)',
+          bar_solar_forecast: cSolar,
+
+          title_grid: cGrid,
+          border_grid: cGrid,
+          bg_grid: 'rgba(255, 255, 255, 0.03)',
+          pwr_grid: '#ffffff',
+          kwh_grid: 'rgba(255, 255, 255, 0.6)',
+          badge_grid_text: cGrid,
+          badge_grid_bg: 'rgba(255, 255, 255, 0.05)',
+          bar_grid_limit: cGrid,
+
+          title_home: cHome,
+          border_home: cHome,
+          bg_home: 'rgba(255, 255, 255, 0.03)',
+          pwr_home: '#ffffff',
+          kwh_home: 'rgba(255, 255, 255, 0.6)',
+          badge_home_text: cHome,
+          badge_home_bg: 'rgba(255, 255, 255, 0.05)',
+
+          title_battery: cBatt,
+          border_battery: cBatt,
+          bg_battery: 'rgba(255, 255, 255, 0.03)',
+          pwr_battery: '#ffffff',
+          kwh_battery: 'rgba(255, 255, 255, 0.6)',
+          badge_battery_text: cBatt,
+          badge_battery_bg: 'rgba(255, 255, 255, 0.05)',
+          bar_battery_soc: cBatt,
+
+          title_ev: cEv,
+          border_ev: cEv,
+          bg_ev: 'rgba(255, 255, 255, 0.03)',
+          pwr_ev: '#ffffff',
+          kwh_ev: 'rgba(255, 255, 255, 0.6)',
+          badge_ev_text: cEv,
+          badge_ev_bg: 'rgba(255, 255, 255, 0.05)',
+          bar_ev_soc: cEv,
+
+          title_export: cExport,
+          border_export: cExport,
+          bg_export: 'rgba(255, 255, 255, 0.03)',
+          pwr_export: '#ffffff',
+          kwh_export: 'rgba(255, 255, 255, 0.6)',
+
+          flow_solar_home_start: cSolar,
+          flow_solar_home_end: cHome,
+          flow_solar_battery_start: cSolar,
+          flow_solar_battery_end: cBatt,
+          flow_solar_ev_start: cSolar,
+          flow_solar_ev_end: cEv,
+          flow_solar_grid_start: cSolar,
+          flow_solar_grid_end: cExport,
+          flow_grid_home_start: cGrid,
+          flow_grid_home_end: cHome,
+          flow_grid_battery_start: cGrid,
+          flow_grid_battery_end: cBatt,
+          flow_grid_ev_start: cGrid,
+          flow_grid_ev_end: cEv,
+          flow_battery_home_start: cBatt,
+          flow_battery_home_end: cHome,
+          flow_battery_ev_start: cBatt,
+          flow_battery_ev_end: cEv,
+          flow_battery_grid_start: cBatt,
+          flow_battery_grid_end: cExport,
+
+          autarky_ring: cHome,
+          grid_reliance_ring: cGrid,
+          grid_export_ring: cExport,
+          scorecard_center_pct: '#ffffff',
+          scorecard_center_label: 'rgba(255, 255, 255, 0.6)',
+          scorecard_bg: 'rgba(255, 255, 255, 0.02)',
+          scorecard_border: 'rgba(255, 255, 255, 0.08)',
+          row1_title: cHome,
+          row1_kwh: '#ffffff',
+          row1_bar: cHome,
+          row2_title: cGrid,
+          row2_kwh: '#ffffff',
+          row2_bar: cGrid,
+          row3_title: cExport,
+          row3_kwh: '#ffffff',
+          row3_bar: cExport
+        };
+
         this._config = cfg;
         this.dispatchEvent(new CustomEvent('config-changed', {
           detail: { config: this._config },
@@ -3228,19 +3343,23 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       });
     }
 
-    // Wild Shuffle (Random vivid colors across all slots)
+    // Protected Shuffle (Random vivid colors on lines/accents, clean neutral dark boxes)
     const btnShuffle = container.querySelector('#btn-wild-shuffle');
     if (btnShuffle) {
       btnShuffle.addEventListener('click', () => {
         const randHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
         const cfg = { ...this._config };
+        delete cfg.palette;
         cfg.colors = {};
         const whls = container.querySelectorAll('.color-wheel-btn');
         whls.forEach(w => {
           const key = w.getAttribute('data-color-key');
           if (key) {
-            const h = randHex();
-            cfg.colors[key] = h;
+            if (key.startsWith('bg_')) {
+              cfg.colors[key] = 'rgba(255, 255, 255, 0.03)';
+            } else {
+              cfg.colors[key] = randHex();
+            }
           }
         });
         this._config = cfg;
@@ -3603,27 +3722,25 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         { value: "target_status", label: "Charge Target Limit (%) & Time to Full" },
         { value: "session_energy", label: "Current Session Added Energy (kWh)" }
       ] } } },
-      { name: "show_ev_soc_badge", label: "Show Vehicle Battery % Pill (Header badge)", selector: { boolean: {} } },
-      { name: "show_ev_soc_bar", label: "Show Vehicle Battery Micro Progress Bar", selector: { boolean: {} } },
-      { name: "battery_power", label: "Battery Power Flow", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_power", label: "Home Battery Power Flow (kW)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_positive_charging", label: "Positive values mean Charging (+)", selector: { boolean: {} } },
       { name: "battery_soc", label: "Battery Charge Level (%)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_charge", label: "Today's Battery Charge", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_discharge", label: "Today's Battery Discharge", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_power", label: "EV Charging Power", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_charging", label: "EV Charging Active Status (Binary Sensor)", selector: { entity: { domain: ["binary_sensor"] } } },
-      { name: "ev_daily_energy", label: "Today's EV Energy Added", selector: { entity: { domain: ["sensor"] } } }
+      { name: "ev_daily_energy", label: "Today's EV Energy Charged (kWh)", selector: { entity: { domain: ["sensor"] } } }
     ];
   }
 
   _getLabelsSchema() {
     return [
-      { name: "lbl_solar", label: "Solar Box Name", selector: { text: {} } },
-      { name: "lbl_home", label: "Home Box Name", selector: { text: {} } },
-      { name: "lbl_grid_in", label: "Grid In Box Name", selector: { text: {} } },
-      { name: "lbl_grid_out", label: "Grid Out Box Name", selector: { text: {} } },
-      { name: "battery_name", label: "Battery Box Name", selector: { text: {} } },
-      { name: "ev_name", label: "EV Box Name", selector: { text: {} } },
+      { name: "lbl_solar", label: "Solar Node Title", selector: { text: {} } },
+      { name: "lbl_home", label: "Home Node Title", selector: { text: {} } },
+      { name: "lbl_grid_in", label: "Grid In Node Title", selector: { text: {} } },
+      { name: "lbl_grid_out", label: "Grid Out Node Title", selector: { text: {} } },
+      { name: "battery_name", label: "Home Battery Node Title", selector: { text: {} } },
+      { name: "ev_name", label: "Electric Vehicle Node Title", selector: { text: {} } },
       { name: "lbl_autarky", label: "Scorecard Ring Title", selector: { text: {} } },
       { name: "lbl_autarky_sub", label: "Scorecard Ring Subtitle", selector: { text: {} } },
       { name: "lbl_self_consumed", label: "Row 1 Title: Self-Consumed", selector: { text: {} } },
@@ -3717,7 +3834,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       },
       {
         name: "show_solar_sparkline",
-        label: "Show Solar 12-Hour Generation Sparkline (Prototype)",
+        label: "Show Solar 12-Hour Generation Chart",
         selector: { boolean: {} }
       },
       {
