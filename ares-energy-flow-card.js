@@ -1383,7 +1383,7 @@ class HaEnergyFlowCard extends HTMLElement {
             <!-- Column: Left (Solar, Battery, Grid In) -->
             <div id="col-left" class="col-left">
               <!-- Node: Solar (Left-Top) -->
-              <div id="node-solar" class="node" style="min-height: 60px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; background: ${cSolarBg}; border: 1.5px solid ${cSolarBorder};">
+              <div id="node-solar" class="node" style="min-height: 60px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; background: ${cSolarBg}; border: 1.5px solid ${cSolarBorder}; cursor: pointer;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleSolar}; min-width: 0; flex-shrink: 1;">
                     <span style="font-size: 13px; line-height: 1; flex-shrink: 0;">☀️</span>
@@ -1391,25 +1391,35 @@ class HaEnergyFlowCard extends HTMLElement {
                   </div>
                   <span id="badge-solar-forecast" class="badge" style="color: ${cBadgeSolarText}; background: ${cBadgeSolarBg}; border: 0.5px solid ${cSolarBorder};">-- kWh EST</span>
                 </div>
-                <div id="pwr-solar" class="node-pwr" style="color: ${cPwrSolar};">0 W</div>
-                <div id="kwh-solar" class="node-kwh" style="color: ${cKwhSolar};">0.00 kWh today</div>
-                <div id="kwh-solar-rem" class="node-kwh" style="display: none; color: ${cKwhSolarRem};">0.0 kWh remaining</div>
-                <div id="bar-solar-forecast-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
-                  <div id="bar-solar-forecast-fill" style="width: 0%; height: 100%; background: ${cBarSolar}; transition: width 0.4s ease;"></div>
-                </div>
-                <div id="solar-sources" class="solar-sources"></div>
 
-                <!-- Solar 12-Hour Generation Sparkline -->
-                <svg id="sparkline-solar" viewBox="0 0 100 24" preserveAspectRatio="none" style="display: none; position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 22px; pointer-events: none; opacity: 0.32; overflow: hidden; border-radius: 0 0 14px 14px;">
-                  <defs>
-                    <linearGradient id="gradSolarSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.55"/>
-                      <stop offset="100%" stop-color="#ffd54f" stop-opacity="0.0"/>
-                    </linearGradient>
-                  </defs>
-                  <path id="sparkline-solar-fill" fill="url(#gradSolarSpark)" d="" />
-                  <path id="sparkline-solar-line" fill="none" stroke="#ffd54f" stroke-width="1.2" stroke-linecap="round" d="" />
-                </svg>
+                <!-- View A: Clean Telemetry Numbers (Default: Zero Overlap) -->
+                <div id="solar-view-telemetry">
+                  <div id="pwr-solar" class="node-pwr" style="color: ${cPwrSolar};">0 W</div>
+                  <div id="kwh-solar" class="node-kwh" style="color: ${cKwhSolar};">0.00 kWh today</div>
+                  <div id="kwh-solar-rem" class="node-kwh" style="display: none; color: ${cKwhSolarRem};">0.0 kWh remaining</div>
+                  <div id="bar-solar-forecast-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
+                    <div id="bar-solar-forecast-fill" style="width: 0%; height: 100%; background: ${cBarSolar}; transition: width 0.4s ease;"></div>
+                  </div>
+                  <div id="solar-sources" class="solar-sources"></div>
+                </div>
+
+                <!-- View B: Dedicated 12-Hour Generation Chart View (On Tap) -->
+                <div id="solar-view-chart" style="display: none; height: 50px; position: relative; margin-top: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 700; color: ${cPwrSolar};">
+                    <span id="solar-chart-live-val">0 W</span>
+                    <span id="solar-chart-peak-val" style="font-size: 9.5px; opacity: 0.75; font-weight: 600;">PEAK: --</span>
+                  </div>
+                  <svg id="sparkline-solar" viewBox="0 0 100 28" preserveAspectRatio="none" style="width: 100%; height: 32px; margin-top: 2px; overflow: visible; display: block;">
+                    <defs>
+                      <linearGradient id="gradSolarSpark" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ffd54f" stop-opacity="0.55"/>
+                        <stop offset="100%" stop-color="#ffd54f" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path id="sparkline-solar-fill" fill="url(#gradSolarSpark)" d="" />
+                    <path id="sparkline-solar-line" fill="none" stroke="#ffd54f" stroke-width="1.8" stroke-linecap="round" d="" />
+                  </svg>
+                </div>
               </div>
 
               <!-- Node: Battery Storage (Left-Middle in Dual Mode) -->
@@ -1588,6 +1598,10 @@ class HaEnergyFlowCard extends HTMLElement {
       sparklineSolar: getEl('sparkline-solar'),
       sparklineSolarFill: getEl('sparkline-solar-fill'),
       sparklineSolarLine: getEl('sparkline-solar-line'),
+      solarViewTelemetry: getEl('solar-view-telemetry'),
+      solarViewChart: getEl('solar-view-chart'),
+      solarChartLiveVal: getEl('solar-chart-live-val'),
+      solarChartPeakVal: getEl('solar-chart-peak-val'),
 
       pwrGrid: getEl('pwr-grid'),
       kwhGrid: getEl('kwh-grid'),
@@ -1694,6 +1708,15 @@ class HaEnergyFlowCard extends HTMLElement {
     this._resizeObserver.observe(this._canvasArea);
 
     // Tesla node tap toggle (read-only telemetry flip)
+    if (this._el?.nodeSolar && !this._el.nodeSolar._hasTapListener) {
+      this._el.nodeSolar._hasTapListener = true;
+      this._el.nodeSolar.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this._solarViewMode = (this._solarViewMode === 'chart') ? 'telemetry' : 'chart';
+        this._update();
+      });
+    }
+
     if (this._el?.nodeEv && !this._el.nodeEv._hasTapListener) {
       this._el.nodeEv._hasTapListener = true;
       this._el.nodeEv.setAttribute('title', 'Tap to switch between Charging Power and Battery/Range');
@@ -1717,7 +1740,7 @@ class HaEnergyFlowCard extends HTMLElement {
     const height = Math.round(h || this._canvasArea.clientHeight || 232);
     if (width <= 0 || height <= 0) return;
 
-    const mode = this._getLayoutMode();
+const mode = this._getLayoutMode();
     const card = this.shadowRoot.querySelector('ha-card');
     if (card && card.classList && typeof card.classList.toggle === 'function') {
       card.classList.toggle('layout-dual', mode === 'dual');
@@ -2010,6 +2033,11 @@ class HaEnergyFlowCard extends HTMLElement {
     const hasBatt = (mode === 'dual' || mode === 'battery-only');
     const hasEv = (mode === 'dual' || mode === 'ev-only');
 
+    const pKey = (this._config && this._config.palette) || 'solar';
+    const pal = PALETTES[pKey] || PALETTES.solar;
+    const themeColors = (this._config && this._config.colors) || {};
+    const cGridBorder = themeColors.border_grid || pal.border_grid || 'rgba(255, 112, 67, 0.3)';
+
 
     // Live solar & grid power calculations
     let liveSolarW = Math.max(0, this._parsePower(eSolarPwr));
@@ -2251,19 +2279,30 @@ class HaEnergyFlowCard extends HTMLElement {
 
     // Solar UI updates
     
-    // Solar 12-Hour Generation Sparkline Prototype
-    if (el.sparklineSolar && (this._config.show_solar_sparkline !== false || this._activePreset)) {
+    // Solar 12-Hour Generation Chart & View Mode Toggle
+    const isSolarChart = (this._solarViewMode === 'chart');
+    if (el.solarViewTelemetry && el.solarViewChart) {
+      if (isSolarChart) {
+        el.solarViewTelemetry.style.display = 'none';
+        el.solarViewChart.style.display = 'block';
+        if (el.badgeSolarForecast) {
+          el.badgeSolarForecast.textContent = '12H CHART';
+          el.badgeSolarForecast.style.display = 'inline-block';
+        }
+      } else {
+        el.solarViewTelemetry.style.display = 'block';
+        el.solarViewChart.style.display = 'none';
+      }
+    }
+
+    if (el.sparklineSolar && isSolarChart) {
       const liveSparkW = liveSolarW;
       const points = [];
       const now = new Date();
-      // Simulation or fallback curve
-      const isDaytime = now.getHours() >= 7 && now.getHours() <= 20;
       for (let i = 0; i <= 24; i++) {
         const hour = i / 2.0;
         let p = 0;
         if (hour >= 7 && hour <= 19) {
-          const mid = 13.0;
-          const dist = Math.abs(hour - mid) / 6.0;
           p = Math.max(0, Math.sin((hour - 7) / 12 * Math.PI));
         }
         points.push(p);
@@ -2271,19 +2310,20 @@ class HaEnergyFlowCard extends HTMLElement {
       if (liveSparkW > 5) {
         points[points.length - 1] = Math.min(1.0, liveSparkW / (maxFlowW * 0.7 || 5000));
       }
-      // Render smooth SVG path
-      let dLine = `M 0 ${24 - points[0] * 20}`;
+      let dLine = `M 0 ${26 - points[0] * 22}`;
       for (let i = 1; i < points.length; i++) {
         const x = (i / (points.length - 1)) * 100;
-        const y = 24 - (points[i] * 20);
+        const y = 26 - (points[i] * 22);
         dLine += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
       }
-      const dFill = `${dLine} L 100 24 L 0 24 Z`;
+      const dFill = `${dLine} L 100 28 L 0 28 Z`;
       if (el.sparklineSolarLine) el.sparklineSolarLine.setAttribute('d', dLine);
       if (el.sparklineSolarFill) el.sparklineSolarFill.setAttribute('d', dFill);
-      el.sparklineSolar.style.display = 'block';
-    } else if (el.sparklineSolar) {
-      el.sparklineSolar.style.display = 'none';
+      if (el.solarChartLiveVal) el.solarChartLiveVal.textContent = fmtPwr(liveSolarW);
+      if (el.solarChartPeakVal) {
+        const peakEstW = Math.max(liveSolarW, 3600);
+        el.solarChartPeakVal.textContent = `PEAK: ${fmtPwr(peakEstW)}`;
+      }
     }
 
     el.pwrSolar.textContent = fmtPwr(liveSolarW);
@@ -2349,13 +2389,13 @@ class HaEnergyFlowCard extends HTMLElement {
       el.badgeGridGuard.style.display = 'inline-block';
       if (el.nodeGrid) {
         el.nodeGrid.classList.remove('pulse-icp-alert');
-        el.nodeGrid.style.borderColor = '';
+        el.nodeGrid.style.borderColor = cGridBorder;
       }
     } else {
       el.badgeGridGuard.style.display = 'none';
       if (el.nodeGrid) {
         el.nodeGrid.classList.remove('pulse-icp-alert');
-        el.nodeGrid.style.borderColor = '';
+        el.nodeGrid.style.borderColor = cGridBorder;
       }
     }
 
@@ -2717,21 +2757,24 @@ class HaEnergyFlowCardEditor extends HTMLElement {
 
         /* Color Studio Styling */
         .color-studio-toolbar {
-          display: flex;
-          gap: 8px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 6px;
           margin-bottom: 12px;
-          flex-wrap: wrap;
         }
         .studio-btn {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 8px 13px;
+          padding: 7px 4px;
           border-radius: 8px;
           border: 1px solid rgba(255, 255, 255, 0.16);
           background: rgba(255, 255, 255, 0.05);
           color: #ffffff;
-          font-size: 12.5px;
+          font-size: 11.5px;
+          justify-content: center;
+          text-align: center;
+          white-space: nowrap;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -2760,7 +2803,7 @@ class HaEnergyFlowCardEditor extends HTMLElement {
         .btn-reset-colors {
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.7);
-          margin-left: auto;
+          margin-left: 0;
         }
         .btn-reset-colors:hover {
           background: rgba(250, 17, 79, 0.15);
@@ -3086,11 +3129,29 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       }
     ];
 
+    const curPal = this._config.palette || 'solar';
     let html = `
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 12.5px; font-weight: 700; color: rgba(255, 255, 255, 0.9); margin-bottom: 6px;">
+          🎨 Color Theme Preset
+        </label>
+        <select id="select-theme-preset" style="width: 100%; padding: 8px 10px; border-radius: 8px; background: #1a1e26; border: 1px solid rgba(255, 255, 255, 0.18); color: #ffffff; font-size: 12.5px; font-weight: 600; cursor: pointer; outline: none;">
+          <option value="solar" ${curPal === 'solar' ? 'selected' : ''}>☀️ Solar Harmonized (Default)</option>
+          <option value="synthwave" ${curPal === 'synthwave' ? 'selected' : ''}>🌅 Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)</option>
+          <option value="cyberpunk" ${curPal === 'cyberpunk' ? 'selected' : ''}>🌆 Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)</option>
+          <option value="nord" ${curPal === 'nord' ? 'selected' : ''}>❄️ Nord Frost (Polar Night, Ice Blue & Arctic Teal)</option>
+          <option value="midnight" ${curPal === 'midnight' ? 'selected' : ''}>🌌 Midnight Glow (Stealth Slate, Sky Blue & Amber)</option>
+          <option value="emerald" ${curPal === 'emerald' ? 'selected' : ''}>🌲 Emerald Forest (Mint Jade, Lime Leaf & Deep Pine)</option>
+          <option value="ocean" ${curPal === 'ocean' ? 'selected' : ''}>🌊 Deep Ocean (Lagoon Aqua, Coral & Deep Indigo)</option>
+          <option value="fitness" ${curPal === 'fitness' ? 'selected' : ''}>🏃 Fitness Activity (Apple Rings)</option>
+          <option value="halloween" ${curPal === 'halloween' ? 'selected' : ''}>🎃 Spooky Halloween (Pumpkin & Witch Purple)</option>
+          <option value="christmas" ${curPal === 'christmas' ? 'selected' : ''}>🎄 Festive Christmas (Pine, Crimson & Gold)</option>
+        </select>
+      </div>
       <div class="color-studio-toolbar">
-        <button id="btn-random-palette" class="studio-btn btn-random-palette">🎲 Harmonized Palette</button>
-        <button id="btn-wild-shuffle" class="studio-btn btn-wild-shuffle">🔀 Wild Shuffle</button>
-        <button id="btn-reset-colors" class="studio-btn btn-reset-colors">↺ Reset All Colors</button>
+        <button id="btn-random-palette" class="studio-btn btn-random-palette">🎲 Harmonized</button>
+        <button id="btn-wild-shuffle" class="studio-btn btn-wild-shuffle">🔀 Shuffle</button>
+        <button id="btn-reset-colors" class="studio-btn btn-reset-colors">↺ Reset All</button>
       </div>
       <div class="color-studio-tip">
         <span>💡 Tap any color square or enter hex codes. Every box, flow rail, and scorecard row can be independently styled.</span>
@@ -3144,18 +3205,57 @@ class HaEnergyFlowCardEditor extends HTMLElement {
       });
     });
 
-    // Reset button
-    const btnReset = container.querySelector('#btn-reset-colors');
-    if (btnReset) {
-      btnReset.addEventListener('click', () => {
+    // Preset dropdown listener
+    const selectPreset = container.querySelector('#select-theme-preset');
+    if (selectPreset) {
+      selectPreset.addEventListener('change', (ev) => {
+        const val = ev.target.value;
+        const cfg = { ...this._config, palette: val };
+        delete cfg.colors; // Clear custom overrides so preset applies cleanly
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+        this._renderColorsStudio();
+      });
+    }
+
+    // Harmonized Palette (Random Curated Theme)
+    const btnRandom = container.querySelector('#btn-random-palette');
+    if (btnRandom) {
+      btnRandom.addEventListener('click', () => {
+        const presets = ['solar', 'synthwave', 'cyberpunk', 'nord', 'midnight', 'emerald', 'ocean', 'fitness', 'halloween', 'christmas'];
+        const current = this._config.palette || 'solar';
+        const available = presets.filter(p => p !== current);
+        const next = available[Math.floor(Math.random() * available.length)];
+        const cfg = { ...this._config, palette: next };
+        delete cfg.colors;
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+        this._renderColorsStudio();
+      });
+    }
+
+    // Wild Shuffle (Random vivid colors across all slots)
+    const btnShuffle = container.querySelector('#btn-wild-shuffle');
+    if (btnShuffle) {
+      btnShuffle.addEventListener('click', () => {
+        const randHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
         const cfg = { ...this._config };
         cfg.colors = {};
-        const txts = container.querySelectorAll('.color-text-input');
         const whls = container.querySelectorAll('.color-wheel-btn');
-        txts.forEach(t => { t.value = ''; });
         whls.forEach(w => {
-          const def = w.getAttribute('data-default') || '#ffd54f';
-          w.value = colorToHex(def, '#ffd54f');
+          const key = w.getAttribute('data-color-key');
+          if (key) {
+            const h = randHex();
+            cfg.colors[key] = h;
+          }
         });
         this._config = cfg;
         this.dispatchEvent(new CustomEvent('config-changed', {
@@ -3163,6 +3263,23 @@ class HaEnergyFlowCardEditor extends HTMLElement {
           bubbles: true,
           composed: true
         }));
+        this._renderColorsStudio();
+      });
+    }
+
+    // Reset button
+    const btnReset = container.querySelector('#btn-reset-colors');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        const cfg = { ...this._config, palette: 'solar' };
+        cfg.colors = {};
+        this._config = cfg;
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: this._config },
+          bubbles: true,
+          composed: true
+        }));
+        this._renderColorsStudio();
       });
     }
   }
