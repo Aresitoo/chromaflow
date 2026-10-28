@@ -692,6 +692,7 @@ class HaEnergyFlowCard extends HTMLElement {
     } else {
       this._applyConfigVisibility();
       this._updateCustomStyles();
+      this._applyThemeStyles();
       this._updateFlowSpeed();
       requestAnimationFrame(() => this._updateFlowPaths());
       if (this._hass) this._update();
@@ -1988,7 +1989,109 @@ const mode = this._getLayoutMode();
     requestAnimationFrame(() => this._updateFlowPaths());
   }
 
+  _applyThemeStyles() {
+    if (!this._el || !this._el.nodeSolar) return;
+    const pal = PALETTES[this._config?.palette] || PALETTES.solar;
+    const d = pal;
+    const colors = this._config?.colors || {};
+
+    // 1. Activity Rings & Scorecard Center
+    const cAutarky = colors.ring_autarky || d.ring_autarky || '#00e676';
+    const cImportRing = colors.ring_import || d.ring_import || '#ff7043';
+    const cExportRing = colors.ring_export || d.ring_export || '#ffd54f';
+    const cPctCenter = colors.autarky_center_pct || '#ffffff';
+    const cLblCenter = colors.autarky_center_lbl || colors.ring_autarky || d.ring_autarky || '#00e676';
+
+    if (this._el.ringAutarky) this._el.ringAutarky.setAttribute('stroke', cAutarky);
+    if (this._el.ringImport) this._el.ringImport.setAttribute('stroke', cImportRing);
+    if (this._el.ringExport) this._el.ringExport.setAttribute('stroke', cExportRing);
+    if (this._el.autarkyCenterPct) this._el.autarkyCenterPct.style.color = cPctCenter;
+
+    const lblAutarky = this.shadowRoot.getElementById('lbl-autarky');
+    if (lblAutarky) lblAutarky.style.color = cLblCenter;
+
+    // 2. Tabular Scorecard Rows
+    const cRowSelfTitle = colors.row_self_consumed_title || cAutarky;
+    const cRowSelfBar = colors.row_self_consumed_bar || cAutarky;
+    const cRowGridTitle = colors.row_grid_reliance_title || cImportRing;
+    const cRowGridBar = colors.row_grid_reliance_bar || cImportRing;
+    const cRowExportTitle = colors.row_exported_title || cExportRing;
+    const cRowExportBar = colors.row_exported_bar || cExportRing;
+
+    const lblSelf = this.shadowRoot.getElementById('lbl-self-consumed');
+    if (lblSelf && lblSelf.parentElement) lblSelf.parentElement.style.color = cRowSelfTitle;
+    if (this._el.rowAutarkyPct) this._el.rowAutarkyPct.style.color = cRowSelfTitle;
+    if (this._el.barSolarSelfConsumed) this._el.barSolarSelfConsumed.style.background = cRowSelfBar;
+
+    const lblGrid = this.shadowRoot.getElementById('lbl-grid-reliance');
+    if (lblGrid && lblGrid.parentElement) lblGrid.parentElement.style.color = cRowGridTitle;
+    if (this._el.rowGridPct) this._el.rowGridPct.style.color = cRowGridTitle;
+    if (this._el.barGridReliance) this._el.barGridReliance.style.background = cRowGridBar;
+
+    const lblExport = this.shadowRoot.getElementById('lbl-exported');
+    if (lblExport && lblExport.parentElement) lblExport.parentElement.style.color = cRowExportTitle;
+    if (this._el.rowExportPct) this._el.rowExportPct.style.color = cRowExportTitle;
+    if (this._el.barExport) this._el.barExport.style.background = cRowExportBar;
+
+    // 3. Scorecard Container
+    const scorecardEl = this.shadowRoot.querySelector('.scorecard');
+    if (scorecardEl) {
+      scorecardEl.style.background = colors.bg_scorecard || d.bg_scorecard || 'rgba(255, 255, 255, 0.02)';
+      scorecardEl.style.borderColor = colors.border_scorecard || d.border_scorecard || 'rgba(255, 255, 255, 0.08)';
+    }
+
+    // 4. Node Boxes
+    if (this._el.nodeSolar) {
+      this._el.nodeSolar.style.background = colors.bg_solar || d.bg_solar || 'rgba(255, 255, 255, 0.03)';
+      this._el.nodeSolar.style.borderColor = colors.border_solar || d.border_solar || '#ffd54f';
+    }
+    if (this._el.nodeGrid) {
+      this._el.nodeGrid.style.background = colors.bg_grid || d.bg_grid || 'rgba(255, 255, 255, 0.03)';
+      this._el.nodeGrid.style.borderColor = colors.border_grid || d.border_grid || '#ff7043';
+    }
+    if (this._el.nodeHome) {
+      this._el.nodeHome.style.background = colors.bg_home || d.bg_home || 'rgba(255, 255, 255, 0.03)';
+      this._el.nodeHome.style.borderColor = colors.border_home || d.border_home || '#00e5ff';
+    }
+    if (this._el.nodeBattery) {
+      this._el.nodeBattery.style.background = colors.bg_battery || d.bg_battery || 'rgba(255, 255, 255, 0.03)';
+      this._el.nodeBattery.style.borderColor = colors.border_battery || d.border_battery || '#10b981';
+    }
+    if (this._el.nodeEv) {
+      this._el.nodeEv.style.background = colors.bg_ev || d.bg_ev || 'rgba(255, 255, 255, 0.03)';
+      this._el.nodeEv.style.borderColor = colors.border_ev || d.border_ev || '#b388ff';
+    }
+    if (this._el.nodeExport) {
+      this._el.nodeExport.style.background = colors.bg_export || d.bg_export || 'rgba(255, 255, 255, 0.03)';
+      this._el.nodeExport.style.borderColor = colors.border_export || d.border_export || '#00e676';
+    }
+
+    // 5. Flow Gradient Stops
+    const updateGrad = (id, start, end) => {
+      const g = this.shadowRoot.getElementById(id);
+      if (g) {
+        const stops = g.querySelectorAll('stop');
+        if (stops.length >= 2) {
+          if (start) stops[0].setAttribute('stop-color', start);
+          if (end) stops[1].setAttribute('stop-color', end);
+        }
+      }
+    };
+    updateGrad('flowSolarHome', colors.flow_solar_home_start, colors.flow_solar_home_end);
+    updateGrad('flowSolarBattery', colors.flow_solar_battery_start, colors.flow_solar_battery_end);
+    updateGrad('flowSolarEV', colors.flow_solar_ev_start, colors.flow_solar_ev_end);
+    updateGrad('flowSolarTesla', colors.flow_solar_ev_start, colors.flow_solar_ev_end);
+    updateGrad('flowSolarGrid', colors.flow_solar_grid_start, colors.flow_solar_grid_end);
+    updateGrad('flowGridHome', colors.flow_grid_home_start, colors.flow_grid_home_end);
+    updateGrad('flowGridBattery', colors.flow_grid_battery_start, colors.flow_grid_battery_end);
+    updateGrad('flowGridEV', colors.flow_grid_ev_start, colors.flow_grid_ev_end);
+    updateGrad('flowBatteryHome', colors.flow_battery_home_start, colors.flow_battery_home_end);
+    updateGrad('flowBatteryEV', colors.flow_battery_ev_start, colors.flow_battery_ev_end);
+    updateGrad('flowBatteryGrid', colors.flow_battery_grid_start, colors.flow_battery_grid_end);
+  }
+
   _update() {
+    this._applyThemeStyles();
     if (!this._hass || !this._el) return;
     const el = this._el;
     const ents = this._getEntities();
@@ -3315,22 +3418,24 @@ class HaEnergyFlowCardEditor extends HTMLElement {
           flow_battery_grid_start: cBatt,
           flow_battery_grid_end: cExport,
 
-          autarky_ring: cHome,
-          grid_reliance_ring: cGrid,
-          grid_export_ring: cExport,
-          scorecard_center_pct: '#ffffff',
-          scorecard_center_label: 'rgba(255, 255, 255, 0.6)',
-          scorecard_bg: 'rgba(255, 255, 255, 0.02)',
-          scorecard_border: 'rgba(255, 255, 255, 0.08)',
-          row1_title: cHome,
-          row1_kwh: '#ffffff',
-          row1_bar: cHome,
-          row2_title: cGrid,
-          row2_kwh: '#ffffff',
-          row2_bar: cGrid,
-          row3_title: cExport,
-          row3_kwh: '#ffffff',
-          row3_bar: cExport
+          flow_rails: 'rgba(255, 255, 255, 0.06)',
+          ring_autarky: cHome,
+          ring_import: cGrid,
+          ring_export: cExport,
+          autarky_center_pct: '#ffffff',
+          autarky_center_lbl: cHome,
+          ring_bg_track: 'rgba(255, 255, 255, 0.05)',
+          bg_scorecard: 'rgba(255, 255, 255, 0.02)',
+          border_scorecard: 'rgba(255, 255, 255, 0.08)',
+          row_self_consumed_title: cHome,
+          row_self_consumed_kwh: '#ffffff',
+          row_self_consumed_bar: cHome,
+          row_grid_reliance_title: cGrid,
+          row_grid_reliance_kwh: '#ffffff',
+          row_grid_reliance_bar: cGrid,
+          row_exported_title: cExport,
+          row_exported_kwh: '#ffffff',
+          row_exported_bar: cExport
         };
 
         this._config = cfg;
