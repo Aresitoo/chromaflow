@@ -293,6 +293,48 @@ function resolveRingTracks(colors, d) {
   };
 }
 
+// Inactive flow rails. v1.x drew each one in its own colour at 15%; v2.0.0 collapsed all of
+// them into a single shared white at 5%, which is invisible on a dark card. This puts the
+// tint back and keeps flow_rails as an explicit "use this for every rail" override.
+const RAIL_ALPHA = 0.15;
+const LEGACY_RAIL_TRACKS = ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.06)'];
+
+// rail id suffix -> the node whose colour that rail borrows (where the power is going)
+const RAIL_TARGETS = {
+  'solar-home': 'home',
+  'solar-battery': 'battery',
+  'solar-ev': 'ev',
+  'solar-tesla': 'ev',
+  'solar-grid': 'export',
+  'grid-home': 'home',
+  'grid-battery': 'battery',
+  'grid-ev': 'ev',
+  'grid-tesla': 'ev',
+  'battery-home': 'home',
+  'battery-ev': 'ev',
+  'battery-grid': 'export'
+};
+
+function resolveRailColors(colors, pal) {
+  const c = colors || {};
+  const p = pal || {};
+  const shared = (c.flow_rails && !LEGACY_RAIL_TRACKS.includes(c.flow_rails)) ? c.flow_rails : null;
+  const node = {
+    home: p.home || '#00e5ff',
+    battery: p.battery || '#10b981',
+    ev: p.ev || p.device || '#b388ff',
+    export: p.export || '#00e676'
+  };
+  const out = {};
+  for (const rail of Object.keys(RAIL_TARGETS)) {
+    if (shared) { out[rail] = shared; continue; }
+    const key = rail.replace(/-/g, '_');
+    const colour = c[`flow_${key}_end`] || c[`flow_${key}_start`] || node[RAIL_TARGETS[rail]];
+    out[rail] = hexToRgba(colour, RAIL_ALPHA);
+  }
+  return out;
+}
+
 function getRandomVibrantHex(baseHue) {
   const h = (baseHue !== undefined) ? (Math.round(baseHue) % 360) : Math.floor(Math.random() * 360);
   const s = 82 + Math.floor(Math.random() * 18);
@@ -739,6 +781,7 @@ class AresEnergyFlowCard extends HTMLElement {
       allow_grid_to_battery: false,
       show_grid_out: true,
       show_export: true,
+      show_idle_rails: true,
       battery_capacity_kwh: 0,
       solar_priority: 'home',
       show_sim_toolbar: true,
@@ -797,6 +840,15 @@ class AresEnergyFlowCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (this._rendered) {
+      // The device rails depend on entities (_hasEv / _hasBattery), and Home Assistant assigns
+      // hass after setConfig, so the first visibility pass runs while nothing is resolvable.
+      // Re-run it whenever those inputs change, or the EV and battery rails stay hidden for
+      // the life of the card.
+      const visKey = [this._getLayoutMode(), this._hasBattery(), this._hasEv(), this._config?.show_grid_out, this._config?.show_export].join('|');
+      if (this._visKey !== visKey) {
+        this._visKey = visKey;
+        this._applyConfigVisibility();
+      }
       this._update();
     }
   }
@@ -896,7 +948,6 @@ class AresEnergyFlowCard extends HTMLElement {
       flow_battery_home: pal.battery || '#10b981',
       flow_battery_ev: pal.battery || '#10b981',
       flow_battery_grid: pal.battery || '#10b981',
-      flow_rails: 'rgba(255, 255, 255, 0.05)',
 
       // 7. Activity Rings & Scorecard Center
       ring_autarky: pal.autarky,
@@ -1007,7 +1058,7 @@ class AresEnergyFlowCard extends HTMLElement {
     const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : (pal.battery || '#10b981'));
     const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.export);
 
-    const cRails = colors.flow_rails || d.flow_rails;
+    const railColors = resolveRailColors(colors, pal);
 
     // 7. Activity Rings & Center Scorecard
     const cAutarky = colors.ring_autarky || d.ring_autarky;
@@ -1200,12 +1251,12 @@ class AresEnergyFlowCard extends HTMLElement {
           pointer-events: none;
           z-index: 1;
         }
-        /* Static, non-moving background rails */
+        /* Static, non-moving background rails. The tint lives in each rail's own stroke
+           attribute (resolveRailColors), so the class only carries geometry styling. */
         .rail-path {
           fill: none;
-          stroke: ${cRails};
           stroke-width: 2.2;
-          opacity: 0.85;
+          opacity: 1;
         }
         /* Active animated flowing power lines */
         @keyframes flowSeamless16 {
@@ -1491,19 +1542,18 @@ class AresEnergyFlowCard extends HTMLElement {
                 </linearGradient>
               </defs>
 
-              <!-- Inactive Background Rails (Static, Non-Moving) -->
-              <path id="rail-solar-home" class="rail-path" />
-              <path id="rail-solar-battery" class="rail-path" style="display: none;" />
-              <path id="rail-solar-ev" class="rail-path" style="display: none;" />
-              <path id="rail-solar-tesla" class="rail-path" style="display: none;" />
-              <path id="rail-solar-grid" class="rail-path" />
-              <path id="rail-grid-home" class="rail-path" />
-              <path id="rail-grid-battery" class="rail-path" style="display: none;" />
-              <path id="rail-grid-ev" class="rail-path" style="display: none;" />
-              <path id="rail-grid-tesla" class="rail-path" style="display: none;" />
-              <path id="rail-battery-home" class="rail-path" style="display: none;" />
-              <path id="rail-battery-ev" class="rail-path" style="display: none;" />
-              <path id="rail-battery-grid" class="rail-path" style="display: none;" />
+              <!-- Inactive Background Rails (Static, Non-Moving). Each one is tinted with the
+                   colour of the node its flow feeds, at RAIL_ALPHA, like v1.x did. -->
+              <path id="rail-solar-home" class="rail-path" stroke="${railColors['solar-home']}" />
+              <path id="rail-solar-battery" class="rail-path" stroke="${railColors['solar-battery']}" style="display: none;" />
+              <path id="rail-solar-ev" class="rail-path" stroke="${railColors['solar-ev']}" style="display: none;" />
+              <path id="rail-solar-grid" class="rail-path" stroke="${railColors['solar-grid']}" />
+              <path id="rail-grid-home" class="rail-path" stroke="${railColors['grid-home']}" />
+              <path id="rail-grid-battery" class="rail-path" stroke="${railColors['grid-battery']}" style="display: none;" />
+              <path id="rail-grid-ev" class="rail-path" stroke="${railColors['grid-ev']}" style="display: none;" />
+              <path id="rail-battery-home" class="rail-path" stroke="${railColors['battery-home']}" style="display: none;" />
+              <path id="rail-battery-ev" class="rail-path" stroke="${railColors['battery-ev']}" style="display: none;" />
+              <path id="rail-battery-grid" class="rail-path" stroke="${railColors['battery-grid']}" style="display: none;" />
 
               <!-- Active Colored Flows (Animated) -->
               <path id="flow-solar-home" class="flow-path" stroke="url(#flowSolarHome)" stroke-width="3" style="display: none;" />
@@ -1865,12 +1915,10 @@ class AresEnergyFlowCard extends HTMLElement {
       railSolarHome: getEl('rail-solar-home'),
       railSolarBattery: getEl('rail-solar-battery'),
       railSolarEV: getEl('rail-solar-ev'),
-      railSolarTesla: getEl('rail-solar-tesla'),
       railSolarGrid: getEl('rail-solar-grid'),
       railGridHome: getEl('rail-grid-home'),
       railGridBattery: getEl('rail-grid-battery'),
       railGridEV: getEl('rail-grid-ev'),
-      railGridTesla: getEl('rail-grid-tesla'),
       railBatteryHome: getEl('rail-battery-home'),
       railBatteryEV: getEl('rail-battery-ev'),
       railBatteryGrid: getEl('rail-battery-grid'),
@@ -2242,12 +2290,10 @@ const mode = this._getLayoutMode();
     setAttr(this._el.railSolarHome, pSolarHome);
     setAttr(this._el.railSolarBattery, pSolarBattery);
     setAttr(this._el.railSolarEV, pSolarEV);
-    setAttr(this._el.railSolarTesla, pSolarEV);
     setAttr(this._el.railSolarGrid, pSolarGrid);
     setAttr(this._el.railGridHome, pGridHome);
     setAttr(this._el.railGridBattery, pGridBattery);
     setAttr(this._el.railGridEV, pGridEV);
-    setAttr(this._el.railGridTesla, pGridEV);
     setAttr(this._el.railBatteryHome, pBatteryHome);
     setAttr(this._el.railBatteryEV, pBatteryEV);
     setAttr(this._el.railBatteryGrid, pBatteryGrid);
@@ -2264,6 +2310,34 @@ const mode = this._getLayoutMode();
     setAttr(this._el.flowBatteryHome, pBatteryHome);
     setAttr(this._el.flowBatteryEV, pBatteryEV);
     setAttr(this._el.flowBatteryGrid, pBatteryGrid);
+    this._applyRailVisibility();
+  }
+
+  // When show_idle_rails is off, a rail is only drawn while its connection actually carries
+  // power. Called from _update() (which decides the flows) and from _updateFlowPaths() (which
+  // sets the geometry the check needs), so the two passes can arrive in either order.
+  _applyRailVisibility() {
+    if (!this._el) return;
+    if (this._config?.show_idle_rails !== false) return;
+    const pairs = [
+      ['railSolarHome', 'flowSolarHome'],
+      ['railSolarBattery', 'flowSolarBattery'],
+      ['railSolarEV', 'flowSolarEV'],
+      ['railSolarGrid', 'flowSolarGrid'],
+      ['railGridHome', 'flowGridHome'],
+      ['railGridBattery', 'flowGridBattery'],
+      ['railGridEV', 'flowGridEV'],
+      ['railBatteryHome', 'flowBatteryHome'],
+      ['railBatteryEV', 'flowBatteryEV'],
+      ['railBatteryGrid', 'flowBatteryGrid']
+    ];
+    for (const [railKey, flowKey] of pairs) {
+      const railEl = this._el[railKey];
+      const flowEl = this._el[flowKey];
+      if (!railEl) continue;
+      const flowing = Boolean(flowEl) && flowEl.style.display !== 'none' && Boolean(flowEl.getAttribute('d'));
+      railEl.style.display = flowing ? 'block' : 'none';
+    }
   }
 
   _applyConfigVisibility() {
@@ -2338,6 +2412,25 @@ const mode = this._getLayoutMode();
     if (this._el.ringTrackAutarky) this._el.ringTrackAutarky.setAttribute('stroke', cAutarkyTrack);
     if (this._el.ringTrackImport) this._el.ringTrackImport.setAttribute('stroke', cImportTrack);
     if (this._el.ringTrackExport) this._el.ringTrackExport.setAttribute('stroke', cExportTrack);
+
+    // Rails are tinted per line, so recolour them here when the studio changes ring or flow
+    // colours. The class no longer sets a stroke, so an attribute write is enough.
+    const railColors = resolveRailColors(colors, pal);
+    const railEls = {
+      'solar-home': this._el.railSolarHome,
+      'solar-battery': this._el.railSolarBattery,
+      'solar-ev': this._el.railSolarEV,
+      'solar-grid': this._el.railSolarGrid,
+      'grid-home': this._el.railGridHome,
+      'grid-battery': this._el.railGridBattery,
+      'grid-ev': this._el.railGridEV,
+      'battery-home': this._el.railBatteryHome,
+      'battery-ev': this._el.railBatteryEV,
+      'battery-grid': this._el.railBatteryGrid
+    };
+    for (const [rail, railEl] of Object.entries(railEls)) {
+      if (railEl && railColors[rail]) railEl.setAttribute('stroke', railColors[rail]);
+    }
     if (this._el.autarkyCenterPct) this._el.autarkyCenterPct.style.color = cPctCenter;
 
     const lblAutarky = this.shadowRoot.getElementById('lbl-autarky');
@@ -2947,7 +3040,10 @@ const mode = this._getLayoutMode();
     setFlow(el.flowBatteryHome, batteryToHomeW, isStress || (hasBatt && batteryDischarging && batteryToHomeW > idleThresh), 'battery_home');
     setFlow(el.flowBatteryEV, batteryToEvW, isStress || (hasBatt && hasEv && batteryDischarging && batteryToEvW > idleThresh), 'battery_ev');
     setFlow(el.flowBatteryGrid, batteryToGridW, isStress || (hasBatt && batteryDischarging && batteryToGridW > idleThresh), 'battery_grid');
-    
+
+    // Optional: only draw a rail while its connection is actually carrying power.
+    this._applyRailVisibility();
+
     // UI Formatting
     const fmtPwr = (w) => (w >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
     const fmtKwh = (kwh) => (kwh ? kwh.toFixed(2) : '0.00');
@@ -3951,7 +4047,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           { key: "flow_battery_grid_start", label: "Battery ➔ Grid Out: Start Color", default: "#10b981" },
           { key: "flow_battery_grid_end", label: "Battery ➔ Grid Out: End Color", default: "#00e676" },
 
-          { key: "flow_rails", label: "Inactive Rail Lines Track", default: "rgba(255, 255, 255, 0.05)" }
+          { key: "flow_rails", label: "Rail Override (blank = per-line tint)", default: "" }
         ]
       },
       {
@@ -4187,7 +4283,6 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           flow_battery_grid_start: cBatt,
           flow_battery_grid_end: cExport,
 
-          flow_rails: 'rgba(255, 255, 255, 0.06)',
           ring_autarky: cHome,
           ring_import: cGrid,
           ring_export: cExport,
@@ -4388,6 +4483,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         financial_placement: this._config?.financial_placement || 'none',
         show_emojis: this._config?.show_emojis !== false,
         show_sim_toolbar: this._config?.show_sim_toolbar !== false,
+        show_idle_rails: this._config?.show_idle_rails !== false,
         solar_priority: this._config?.solar_priority || 'home',
         font_scale: this._config.font_scale ?? 1.0,
         speed_multiplier: this._config.speed_multiplier ?? 1.0,
@@ -4550,6 +4646,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.financial_placement = val.financial_placement || 'none';
       cfg.show_emojis = val.show_emojis !== false;
       cfg.show_sim_toolbar = Boolean(val.show_sim_toolbar);
+      cfg.show_idle_rails = val.show_idle_rails !== false;
       if (val.solar_priority) cfg.solar_priority = val.solar_priority;
       cfg.font_scale = typeof val.font_scale === 'number' ? val.font_scale : 1.0;
       cfg.speed_multiplier = typeof val.speed_multiplier === 'number' ? val.speed_multiplier : 1.0;
@@ -4735,6 +4832,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       {
         name: "show_sim_toolbar",
         label: "Show Simulation Test Bench (Clickable scenario presets at top)",
+        selector: { boolean: {} }
+      },
+      {
+        name: "show_idle_rails",
+        label: "Keep flow lines visible when idle (turn off to only draw a line while it carries power)",
         selector: { boolean: {} }
       },
       {

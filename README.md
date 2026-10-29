@@ -172,6 +172,7 @@ min_flow_threshold_w: 2
 speed_multiplier: 1.0
 font_scale: 1.0
 show_solar_forecast: true
+show_idle_rails: true # false = only draw a flow line while it carries power
 palette: solar # 'solar' or 'fitness'
 
 entities:
