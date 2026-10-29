@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.4.1 (Theme Preset Emojis Restored)
+ * Version: v2.4.2 (Flow Line and Asset Cleanup)
  */
 
 const PALETTES = {
@@ -822,12 +822,10 @@ class AresEnergyFlowCard extends HTMLElement {
       this._el?.flowSolarHome,
       this._el?.flowSolarBattery,
       this._el?.flowSolarEV,
-      this._el?.flowSolarTesla,
       this._el?.flowSolarGrid,
       this._el?.flowGridHome,
       this._el?.flowGridBattery,
       this._el?.flowGridEV,
-      this._el?.flowGridTesla,
       this._el?.flowBatteryHome,
       this._el?.flowBatteryEV,
       this._el?.flowBatteryGrid
@@ -1515,10 +1513,6 @@ class AresEnergyFlowCard extends HTMLElement {
                   <stop offset="0%" stop-color="${cSolarEvStart}" />
                   <stop offset="100%" stop-color="${cSolarEvEnd}" />
                 </linearGradient>
-                <linearGradient id="flowSolarTesla" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="${cSolarEvStart}" />
-                  <stop offset="100%" stop-color="${cSolarEvEnd}" />
-                </linearGradient>
                 <linearGradient id="flowSolarGrid" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="${cSolarGridStart}" />
                   <stop offset="100%" stop-color="${cSolarGridEnd}" />
@@ -1532,10 +1526,6 @@ class AresEnergyFlowCard extends HTMLElement {
                   <stop offset="100%" stop-color="${cGridBatteryEnd}" />
                 </linearGradient>
                 <linearGradient id="flowGridEV" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="${cGridEvStart}" />
-                  <stop offset="100%" stop-color="${cGridEvEnd}" />
-                </linearGradient>
-                <linearGradient id="flowGridTesla" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stop-color="${cGridEvStart}" />
                   <stop offset="100%" stop-color="${cGridEvEnd}" />
                 </linearGradient>
@@ -1570,7 +1560,6 @@ class AresEnergyFlowCard extends HTMLElement {
               <path id="flow-solar-home" class="flow-path" stroke="url(#flowSolarHome)" stroke-width="3" style="display: none;" />
               <path id="flow-solar-battery" class="flow-path" stroke="url(#flowSolarBattery)" stroke-width="3" style="display: none;" />
               <path id="flow-solar-ev" class="flow-path" stroke="url(#flowSolarEV)" stroke-width="3" style="display: none;" />
-              <path id="flow-solar-tesla" class="flow-path" stroke="url(#flowSolarTesla)" stroke-width="3" style="display: none;" />
               <path id="flow-battery-home" class="flow-path" stroke="url(#flowBatteryHome)" stroke-width="3" style="display: none;" />
               <path id="flow-battery-ev" class="flow-path" stroke="url(#flowBatteryEV)" stroke-width="3" style="display: none;" />
               <path id="flow-battery-grid" class="flow-path" stroke="url(#flowBatteryGrid)" stroke-width="3" style="display: none;" />
@@ -1578,7 +1567,6 @@ class AresEnergyFlowCard extends HTMLElement {
               <path id="flow-grid-home" class="flow-path" stroke="url(#flowGridHome)" stroke-width="3" style="display: none;" />
               <path id="flow-grid-battery" class="flow-path" stroke="url(#flowGridBattery)" stroke-width="3" style="display: none;" />
               <path id="flow-grid-ev" class="flow-path" stroke="url(#flowGridEV)" stroke-width="3" style="display: none;" />
-              <path id="flow-grid-tesla" class="flow-path" stroke="url(#flowGridTesla)" stroke-width="3" style="display: none;" />
             </svg>
 
             <!-- Column: Left (Solar, Battery, Grid In) -->
@@ -1956,12 +1944,10 @@ class AresEnergyFlowCard extends HTMLElement {
       flowSolarHome: getEl('flow-solar-home'),
       flowSolarBattery: getEl('flow-solar-battery'),
       flowSolarEV: getEl('flow-solar-ev'),
-      flowSolarTesla: getEl('flow-solar-tesla'),
       flowSolarGrid: getEl('flow-solar-grid'),
       flowGridHome: getEl('flow-grid-home'),
       flowGridBattery: getEl('flow-grid-battery'),
       flowGridEV: getEl('flow-grid-ev'),
-      flowGridTesla: getEl('flow-grid-tesla'),
       flowBatteryHome: getEl('flow-battery-home'),
       flowBatteryEV: getEl('flow-battery-ev'),
       flowBatteryGrid: getEl('flow-battery-grid'),
@@ -2337,12 +2323,10 @@ const mode = this._getLayoutMode();
     setAttr(this._el.flowSolarHome, pSolarHome);
     setAttr(this._el.flowSolarBattery, pSolarBattery);
     setAttr(this._el.flowSolarEV, pSolarEV);
-    setAttr(this._el.flowSolarTesla, pSolarEV);
     setAttr(this._el.flowSolarGrid, pSolarGrid);
     setAttr(this._el.flowGridHome, pGridHome);
     setAttr(this._el.flowGridBattery, pGridBattery);
     setAttr(this._el.flowGridEV, pGridEV);
-    setAttr(this._el.flowGridTesla, pGridEV);
     setAttr(this._el.flowBatteryHome, pBatteryHome);
     setAttr(this._el.flowBatteryEV, pBatteryEV);
     setAttr(this._el.flowBatteryGrid, pBatteryGrid);
@@ -2549,7 +2533,6 @@ const mode = this._getLayoutMode();
     updateGrad('flowSolarHome', colors.flow_solar_home_start, colors.flow_solar_home_end);
     updateGrad('flowSolarBattery', colors.flow_solar_battery_start, colors.flow_solar_battery_end);
     updateGrad('flowSolarEV', colors.flow_solar_ev_start, colors.flow_solar_ev_end);
-    updateGrad('flowSolarTesla', colors.flow_solar_ev_start, colors.flow_solar_ev_end);
     updateGrad('flowSolarGrid', colors.flow_solar_grid_start, colors.flow_solar_grid_end);
     updateGrad('flowGridHome', colors.flow_grid_home_start, colors.flow_grid_home_end);
     updateGrad('flowGridBattery', colors.flow_grid_battery_start, colors.flow_grid_battery_end);
@@ -3083,13 +3066,11 @@ const mode = this._getLayoutMode();
     setFlow(el.flowSolarHome, solarToHomeW, isStress || (liveSolarW > idleThresh && solarToHomeW > idleThresh), 'solar_home');
     setFlow(el.flowSolarBattery, solarToBatteryW, isStress || (hasBatt && liveSolarW > idleThresh && solarToBatteryW > idleThresh), 'solar_battery');
     setFlow(el.flowSolarEV, solarToEvW, isStress || (hasEv && liveSolarW > idleThresh && solarToEvW > idleThresh), 'solar_ev');
-    setFlow(el.flowSolarTesla, solarToEvW, isStress || (hasEv && liveSolarW > idleThresh && solarToEvW > idleThresh), 'solar_tesla');
     setFlow(el.flowSolarGrid, solarToGridW, isStress || (liveSolarW > idleThresh && solarToGridW > idleThresh), 'solar_grid');
 
     setFlow(el.flowGridHome, gridToHomeW, isStress || (liveImportW > idleThresh && gridToHomeW > idleThresh), 'grid_home');
     setFlow(el.flowGridBattery, gridToBatteryW, isStress || (hasBatt && liveImportW > idleThresh && gridToBatteryW > idleThresh), 'grid_battery');
     setFlow(el.flowGridEV, gridToEvW, isStress || (hasEv && liveImportW > idleThresh && gridToEvW > idleThresh), 'grid_ev');
-    setFlow(el.flowGridTesla, gridToEvW, isStress || (hasEv && liveImportW > idleThresh && gridToEvW > idleThresh), 'grid_tesla');
 
     setFlow(el.flowBatteryHome, batteryToHomeW, isStress || (hasBatt && batteryDischarging && batteryToHomeW > idleThresh), 'battery_home');
     setFlow(el.flowBatteryEV, batteryToEvW, isStress || (hasBatt && hasEv && batteryDischarging && batteryToEvW > idleThresh), 'battery_ev');
