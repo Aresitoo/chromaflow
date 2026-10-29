@@ -4181,16 +4181,16 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           Color Theme Preset
         </label>
         <select id="select-theme-preset" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: var(--secondary-background-color, #1a1e26); border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.18)); color: var(--primary-text-color, #ffffff); font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
-          <option value="solar" ${curPal === 'solar' ? 'selected' : ''}>Solar Harmonized (Default)</option>
-          <option value="synthwave" ${curPal === 'synthwave' ? 'selected' : ''}>Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)</option>
-          <option value="cyberpunk" ${curPal === 'cyberpunk' ? 'selected' : ''}>Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)</option>
-          <option value="nord" ${curPal === 'nord' ? 'selected' : ''}>Nord Frost (Polar Night, Ice Blue & Arctic Teal)</option>
-          <option value="midnight" ${curPal === 'midnight' ? 'selected' : ''}>Midnight Glow (Stealth Slate, Sky Blue & Amber)</option>
-          <option value="emerald" ${curPal === 'emerald' ? 'selected' : ''}>Emerald Forest (Mint Jade, Lime Leaf & Deep Pine)</option>
-          <option value="ocean" ${curPal === 'ocean' ? 'selected' : ''}>Deep Ocean (Lagoon Aqua, Coral & Deep Indigo)</option>
-          <option value="fitness" ${curPal === 'fitness' ? 'selected' : ''}>Fitness Activity (Apple Rings)</option>
-          <option value="halloween" ${curPal === 'halloween' ? 'selected' : ''}>Spooky Halloween (Pumpkin & Witch Purple)</option>
-          <option value="christmas" ${curPal === 'christmas' ? 'selected' : ''}>Festive Christmas (Pine, Crimson & Gold)</option>
+          <option value="solar" ${curPal === 'solar' ? 'selected' : ''}>☀️ Solar Harmonized (Default)</option>
+          <option value="synthwave" ${curPal === 'synthwave' ? 'selected' : ''}>🌅 Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)</option>
+          <option value="cyberpunk" ${curPal === 'cyberpunk' ? 'selected' : ''}>🌆 Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)</option>
+          <option value="nord" ${curPal === 'nord' ? 'selected' : ''}>❄️ Nord Frost (Polar Night, Ice Blue & Arctic Teal)</option>
+          <option value="midnight" ${curPal === 'midnight' ? 'selected' : ''}>🌌 Midnight Glow (Stealth Slate, Sky Blue & Amber)</option>
+          <option value="emerald" ${curPal === 'emerald' ? 'selected' : ''}>🌲 Emerald Forest (Mint Jade, Lime Leaf & Deep Pine)</option>
+          <option value="ocean" ${curPal === 'ocean' ? 'selected' : ''}>🌊 Deep Ocean (Lagoon Aqua, Coral & Deep Indigo)</option>
+          <option value="fitness" ${curPal === 'fitness' ? 'selected' : ''}>🏃 Fitness Activity (Apple Rings)</option>
+          <option value="halloween" ${curPal === 'halloween' ? 'selected' : ''}>🎃 Spooky Halloween (Pumpkin & Witch Purple)</option>
+          <option value="christmas" ${curPal === 'christmas' ? 'selected' : ''}>🎄 Festive Christmas (Pine, Crimson & Gold)</option>
         </select>
       </div>
       <div class="color-studio-toolbar">
