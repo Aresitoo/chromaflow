@@ -149,6 +149,9 @@ same page in any order. `customElements.get('ares-energy-flow-card-dev').BUILD` 
 `'dev'` on the dev build and `'prod'` on the shipped one, which is the quickest way to tell
 which file a dashboard is really running.
 
+The full two-lane workflow (sandbox deploy, promote, gates, recovery) is in
+[WORKFLOW.md](WORKFLOW.md).
+
 ---
 
 ## 🛠️ YAML Configuration
