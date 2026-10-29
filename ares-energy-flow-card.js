@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.4.0 (Battery Used Today)
+ * Version: v2.4.1 (Theme Preset Emojis Restored)
  */
 
 const PALETTES = {
