@@ -43,7 +43,7 @@ Uncommitted work is fine here. Production is not touched, Home Assistant is not 
 ```powershell
 git switch main
 git merge --no-ff feat/whatever
-git tag -a v2.3.9 -m "v2.3.9"
+git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin main --tags
 scripts\deploy-prod.ps1              # refuses dirty tree, other branches, untagged HEAD
 ```
@@ -51,7 +51,7 @@ scripts\deploy-prod.ps1              # refuses dirty tree, other branches, untag
 Then bump the production resource:
 
 ```
-/local/ares-energy-flow-card.js?v=v2.3.9
+/local/ares-energy-flow-card.js?v=vX.Y.Z
 ```
 
 Live through the HA UI (Settings > Dashboards > Resources) or `ha_config_set_dashboard_resource`.
