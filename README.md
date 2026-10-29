@@ -298,6 +298,8 @@ line_speeds:
   battery_grid: 1.0
 ```
 
+**Upgrading from v2.4.2 or earlier:** the old `_tesla` duplicates are retired. If your config sets `colors.flow_solar_tesla_start` / `_end`, `colors.flow_grid_tesla_start` / `_end`, `line_speeds.solar_tesla` or `line_speeds.grid_tesla`, rename them to the `_ev` equivalents (`flow_solar_ev_*`, `flow_grid_ev_*`, `line_speeds.solar_ev`, `line_speeds.grid_ev`). Those keys always controlled the same lines, so the values carry over unchanged. Configs saved by the visual editor never had differing values, so nothing needs doing if you never hand-edited YAML.
+
 ---
 
 ## 🙏 Credits
