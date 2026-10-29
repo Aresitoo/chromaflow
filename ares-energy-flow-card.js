@@ -4271,18 +4271,32 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     const colors = this._config.colors || {};
 
     if (this._forms.solar) {
+      // Solar sub-arrays (v2.2.0). The renderer kept support for solar_sources; this is the
+      // editor side that cd0bc6f dropped by accident. Slots 1..4 are edited as flat form
+      // fields and reassembled in _sectionValueChanged.
+      const editorSrcs = Array.isArray(this._config.solar_sources) ? this._config.solar_sources : [];
+      const srcSlots = {};
+      for (let i = 0; i < 4; i++) {
+        const src = editorSrcs[i] || {};
+        srcSlots[`solar_source_${i + 1}_name`] = src.name || '';
+        srcSlots[`solar_source_${i + 1}_power`] = src.power || src.entity || '';
+        srcSlots[`solar_source_${i + 1}_daily_yield`] = src.daily_yield || '';
+      }
+      const hasSources = editorSrcs.length > 0;
       this._forms.solar.data = {
         solar_power: ents.solar_power || '',
         solar_daily_yield: ents.solar_daily_yield || '',
         solcast_today: ents.solcast_today || '',
         solcast_remaining: ents.solcast_remaining || '',
         show_solar_forecast: this._config.show_solar_forecast !== false,
+        show_solar_sources: this._config.show_solar_sources !== false && hasSources,
         solar_daily_peak: ents.solar_daily_peak || this._config.solar_daily_peak || '',
         financial_placement: this._config.financial_placement || 'none',
         electricity_tariff: ents.electricity_tariff || this._config.electricity_tariff || '',
         export_compensation_rate: (typeof this._config.export_compensation_rate === 'number') ? this._config.export_compensation_rate : 0.0726,
         fixed_tariff: (typeof this._config.fixed_tariff === 'number') ? this._config.fixed_tariff : 0.118,
-        currency_symbol: this._config.currency_symbol || '€'
+        currency_symbol: this._config.currency_symbol || '€',
+        ...srcSlots
       };
       if (this._hass) this._forms.solar.hass = this._hass;
     }
@@ -4433,6 +4447,27 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         else delete cfg.entities[k];
       }
       cfg.show_solar_forecast = Boolean(val.show_solar_forecast);
+      cfg.show_solar_sources = Boolean(val.show_solar_sources);
+
+      // Solar sub-arrays (v2.2.0): rebuild slots 1..4 from the flat form fields, keep any
+      // extra entries a YAML config may carry beyond slot 4, and drop the key when empty.
+      const prevSrcs = Array.isArray(cfg.solar_sources) ? cfg.solar_sources : [];
+      const srcs = [];
+      for (let i = 0; i < 4; i++) {
+        const power = val[`solar_source_${i + 1}_power`];
+        if (!power) continue;
+        const src = { ...(prevSrcs[i] || {}) };
+        delete src.entity;
+        src.power = power;
+        const nm = val[`solar_source_${i + 1}_name`];
+        if (nm) src.name = nm; else delete src.name;
+        const dy = val[`solar_source_${i + 1}_daily_yield`];
+        if (dy) src.daily_yield = dy; else delete src.daily_yield;
+        srcs.push(src);
+      }
+      srcs.push(...prevSrcs.slice(4));
+      if (srcs.length) cfg.solar_sources = srcs;
+      else delete cfg.solar_sources;
       cfg.financial_placement = val.financial_placement || 'none';
       if (typeof val.export_compensation_rate === 'number') cfg.export_compensation_rate = val.export_compensation_rate;
       if (typeof val.fixed_tariff === 'number') cfg.fixed_tariff = val.fixed_tariff;
@@ -4559,6 +4594,27 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "solcast_today", label: "Solcast Today Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "solcast_remaining", label: "Solcast Remaining Forecast Sensor (Optional, kWh)", selector: { entity: { domain: ["sensor"] } } },
       { name: "show_solar_forecast", label: "Show Solar Forecast Pill & Progress Bar", selector: { boolean: {} } },
+      { name: "show_solar_sources", label: "Show Sub-Arrays (Microinverters / Strings)", selector: { boolean: {} } },
+      {
+        type: "expandable",
+        name: "",
+        flatten: true,
+        title: "Solar Sub-Arrays (Roof, Garage, Balcony)",
+        schema: [
+          { name: "solar_source_1_name", label: "Array 1: Name", selector: { text: {} } },
+          { name: "solar_source_1_power", label: "Array 1: Live Power", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_1_daily_yield", label: "Array 1: Energy Today (Optional)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_2_name", label: "Array 2: Name", selector: { text: {} } },
+          { name: "solar_source_2_power", label: "Array 2: Live Power", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_2_daily_yield", label: "Array 2: Energy Today (Optional)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_3_name", label: "Array 3: Name", selector: { text: {} } },
+          { name: "solar_source_3_power", label: "Array 3: Live Power", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_3_daily_yield", label: "Array 3: Energy Today (Optional)", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_4_name", label: "Array 4: Name", selector: { text: {} } },
+          { name: "solar_source_4_power", label: "Array 4: Live Power", selector: { entity: { domain: ["sensor"] } } },
+          { name: "solar_source_4_daily_yield", label: "Array 4: Energy Today (Optional)", selector: { entity: { domain: ["sensor"] } } }
+        ]
+      },
       { name: "solar_daily_peak", label: "Solar Daily Peak Power Sensor (kW/W)", selector: { entity: { domain: ["sensor"] } } },
       { name: "financial_placement", label: "Solar Monetary Savings Placement", selector: { select: { options: [
         { value: "none", label: "Hidden / Disabled" },
