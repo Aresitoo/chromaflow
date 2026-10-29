@@ -3408,23 +3408,32 @@ class AresEnergyFlowCardDev extends AresEnergyFlowCard {
 class HaEnergyFlowCard extends AresEnergyFlowCard {}
 
 
-try {
-  if (!customElements.get('ares-energy-flow-card')) {
-    customElements.define('ares-energy-flow-card', AresEnergyFlowCard);
-  }
-} catch (e) {}
+// One source, two deployments. The dev-lab build prepends a module-scoped
+// `const __ARES_DEV_BUILD = true;` (tools/make-dev-build.sh) and then claims only the
+// -dev tags, while the production build claims only the production ones. When both files
+// claim the same tag, whichever resource Home Assistant loads first wins and the other
+// file registers nothing, which is how the dev lab silently rendered production code from
+// 2.0.0 up to 2.3.7. Keeping the tag sets disjoint also makes the load order irrelevant.
+// The flag has to stay module-scoped: a window.* flag would leak into the other file and
+// turn the production build into a dev build when the dev file happens to load first.
+const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
+AresEnergyFlowCard.BUILD = CARD_BUILD;
+AresEnergyFlowCardDev.BUILD = CARD_BUILD;
 
-try {
-  if (!customElements.get('ares-energy-flow-card-dev')) {
-    customElements.define('ares-energy-flow-card-dev', AresEnergyFlowCardDev);
-  }
-} catch (e) {}
+const CARD_TAGS = CARD_BUILD === 'dev'
+  ? [['ares-energy-flow-card-dev', AresEnergyFlowCardDev]]
+  : [
+      ['ares-energy-flow-card', AresEnergyFlowCard],
+      ['ha-energy-flow-card', HaEnergyFlowCard]
+    ];
 
-try {
-  if (!customElements.get('ha-energy-flow-card')) {
-    customElements.define('ha-energy-flow-card', HaEnergyFlowCard);
-  }
-} catch (e) {}
+for (const [tag, cls] of CARD_TAGS) {
+  try {
+    if (!customElements.get(tag)) {
+      customElements.define(tag, cls);
+    }
+  } catch (e) {}
+}
 
 window.customCards = window.customCards || [];
 const cardMetaProd = {
@@ -3442,13 +3451,11 @@ const cardMetaDev = {
   documentationURL: 'https://github.com/Aresitoo/chromaflow'
 };
 
-const pIdx = window.customCards.findIndex(c => c && c.type === 'ares-energy-flow-card');
-if (pIdx >= 0) window.customCards[pIdx] = cardMetaProd;
-else window.customCards.push(cardMetaProd);
-
-const dIdx = window.customCards.findIndex(c => c && c.type === 'ares-energy-flow-card-dev');
-if (dIdx >= 0) window.customCards[dIdx] = cardMetaDev;
-else window.customCards.push(cardMetaDev);
+// Only advertise the card this build actually registers.
+const cardMeta = CARD_BUILD === 'dev' ? cardMetaDev : cardMetaProd;
+const metaIdx = window.customCards.findIndex(c => c && c.type === cardMeta.type);
+if (metaIdx >= 0) window.customCards[metaIdx] = cardMeta;
+else window.customCards.push(cardMeta);
 
 
 class AresEnergyFlowCardDevEditor extends HTMLElement {
@@ -4787,32 +4794,23 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
   }
 }
 
-try {
-  if (!customElements.get('ares-energy-flow-card-dev-editor')) {
-    customElements.define('ares-energy-flow-card-dev-editor', AresEnergyFlowCardDevEditor);
-  }
-} catch (e) {
-  console.warn('[ChromaFlow Dev Editor] registration notice:', e);
-}
-
-
 class AresEnergyFlowCardEditor extends AresEnergyFlowCardDevEditor {}
 class HaEnergyFlowCardEditor extends AresEnergyFlowCardDevEditor {}
 
-try {
-  if (!customElements.get('ares-energy-flow-card-editor')) {
-    customElements.define('ares-energy-flow-card-editor', AresEnergyFlowCardEditor);
-  }
-} catch (e) {}
+// Same split as the cards: each build registers only the editor tag it can actually serve.
+const EDITOR_TAGS = CARD_BUILD === 'dev'
+  ? [['ares-energy-flow-card-dev-editor', AresEnergyFlowCardDevEditor]]
+  : [
+      ['ares-energy-flow-card-editor', AresEnergyFlowCardEditor],
+      ['ha-energy-flow-card-editor', HaEnergyFlowCardEditor]
+    ];
 
-try {
-  if (!customElements.get('ares-energy-flow-card-dev-editor')) {
-    customElements.define('ares-energy-flow-card-dev-editor', AresEnergyFlowCardDevEditor);
+for (const [tag, cls] of EDITOR_TAGS) {
+  try {
+    if (!customElements.get(tag)) {
+      customElements.define(tag, cls);
+    }
+  } catch (e) {
+    console.warn('[ChromaFlow Editor] registration notice:', e);
   }
-} catch (e) {}
-
-try {
-  if (!customElements.get('ha-energy-flow-card-editor')) {
-    customElements.define('ha-energy-flow-card-editor', HaEnergyFlowCardEditor);
-  }
-} catch (e) {}
+}

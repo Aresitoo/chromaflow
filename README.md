@@ -132,6 +132,23 @@ ChromaFlow v2.1.0 introduces simultaneous Dual Mode for homes with both stationa
    - **URL**: `/local/ares-energy-flow-card.js?v=2.1.0`
    - **Resource Type**: `JavaScript Module`
 
+### Dev-lab build
+
+`ares-energy-flow-card.js` and the dev-lab copy must not register the same custom element
+tag, or the file Home Assistant loads first wins and the other one registers nothing. Build
+the dev copy with:
+
+```bash
+tools/make-dev-build.sh ares-energy-flow-card.js ares-energy-flow-card-dev.js
+```
+
+That prepends a module-scoped `const __ARES_DEV_BUILD = true;`, so the copy registers
+`ares-energy-flow-card-dev` (and its editor) only, while the shipped file registers
+`ares-energy-flow-card`, `ha-energy-flow-card` and their editor. Both can be loaded on the
+same page in any order. `customElements.get('ares-energy-flow-card-dev').BUILD` returns
+`'dev'` on the dev build and `'prod'` on the shipped one, which is the quickest way to tell
+which file a dashboard is really running.
+
 ---
 
 ## 🛠️ YAML Configuration
