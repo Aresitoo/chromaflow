@@ -69,6 +69,50 @@ ChromaFlow v2.1.0 introduces simultaneous Dual Mode for homes with both stationa
 | <img src="assets/bess_discharging_view.png?v=1" width="100%" alt="Battery Discharging to Home" /> | <img src="assets/bess_charging_view.png?v=1" width="100%" alt="Solar Charging Home Battery" /> |
 | **Battery Discharging**<br>Animated stream directly into Home. The Home box displays live state of charge progress bar and discharge rate. | **Battery Charging**<br>Surplus solar routes into the battery with live charge rate, stored kWh, and active charge status. |
 
+#### Battery used today
+
+The scorecard gets a fourth row, `DISCHARGED TODAY`, next to self-consumed, grid reliance and
+exported. It shows the kWh your battery delivered today plus that amount as a share of your load,
+and the battery node's live view carries the same number under the state of charge bar.
+
+Feed it with your battery's daily discharge sensor:
+
+```yaml
+entities:
+  battery_daily_discharge: sensor.battery_discharge_today
+  battery_daily_charge: sensor.battery_charge_today
+```
+
+The card auto-detects common names (`sensor.battery_daily_discharge_energy`,
+`sensor.battery_discharge_today`, ...) and normalises Wh and MWh to kWh. Hide the row with
+`show_battery_row: false`. If your battery only reports power, build the energy sensors in Home
+Assistant first:
+
+```yaml
+sensor:
+  - platform: integration          # battery power -> energy
+    source: sensor.battery_power
+    name: battery_energy_out
+    unit_prefix: k
+    method: left
+utility_meter:
+  battery_out_today:
+    source: sensor.battery_energy_out
+    cycle: daily
+```
+
+Then point `battery_daily_discharge` at `sensor.battery_out_today`. If the sensor is missing or
+unavailable the row shows `--` rather than a misleading `0.00 kWh`.
+
+Rename it or recolour it like any other row. The text lives in **Custom Titles & Display Names**
+(`lbl_battery_discharged_today` and `lbl_battery_discharged_sub`), and the colours are **Row 4** in
+the Visual Colors Studio (`row_battery_title`, `row_battery_kwh`, `row_battery_bar`). Harmonized and
+Shuffle regenerate Row 4 along with the other rows. The default accent is the palette's device
+colour (violet on the solar palette) so it does not compete with the green self-consumed row.
+
+Use `battery_primary_view: stats` if you would rather the battery node open on today's charged
+and discharged totals instead of live power.
+
 ### ☀️ Themes and EV Charging
 | Solar Theme (Default) | Fitness Activity Theme | EV Fast Charging | Nighttime Grid Mode |
 | :---: | :---: | :---: | :---: |
@@ -173,6 +217,8 @@ speed_multiplier: 1.0
 font_scale: 1.0
 show_solar_forecast: true
 show_idle_rails: true # false = only draw a flow line while it carries power
+show_battery_row: true # fourth scorecard row: kWh discharged today + % of load
+battery_primary_view: live # 'live' (power + SoC) or 'stats' (charged/discharged today)
 palette: solar # 'solar' or 'fitness'
 
 entities:
