@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.4.2 (Flow Line and Asset Cleanup)
+ * Version: v2.4.3 (Retired Tesla Line Keys)
  */
 
 const PALETTES = {
@@ -941,12 +941,10 @@ class AresEnergyFlowCard extends HTMLElement {
       flow_solar_home: pal.solar,
       flow_solar_battery: pal.battery || '#10b981',
       flow_solar_ev: pal.ev || pal.device,
-      flow_solar_tesla: pal.ev || pal.device,
       flow_solar_grid: pal.solar,
       flow_grid_home: pal.grid,
       flow_grid_battery: pal.grid,
       flow_grid_ev: pal.grid,
-      flow_grid_tesla: pal.grid,
       flow_battery_home: pal.battery || '#10b981',
       flow_battery_ev: pal.battery || '#10b981',
       flow_battery_grid: pal.battery || '#10b981',
@@ -1039,8 +1037,8 @@ class AresEnergyFlowCard extends HTMLElement {
     const cSolarBatteryStart = colors.flow_solar_battery_start || (colors.flow_solar_battery ? colors.flow_solar_battery : pal.solar);
     const cSolarBatteryEnd = colors.flow_solar_battery_end || (colors.flow_solar_battery ? colors.flow_solar_battery : (pal.battery || '#10b981'));
 
-    const cSolarEvStart = colors.flow_solar_ev_start || colors.flow_solar_tesla_start || (colors.flow_solar_ev ? colors.flow_solar_ev : pal.solar);
-    const cSolarEvEnd = colors.flow_solar_ev_end || colors.flow_solar_tesla_end || (colors.flow_solar_ev ? colors.flow_solar_ev : (pal.ev || pal.device));
+    const cSolarEvStart = colors.flow_solar_ev_start || (colors.flow_solar_ev ? colors.flow_solar_ev : pal.solar);
+    const cSolarEvEnd = colors.flow_solar_ev_end || (colors.flow_solar_ev ? colors.flow_solar_ev : (pal.ev || pal.device));
 
     const cSolarGridStart = colors.flow_solar_grid_start || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.solar);
     const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.export);
@@ -1051,8 +1049,8 @@ class AresEnergyFlowCard extends HTMLElement {
     const cGridBatteryStart = colors.flow_grid_battery_start || (colors.flow_grid_battery ? colors.flow_grid_battery : pal.grid);
     const cGridBatteryEnd = colors.flow_grid_battery_end || (colors.flow_grid_battery ? colors.flow_grid_battery : (pal.battery || '#10b981'));
 
-    const cGridEvStart = colors.flow_grid_ev_start || colors.flow_grid_tesla_start || (colors.flow_grid_ev ? colors.flow_grid_ev : pal.grid);
-    const cGridEvEnd = colors.flow_grid_ev_end || colors.flow_grid_tesla_end || (colors.flow_grid_ev ? colors.flow_grid_ev : (pal.ev || pal.device));
+    const cGridEvStart = colors.flow_grid_ev_start || (colors.flow_grid_ev ? colors.flow_grid_ev : pal.grid);
+    const cGridEvEnd = colors.flow_grid_ev_end || (colors.flow_grid_ev ? colors.flow_grid_ev : (pal.ev || pal.device));
 
     const cBatteryHomeStart = colors.flow_battery_home_start || (colors.flow_battery_home ? colors.flow_battery_home : (pal.battery || '#10b981'));
     const cBatteryHomeEnd = colors.flow_battery_home_end || (colors.flow_battery_home ? colors.flow_battery_home : pal.home);
@@ -4738,12 +4736,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         solar_home: parseFloat(val.speed_solar_home) || 1.0,
         solar_battery: parseFloat(val.speed_solar_battery) || 1.0,
         solar_ev: parseFloat(val.speed_solar_ev) || 1.0,
-        solar_tesla: parseFloat(val.speed_solar_ev) || 1.0,
         solar_grid: parseFloat(val.speed_solar_grid) || 1.0,
         grid_home: parseFloat(val.speed_grid_home) || 1.0,
         grid_battery: parseFloat(val.speed_grid_battery) || 1.0,
         grid_ev: parseFloat(val.speed_grid_ev) || 1.0,
-        grid_tesla: parseFloat(val.speed_grid_ev) || 1.0,
         battery_home: parseFloat(val.speed_battery_home) || 1.0,
         battery_ev: parseFloat(val.speed_battery_ev) || 1.0,
         battery_grid: parseFloat(val.speed_battery_grid) || 1.0
