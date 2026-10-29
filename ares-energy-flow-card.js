@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.3.7 (Per-Ring Autarky Track Tint Restored)
+ * Version: v2.3.8 (Solar Sub-Arrays Editor Restored)
  */
 
 const PALETTES = {
