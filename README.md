@@ -11,7 +11,7 @@ I built ChromaFlow because I wanted a clean Home Assistant energy card that comb
 It supports solar panels, grid import and export, home load, home battery storage (BESS) with bidirectional grid export, EV fast charging, simultaneous Dual Battery + EV mode, and Solcast solar forecasts.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
-![Version](https://img.shields.io/badge/version-v2.3.8-success.svg)
+![Version](https://img.shields.io/github/v/release/Aresitoo/chromaflow?label=version&color=success)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
@@ -36,7 +36,7 @@ ChromaFlow can be configured entirely inside Home Assistant's dashboard editor w
 | Color Studio (Two-Tone Gradients & Scoped Colors) | Visual Editor (Dropdown Sensor Pickers) |
 | :---: | :---: |
 | <img src="assets/chromaflow_color_studio.png?v=1" width="100%" alt="ChromaFlow Color Studio" /> | <img src="assets/chromaflow_visual_editor.png?v=1" width="100%" alt="ChromaFlow Visual Editor" /> |
-| **Custom Colors & Gradients**<br>Native color pickers supporting Hex, RGBA, and CSS names. Each flow line has independent Start and End color pickers so you can create two-tone gradients or solid colors. Color changes to one element stay isolated and will not affect other boxes. | **Visual Settings**<br>Organized into 6 collapsible panels (`☀️ Solar Panels`, `⚡ Utility Grid`, `🔋 Battery & 🚗 EV`, etc.) with searchable sensor dropdowns, live preview updates, and line speed adjustments. |
+| **Custom Colors & Gradients**<br>Native color pickers supporting Hex, RGBA, and CSS names. Each flow line has independent Start and End color pickers so you can create two-tone gradients or solid colors. Color changes to one element stay isolated and will not affect other boxes. | **Visual Settings**<br>Organized into 6 collapsible panels (Solar Panels, Utility Grid & Power Limit, Home Battery & EV Storage, Custom Titles, Sizing & Speeds, Visual Colors Studio) with searchable sensor dropdowns, live preview updates, and line speed adjustments. |
 
 ---
 
@@ -130,11 +130,17 @@ and discharged totals instead of live power.
 - **Solar Priority Toggle**: Choose whether grid imports route directly to Home or to your EV / battery charger when solar production is low.
 - **Bidirectional Battery Export**: Track home batteries discharging surplus energy back to the grid.
 - **Multiple Solar Sources**: Homes with two or more inverters or arrays can list each one under `solar_sources`. The Solar box keeps the combined total and adds a sub-tile per source with live power, today's yield and share of current output.
+- **Battery Discharged Today**: A fourth scorecard row showing how much battery you used today, in kWh and as a share of your load, plus the same figure under the battery node's state of charge bar. Fully colourable and renameable like the other rows.
 - **Solcast Forecast Pacing**: Progress bar showing today's actual solar generation compared to the Solcast daily prediction.
 - **Grid Power Limit Warning**: Displays a warning badge when power consumption approaches your contracted breaker limit.
+- **Idle Flow Lines On or Off**: Set `show_idle_rails: false` and a line is drawn only while it actually carries power; leave it on for the classic always-visible rails.
+- **Ten Theme Presets**: Solar, Synthwave, Cyberpunk, Nord Frost, Midnight Glow, Emerald Forest, Deep Ocean, Fitness Activity, Spooky Halloween and Festive Christmas, or tap Harmonized / Shuffle in the Color Studio to generate one.
+- **Emoji Toggle**: `show_emojis: false` removes the glyphs from the nodes and status badges.
 - **Responsive Layout**: Adapts cleanly across desktop cards, mobile screens, and card picker previews.
 - **Match Your Home Assistant Theme**: Set `use_ha_theme: true` and the card background, border, corner radius, shadow, font and top glow follow your active HA theme, so ChromaFlow sits naturally next to your other cards. `colors.card_bg`, `colors.card_border` and `colors.card_glow` override individual parts.
 - **Font Scale Slider**: Adjust text size (0.8x to 1.3x) to fit wall tablets or smaller screens.
+
+Other keys worth knowing, all optional: `battery_tapped_view` (what the battery node shows when tapped), `solar_daily_peak` (peak-power sensor), `ev_primary_view` and `ev_secondary_view` (EV node faces), `show_solar_sparkline`, and the monetisation set `financial_placement`, `electricity_tariff`, `export_compensation_rate`, `fixed_tariff` and `currency_symbol`.
 
 ---
 
@@ -159,7 +165,7 @@ and discharged totals instead of live power.
 2. Click the **3 dots** (top right) ➔ **Edit Dashboard**.
 3. Click **+ Add Card**.
 4. Search for **ChromaFlow**.
-   *(If it does not show in search yet, scroll down to **Manual** and paste: `type: custom:ha-energy-flow-card`)*.
+   *(If it does not show in search yet, scroll down to **Manual** and paste: `type: custom:ares-energy-flow-card`)*.
 5. In the visual settings editor that appears:
    - Select your **Solar Power** sensor.
    - Select your **Grid Import/Export** sensor.
@@ -173,7 +179,7 @@ and discharged totals instead of live power.
 1. Download `ares-energy-flow-card.js` from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
 3. Add the resource reference in **Settings ➔ Dashboards ➔ Resources**:
-   - **URL**: `/local/ares-energy-flow-card.js?v=v2.3.8`
+   - **URL**: `/local/ares-energy-flow-card.js?v=v2.4.1` (any tag works, e.g. the latest release)
    - **Resource Type**: `JavaScript Module`
 
 ### Dev-lab build
@@ -203,11 +209,11 @@ The full two-lane workflow (sandbox deploy, promote, gates, recovery) is in
 You can configure ChromaFlow entirely through the visual editor, or customize it directly in YAML:
 
 ```yaml
-type: custom:ha-energy-flow-card
+type: custom:ares-energy-flow-card
 show_battery: true
 show_ev: true
 battery_position: left # 'left' (under Solar) or 'right' (between Home and Grid Out)
-solar_priority: home # 'home' (prioritize home consumption) or 'middle' (prioritize battery/EV)
+solar_priority: home # 'home', 'battery' or 'ev' — which load gets surplus solar first
 allow_battery_to_ev: false # allow home battery to discharge into EV
 contract_power_limit_kw: 4.2
 contract_warning_pct: 0.85 # Alert when grid import reaches 85% of limit
@@ -219,7 +225,7 @@ show_solar_forecast: true
 show_idle_rails: true # false = only draw a flow line while it carries power
 show_battery_row: true # fourth scorecard row: kWh discharged today + % of load
 battery_primary_view: live # 'live' (power + SoC) or 'stats' (charged/discharged today)
-palette: solar # 'solar' or 'fitness'
+palette: solar # solar | synthwave | cyberpunk | nord | midnight | emerald | ocean | fitness | halloween | christmas
 
 entities:
   # Solar

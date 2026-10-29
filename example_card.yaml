@@ -7,7 +7,7 @@
 # 1. Standard Configuration with EV / Electric Vehicle (Default)
 # ------------------------------------------------------------------------------
 type: custom:ares-energy-flow-card
-palette: solar                         # 'solar' (default) or 'fitness'
+palette: solar                         # solar | synthwave | cyberpunk | nord | midnight | emerald | ocean | fitness | halloween | christmas
 
 # Contracted Power Guard: Set to your contracted utility ceiling (in kW).
 # The card will glow amber at 85% of this value, and flash crimson at 100%+.
