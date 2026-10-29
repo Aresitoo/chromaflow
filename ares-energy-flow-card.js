@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.3.6 (Clock Weather Card Row Style, Complete De-emojification, Zero-Export & Battery Metrics)
+ * Version: v2.3.7 (Per-Ring Autarky Track Tint Restored)
  */
 
 const PALETTES = {
@@ -254,7 +254,10 @@ function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-function hexToRgba(hex, alpha) {
+function hexToRgba(hex, alpha = 1) {
+  if (!hex) return `rgba(255, 255, 255, ${alpha})`;
+  if (hex.startsWith('rgba')) return hex.replace(/[\d.]+\)$/, `${alpha})`);
+  if (hex.startsWith('rgb(')) return hex.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
   let c = hex.replace('#', '');
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const num = parseInt(c, 16);
@@ -263,6 +266,31 @@ function hexToRgba(hex, alpha) {
   const g = (num >> 8) & 255;
   const b = num & 255;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Unfilled activity-ring track. v1.x drew one per ring, tinted with that ring's own
+// colour at 15%; v2.0.0 replaced all three with a single shared track
+// (ring_bg_track: rgba(255, 255, 255, 0.05)) which is virtually invisible on a dark
+// card. Restore the tint, and keep ring_bg_track / ring_track_* as optional overrides.
+const RING_TRACK_ALPHA = 0.15;
+// The value v2.0.0-v2.3.6 baked into every palette it generated. Ignore it so
+// dashboards saved by those releases get the tinted tracks back instead of staying
+// stuck on the near-invisible white.
+const LEGACY_RING_TRACK = 'rgba(255, 255, 255, 0.05)';
+
+function resolveRingTracks(colors, d) {
+  const c = colors || {};
+  // d is either the fully derived config (_render) or a raw palette (_applyThemeStyles),
+  // so accept both key shapes for the ring colours the tracks are tinted from.
+  const shared = (c.ring_bg_track && c.ring_bg_track !== LEGACY_RING_TRACK) ? c.ring_bg_track : null;
+  const autarkyRing = c.ring_autarky || d.ring_autarky || d.autarky || '#00e676';
+  const importRing = c.ring_import || d.ring_import || d.import_ring || '#ff7043';
+  const exportRing = c.ring_export || d.ring_export || d.export_ring || '#ffd54f';
+  return {
+    autarky: c.ring_track_autarky || shared || hexToRgba(autarkyRing, RING_TRACK_ALPHA),
+    import: c.ring_track_import || shared || hexToRgba(importRing, RING_TRACK_ALPHA),
+    export: c.ring_track_export || shared || hexToRgba(exportRing, RING_TRACK_ALPHA)
+  };
 }
 
 function getRandomVibrantHex(baseHue) {
@@ -876,7 +904,6 @@ class AresEnergyFlowCard extends HTMLElement {
       ring_export: pal.export_ring,
       autarky_center_pct: '#ffffff',
       autarky_center_lbl: pal.autarky,
-      ring_bg_track: 'rgba(255, 255, 255, 0.05)',
 
       // 8. Tabular Scorecard Rows
       bg_scorecard: 'rgba(255, 255, 255, 0.02)',
@@ -988,7 +1015,10 @@ class AresEnergyFlowCard extends HTMLElement {
     const cExportRing = colors.ring_export || d.ring_export;
     const cPctCenter = colors.autarky_center_pct || d.autarky_center_pct;
     const cLblCenter = colors.autarky_center_lbl || d.autarky_center_lbl;
-    const cRingBgTrack = colors.ring_bg_track || d.ring_bg_track;
+    const ringTracks = resolveRingTracks(colors, d);
+    const cAutarkyTrack = ringTracks.autarky;
+    const cImportTrack = ringTracks.import;
+    const cExportTrack = ringTracks.export;
 
     // 8. Tabular Scorecard Rows
     const cScorecardBg = colors.bg_scorecard || d.bg_scorecard;
@@ -1633,15 +1663,15 @@ class AresEnergyFlowCard extends HTMLElement {
             <div class="rings-container" style="position: relative; width: 136px; height: 136px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
               <svg viewBox="0 0 156 156" style="width: 100%; height: 100%; transform: rotate(-90deg);">
                 <!-- Ring 1 (Outer): Autarky -->
-                <circle cx="78" cy="78" r="68" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
+                <circle id="ring-track-autarky" cx="78" cy="78" r="68" fill="none" stroke="${cAutarkyTrack}" stroke-width="8" />
                 <circle id="ring-autarky" cx="78" cy="78" r="68" fill="none" stroke="${cAutarky}" stroke-width="8" stroke-linecap="round" stroke-dasharray="427.26" stroke-dashoffset="427.26" style="transition: stroke-dashoffset 0.6s ease;" />
 
                 <!-- Ring 2 (Middle): Grid Import -->
-                <circle cx="78" cy="78" r="54" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
+                <circle id="ring-track-import" cx="78" cy="78" r="54" fill="none" stroke="${cImportTrack}" stroke-width="8" />
                 <circle id="ring-import" cx="78" cy="78" r="54" fill="none" stroke="${cImportRing}" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.29" stroke-dashoffset="339.29" style="transition: stroke-dashoffset 0.6s ease;" />
 
                 <!-- Ring 3 (Inner): Grid Export -->
-                <circle id="ring-track-export" cx="78" cy="78" r="40" fill="none" stroke="${cRingBgTrack}" stroke-width="8" />
+                <circle id="ring-track-export" cx="78" cy="78" r="40" fill="none" stroke="${cExportTrack}" stroke-width="8" />
                 <circle id="ring-export" cx="78" cy="78" r="40" fill="none" stroke="${cExportRing}" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33" style="transition: stroke-dashoffset 0.6s ease;" />
               </svg>
               <div class="rings-center-text" style="position: absolute; text-align: center; pointer-events: none; width: 72px;">
@@ -1665,7 +1695,7 @@ class AresEnergyFlowCard extends HTMLElement {
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
-                <div style="width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin-top: 2px;">
+                <div id="bar-solar-self-consumed-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cAutarkyTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-solar-self-consumed" style="width: 0%; height: 100%; background: ${cRowSelfBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
@@ -1682,7 +1712,7 @@ class AresEnergyFlowCard extends HTMLElement {
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
-                <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cGridBg}; overflow: hidden; margin-top: 2px;">
+                <div id="bar-grid-reliance-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cImportTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-grid-reliance" style="width: 0%; height: 100%; background: ${cRowGridBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
@@ -1699,7 +1729,7 @@ class AresEnergyFlowCard extends HTMLElement {
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF SOLAR</span>
                 </div>
-                <div style="width: 100%; height: 4px; border-radius: 2px; background: ${cExportBg}; overflow: hidden; margin-top: 2px;">
+                <div id="bar-export-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cExportTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-export" style="width: 0%; height: 100%; background: ${cRowExportBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
@@ -1863,20 +1893,25 @@ class AresEnergyFlowCard extends HTMLElement {
       ringAutarky: getEl('ring-autarky'),
       ringImport: getEl('ring-import'),
       ringExport: getEl('ring-export'),
+      ringTrackAutarky: getEl('ring-track-autarky'),
+      ringTrackImport: getEl('ring-track-import'),
       ringTrackExport: getEl('ring-track-export'),
       rowExportContainer: getEl('row-export-container'),
       autarkyCenterPct: getEl('autarky-center-pct'),
 
       rowAutarkyPct: getEl('row-autarky-pct'),
       rowSolarKwh: getEl('row-solar-kwh'),
+      barSolarSelfConsumedBg: getEl('bar-solar-self-consumed-bg'),
       barSolarSelfConsumed: getEl('bar-solar-self-consumed'),
 
       rowGridPct: getEl('row-grid-pct'),
       rowGridKwh: getEl('row-grid-kwh'),
+      barGridRelianceBg: getEl('bar-grid-reliance-bg'),
       barGridReliance: getEl('bar-grid-reliance'),
 
       rowExportPct: getEl('row-export-pct'),
       rowExportKwh: getEl('row-export-kwh'),
+      barExportBg: getEl('bar-export-bg'),
       barExport: getEl('bar-export')
     };
 
@@ -2286,15 +2321,23 @@ const mode = this._getLayoutMode();
     const colors = this._config?.colors || {};
 
     // 1. Activity Rings & Scorecard Center
-    const cAutarky = colors.ring_autarky || d.ring_autarky || '#00e676';
-    const cImportRing = colors.ring_import || d.ring_import || '#ff7043';
-    const cExportRing = colors.ring_export || d.ring_export || '#ffd54f';
+    const cAutarky = colors.ring_autarky || d.ring_autarky || d.autarky || '#00e676';
+    const cImportRing = colors.ring_import || d.ring_import || d.import_ring || '#ff7043';
+    const cExportRing = colors.ring_export || d.ring_export || d.export_ring || '#ffd54f';
     const cPctCenter = colors.autarky_center_pct || '#ffffff';
-    const cLblCenter = colors.autarky_center_lbl || colors.ring_autarky || d.ring_autarky || '#00e676';
+    const cLblCenter = colors.autarky_center_lbl || cAutarky;
+
+    const ringTracks = resolveRingTracks(colors, d);
+    const cAutarkyTrack = ringTracks.autarky;
+    const cImportTrack = ringTracks.import;
+    const cExportTrack = ringTracks.export;
 
     if (this._el.ringAutarky) this._el.ringAutarky.setAttribute('stroke', cAutarky);
     if (this._el.ringImport) this._el.ringImport.setAttribute('stroke', cImportRing);
     if (this._el.ringExport) this._el.ringExport.setAttribute('stroke', cExportRing);
+    if (this._el.ringTrackAutarky) this._el.ringTrackAutarky.setAttribute('stroke', cAutarkyTrack);
+    if (this._el.ringTrackImport) this._el.ringTrackImport.setAttribute('stroke', cImportTrack);
+    if (this._el.ringTrackExport) this._el.ringTrackExport.setAttribute('stroke', cExportTrack);
     if (this._el.autarkyCenterPct) this._el.autarkyCenterPct.style.color = cPctCenter;
 
     const lblAutarky = this.shadowRoot.getElementById('lbl-autarky');
@@ -2311,16 +2354,19 @@ const mode = this._getLayoutMode();
     const lblSelf = this.shadowRoot.getElementById('lbl-self-consumed');
     if (lblSelf && lblSelf.parentElement) lblSelf.parentElement.style.color = cRowSelfTitle;
     if (this._el.rowAutarkyPct) this._el.rowAutarkyPct.style.color = cRowSelfTitle;
+    if (this._el.barSolarSelfConsumedBg) this._el.barSolarSelfConsumedBg.style.background = cAutarkyTrack;
     if (this._el.barSolarSelfConsumed) this._el.barSolarSelfConsumed.style.background = cRowSelfBar;
 
     const lblGrid = this.shadowRoot.getElementById('lbl-grid-reliance');
     if (lblGrid && lblGrid.parentElement) lblGrid.parentElement.style.color = cRowGridTitle;
     if (this._el.rowGridPct) this._el.rowGridPct.style.color = cRowGridTitle;
+    if (this._el.barGridRelianceBg) this._el.barGridRelianceBg.style.background = cImportTrack;
     if (this._el.barGridReliance) this._el.barGridReliance.style.background = cRowGridBar;
 
     const lblExport = this.shadowRoot.getElementById('lbl-exported');
     if (lblExport && lblExport.parentElement) lblExport.parentElement.style.color = cRowExportTitle;
     if (this._el.rowExportPct) this._el.rowExportPct.style.color = cRowExportTitle;
+    if (this._el.barExportBg) this._el.barExportBg.style.background = cExportTrack;
     if (this._el.barExport) this._el.barExport.style.background = cRowExportBar;
 
     // 3. Scorecard Container
@@ -3910,7 +3956,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           { key: "ring_export", label: "Grid Export Ring (Inner Circle)", default: "#ffd54f" },
           { key: "autarky_center_pct", label: "Scorecard Center % Text", default: "#ffffff" },
           { key: "autarky_center_lbl", label: "Scorecard Center 'AUTARKY' Label", default: "#00e676" },
-          { key: "ring_bg_track", label: "Inactive Rings Background Track", default: "rgba(255, 255, 255, 0.05)" }
+          { key: "ring_bg_track", label: "Ring Track Override (blank = per-ring tint)", default: "" }
         ]
       },
       {
@@ -4142,7 +4188,6 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           autarky_center_lbl: cHome,
           fin_solar_val: cSolar,
           fin_virtual_battery: cBatt,
-          ring_bg_track: 'rgba(255, 255, 255, 0.05)',
           bg_scorecard: 'rgba(255, 255, 255, 0.02)',
           border_scorecard: 'rgba(255, 255, 255, 0.08)',
           row_self_consumed_title: cHome,
