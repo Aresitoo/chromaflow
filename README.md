@@ -104,6 +104,12 @@ utility_meter:
 Then point `battery_daily_discharge` at `sensor.battery_out_today`. If the sensor is missing or
 unavailable the row shows `--` rather than a misleading `0.00 kWh`.
 
+Rename it or recolour it like any other row. The text lives in **Custom Titles & Display Names**
+(`lbl_battery_discharged_today` and `lbl_battery_discharged_sub`), and the colours are **Row 4** in
+the Visual Colors Studio (`row_battery_title`, `row_battery_kwh`, `row_battery_bar`). Harmonized and
+Shuffle regenerate Row 4 along with the other rows. The default accent is the palette's device
+colour (violet on the solar palette) so it does not compete with the green self-consumed row.
+
 Use `battery_primary_view: stats` if you would rather the battery node open on today's charged
 and discharged totals instead of live power.
 

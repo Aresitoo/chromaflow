@@ -972,9 +972,9 @@ class AresEnergyFlowCard extends HTMLElement {
       row_exported_title: pal.export_ring,
       row_exported_kwh: '#ffffff',
       row_exported_bar: pal.export_ring,
-      row_battery_title: pal.battery || '#10b981',
+      row_battery_title: pal.device || pal.ev || '#b388ff',
       row_battery_kwh: '#ffffff',
-      row_battery_bar: pal.battery || '#10b981'
+      row_battery_bar: pal.device || pal.ev || '#b388ff'
     };
 
     // 1. Solar Box
@@ -2560,9 +2560,9 @@ const mode = this._getLayoutMode();
 
     // 6. Dynamic Financial & Bottom Ribbon Styling (Harmonized, Shuffled & Themed)
     // Also the battery "discharged today" row, which needs the tint helper below.
-    const cRowBattTitle = colors.row_battery_title || d.row_battery_title || d.battery || '#10b981';
+    const cRowBattTitle = colors.row_battery_title || d.row_battery_title || d.device || d.ev || '#b388ff';
     const cRowBattKwh = colors.row_battery_kwh || d.row_battery_kwh || '#ffffff';
-    const cRowBattBar = colors.row_battery_bar || d.row_battery_bar || d.battery || '#10b981';
+    const cRowBattBar = colors.row_battery_bar || d.row_battery_bar || d.device || d.ev || '#b388ff';
     const hexToRgba = (hex, alpha) => {
       if (!hex) return `rgba(255, 255, 255, ${alpha})`;
       if (hex.startsWith('rgba')) return hex;
@@ -3495,6 +3495,13 @@ const mode = this._getLayoutMode();
       }
     }
 
+    // Keep the row's custom labels current: label edits arrive as config changes and the card
+    // does not re-render its template for them, so write the text here as well.
+    const lblRowEl = this.shadowRoot.getElementById('lbl-battery-row');
+    if (lblRowEl && lblRowEl.textContent !== lbls.battery_discharged_today) lblRowEl.textContent = lbls.battery_discharged_today;
+    const lblRowSubEl = this.shadowRoot.getElementById('lbl-battery-row-sub');
+    if (lblRowSubEl && lblRowSubEl.textContent !== lbls.battery_discharged_sub) lblRowSubEl.textContent = lbls.battery_discharged_sub;
+
     el.ringAutarky.style.strokeDashoffset = String(c1 - (c1 * (autarkyPct / 100.0)));
     el.ringImport.style.strokeDashoffset = String(c2 - (c2 * (gridReliancePct / 100.0)));
     el.ringExport.style.strokeDashoffset = String(c3 - (c3 * (exportPct / 100.0)));
@@ -4151,9 +4158,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           { key: "row_exported_kwh", label: "Row 3 Energy Number (kWh)", default: "#ffffff" },
           { key: "row_exported_bar", label: "Row 3 Progress Bar Fill", default: "#ffd54f" },
 
-          { key: "row_battery_title", label: "Row 4 (Discharged Today) Title & %", default: "#10b981" },
+          { key: "row_battery_title", label: "Row 4 (Discharged Today) Title & %", default: "#b388ff" },
           { key: "row_battery_kwh", label: "Row 4 Energy Number (kWh)", default: "#ffffff" },
-          { key: "row_battery_bar", label: "Row 4 Progress Bar Fill", default: "#10b981" }
+          { key: "row_battery_bar", label: "Row 4 Progress Bar Fill", default: "#b388ff" }
         ]
       },
       {
@@ -4375,7 +4382,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           row_grid_reliance_bar: cGrid,
           row_exported_title: cExport,
           row_exported_kwh: '#ffffff',
-          row_exported_bar: cExport
+          row_exported_bar: cExport,
+          row_battery_title: cEv,
+          row_battery_kwh: '#ffffff',
+          row_battery_bar: cEv
         };
 
         this._config = cfg;
@@ -4550,6 +4560,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         lbl_scorecard_solar_value: lbls.scorecard_solar_value || '',
         lbl_battery_charged: lbls.battery_charged || '',
         lbl_battery_discharged: lbls.battery_discharged || '',
+        lbl_battery_discharged_today: lbls.battery_discharged_today || '',
+        lbl_battery_discharged_sub: lbls.battery_discharged_sub || '',
         lbl_battery_net: lbls.battery_net || ''
       };
       if (this._hass) this._forms.labels.hass = this._hass;
@@ -4713,6 +4725,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         lbl_scorecard_solar_value: 'scorecard_solar_value',
         lbl_battery_charged: 'battery_charged',
         lbl_battery_discharged: 'battery_discharged',
+        lbl_battery_discharged_today: 'battery_discharged_today',
+        lbl_battery_discharged_sub: 'battery_discharged_sub',
         lbl_battery_net: 'battery_net'
       };
       for (const [formKey, lKey] of Object.entries(lMap)) {
@@ -4888,6 +4902,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "lbl_scorecard_solar_value", label: "Scorecard Row Title: Solar Value (Default: TODAY'S SOLAR VALUE)", selector: { text: {} } },
       { name: "lbl_battery_charged", label: "Battery Tapped View: Charged Label (Default: Charged Today)", selector: { text: {} } },
       { name: "lbl_battery_discharged", label: "Battery Tapped View: Discharged Label (Default: Discharged)", selector: { text: {} } },
+      { name: "lbl_battery_discharged_today", label: "Scorecard Row 4 Title (Default: Discharged Today)", selector: { text: {} } },
+      { name: "lbl_battery_discharged_sub", label: "Scorecard Row 4 Sub-Label (Default: From battery)", selector: { text: {} } },
       { name: "lbl_battery_net", label: "Battery Tapped View: Net Prefix (Default: Net)", selector: { text: {} } }
     ];
   }
