@@ -15,3 +15,32 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "plugin"
+
+  # Deterministic guard for the two-lane setup. Both deployed files are built from the
+  # same source, and each must claim only its own custom element tags: if production also
+  # claims `ares-energy-flow-card-dev`, Home Assistant binds the dev-lab dashboard to
+  # production code and the sandbox silently stops existing (that was the 2.0.0-2.3.7 bug).
+  guard:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax check
+        run: node --check ares-energy-flow-card.js
+
+      - name: Production build registers only production tags
+        run: node scripts/check-tags.mjs ares-energy-flow-card.js --expect prod
+
+      - name: Sandbox build registers only sandbox tags
+        run: |
+          bash tools/make-dev-build.sh ares-energy-flow-card.js /tmp/dev-build.js
+          node scripts/check-tags.mjs /tmp/dev-build.js --expect dev
+
+      - name: Sandbox build differs from production by the flag line only
+        run: |
+          tail -n +2 /tmp/dev-build.js > /tmp/dev-body.js
+          diff -q /tmp/dev-body.js ares-energy-flow-card.js

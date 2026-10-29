@@ -1,0 +1,29 @@
+#!/bin/sh
+# Parse + tag registration gate. Runs on every commit that touches the card,
+# the build script or the checker. Silently skips when node is unavailable.
+set -e
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+changed=$(git diff --cached --name-only || true)
+case "$changed" in
+  *ares-energy-flow-card.js*|*make-dev-build.sh*|*check-tags.mjs*) ;;
+  *) exit 0 ;;
+esac
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found, skipping card checks"
+  exit 0
+fi
+
+node --check ares-energy-flow-card.js
+node scripts/check-tags.mjs ares-energy-flow-card.js --expect prod
+
+# Build the sandbox variant and check it too. Relative paths on purpose: Git for
+# Windows hands node a POSIX /tmp path it cannot open.
+bash tools/make-dev-build.sh ares-energy-flow-card.js .git/pre-commit-dev.js >/dev/null
+node scripts/check-tags.mjs .git/pre-commit-dev.js --expect dev
+rm -f .git/pre-commit-dev.js
+
+echo "pre-commit: card checks passed"
