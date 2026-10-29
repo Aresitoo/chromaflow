@@ -626,6 +626,8 @@ class AresEnergyFlowCard extends HTMLElement {
       scorecard_solar_value: l.scorecard_solar_value || cfg.lbl_scorecard_solar_value || "TODAY'S SOLAR VALUE",
       battery_charged: l.battery_charged || cfg.lbl_battery_charged || 'Charged Today',
       battery_discharged: l.battery_discharged || cfg.lbl_battery_discharged || 'Discharged',
+      battery_discharged_today: l.battery_discharged_today || cfg.lbl_battery_discharged_today || 'Discharged Today',
+      battery_discharged_sub: l.battery_discharged_sub || cfg.lbl_battery_discharged_sub || 'From battery',
       battery_net: l.battery_net || cfg.lbl_battery_net || 'Net'
     };
   }
@@ -776,6 +778,8 @@ class AresEnergyFlowCard extends HTMLElement {
       speed_multiplier: 1.0,
       font_scale: 1.0,
       show_solar_forecast: true,
+      show_battery_row: true,
+      battery_primary_view: 'live',
       battery_positive_charging: true,
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
@@ -967,7 +971,10 @@ class AresEnergyFlowCard extends HTMLElement {
       row_grid_reliance_bar: pal.import_ring,
       row_exported_title: pal.export_ring,
       row_exported_kwh: '#ffffff',
-      row_exported_bar: pal.export_ring
+      row_exported_bar: pal.export_ring,
+      row_battery_title: pal.battery || '#10b981',
+      row_battery_kwh: '#ffffff',
+      row_battery_bar: pal.battery || '#10b981'
     };
 
     // 1. Solar Box
@@ -1085,6 +1092,10 @@ class AresEnergyFlowCard extends HTMLElement {
     const cRowExportTitle = colors.row_exported_title || d.row_exported_title;
     const cRowExportKwh = colors.row_exported_kwh || d.row_exported_kwh;
     const cRowExportBar = colors.row_exported_bar || d.row_exported_bar;
+
+    const cRowBattTitle = colors.row_battery_title || d.row_battery_title;
+    const cRowBattKwh = colors.row_battery_kwh || d.row_battery_kwh;
+    const cRowBattBar = colors.row_battery_bar || d.row_battery_bar;
 
     // Card chrome: optionally follow the active Home Assistant theme (use_ha_theme),
     // with optional colors.card_bg / colors.card_border / colors.card_glow overrides
@@ -1630,6 +1641,7 @@ class AresEnergyFlowCard extends HTMLElement {
                   <div id="bar-battery-soc-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
                     <div id="bar-battery-soc-fill" style="width: 0%; height: 100%; background: ${cBarBatterySoc}; transition: width 0.4s ease;"></div>
                   </div>
+                  <div id="batt-today" style="display: none; font-size: calc(8px * var(--ares-font-scale, 1)); font-weight: 700; color: ${cKwhBattery}; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">0.00 kWh today</div>
                 </div>
 
                 <!-- View 2: Tapped Secondary Battery Stats -->
@@ -1781,6 +1793,23 @@ class AresEnergyFlowCard extends HTMLElement {
                 </div>
                 <div id="bar-export-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cExportTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-export" style="width: 0%; height: 100%; background: ${cRowExportBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
+                </div>
+              </div>
+
+              <!-- Row 4: Battery Discharged Today (battery layouts only) -->
+              <div id="row-battery-container" style="display: none; flex-direction: column; gap: 2px; width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-battery-row">${lbls.battery_discharged_today}</span></span>
+                  <span id="row-battery-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowBattTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
+                  <span id="row-battery-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
+                    -- <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-battery-row-sub">${lbls.battery_discharged_sub}</span></span>
+                  </span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
+                </div>
+                <div id="bar-battery-discharged-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${hexToRgba(cRowBattBar, 0.15)}; overflow: hidden; margin-top: 2px;">
+                  <div id="bar-battery-discharged" style="width: 0%; height: 100%; background: ${cRowBattBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
                 </div>
               </div>
 
@@ -1960,7 +1989,14 @@ class AresEnergyFlowCard extends HTMLElement {
       rowExportPct: getEl('row-export-pct'),
       rowExportKwh: getEl('row-export-kwh'),
       barExportBg: getEl('bar-export-bg'),
-      barExport: getEl('bar-export')
+      barExport: getEl('bar-export'),
+
+      rowBatteryContainer: getEl('row-battery-container'),
+      rowBatteryPct: getEl('row-battery-pct'),
+      rowBatteryKwh: getEl('row-battery-kwh'),
+      barBatteryDischargedBg: getEl('bar-battery-discharged-bg'),
+      barBatteryDischarged: getEl('bar-battery-discharged'),
+      battToday: getEl('batt-today'),
     };
 
     // Simulation Test Bench listeners
@@ -1972,7 +2008,7 @@ class AresEnergyFlowCard extends HTMLElement {
       if (p === 'live' || !p) {
         this._solarViewMode = 'telemetry';
         this._teslaViewMode = 'primary';
-        this._batteryViewMode = 'live';
+        this._batteryViewMode = (this._config?.battery_primary_view === 'stats') ? 'stats' : 'live';
         this._financialPlacementOverride = 'none';
         this._bessOverride = 'hide';
       } else {
@@ -1997,7 +2033,7 @@ class AresEnergyFlowCard extends HTMLElement {
         ev.stopPropagation();
         this._solarViewMode = 'telemetry';
         this._teslaViewMode = 'primary';
-        this._batteryViewMode = 'live';
+        this._batteryViewMode = (this._config?.battery_primary_view === 'stats') ? 'stats' : 'live';
         this._financialPlacementOverride = 'none';
         this._bessOverride = 'hide';
 
@@ -2373,6 +2409,10 @@ const mode = this._getLayoutMode();
     if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = hasBatt ? 'block' : 'none';
     if (this._el.railBatteryEV) this._el.railBatteryEV.style.display = (mode === 'dual' && allowBattToEv) ? 'block' : 'none';
 
+    // Battery "discharged today" scorecard row: only meaningful with a battery, and optional.
+    const showBattRow = hasBatt && (this._config?.show_battery_row !== false);
+    if (this._el.rowBatteryContainer) this._el.rowBatteryContainer.style.display = showBattRow ? 'flex' : 'none';
+
     const showSim = (this._config?.show_sim_toolbar !== false);
     const simEl = this.shadowRoot.getElementById('sim-toolbar');
     if (simEl) simEl.style.display = showSim ? 'flex' : 'none';
@@ -2519,6 +2559,10 @@ const mode = this._getLayoutMode();
     updateGrad('flowBatteryGrid', colors.flow_battery_grid_start, colors.flow_battery_grid_end);
 
     // 6. Dynamic Financial & Bottom Ribbon Styling (Harmonized, Shuffled & Themed)
+    // Also the battery "discharged today" row, which needs the tint helper below.
+    const cRowBattTitle = colors.row_battery_title || d.row_battery_title || d.battery || '#10b981';
+    const cRowBattKwh = colors.row_battery_kwh || d.row_battery_kwh || '#ffffff';
+    const cRowBattBar = colors.row_battery_bar || d.row_battery_bar || d.battery || '#10b981';
     const hexToRgba = (hex, alpha) => {
       if (!hex) return `rgba(255, 255, 255, ${alpha})`;
       if (hex.startsWith('rgba')) return hex;
@@ -2529,6 +2573,14 @@ const mode = this._getLayoutMode();
       if (isNaN(num)) return `rgba(255, 255, 255, ${alpha})`;
       return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
     };
+
+    const lblBattRow = this.shadowRoot.getElementById('lbl-battery-row');
+    if (lblBattRow && lblBattRow.parentElement) lblBattRow.parentElement.style.color = cRowBattTitle;
+    if (this._el.rowBatteryPct) this._el.rowBatteryPct.style.color = cRowBattTitle;
+    if (this._el.rowBatteryKwh) this._el.rowBatteryKwh.style.color = cRowBattKwh;
+    if (this._el.barBatteryDischargedBg) this._el.barBatteryDischargedBg.style.background = hexToRgba(cRowBattBar, 0.15);
+    if (this._el.barBatteryDischarged) this._el.barBatteryDischarged.style.background = cRowBattBar;
+    if (this._el.battToday) this._el.battToday.style.color = cRowBattKwh;
 
     const cFinSolar = colors.fin_solar_val || colors.title_solar || pal.solar || '#00e676';
     const cFinBatt = colors.fin_virtual_battery || colors.title_battery || pal.battery || '#00e5ff';
@@ -2592,7 +2644,9 @@ const mode = this._getLayoutMode();
     const eEvEnergy = this._hass.states[ents.ev_daily_energy];
 
     const mode = this._getLayoutMode();
-    const hasBatt = (mode === 'dual' || mode === 'battery-only');
+    // 'battery-left' is the default battery position, so it has to count here too: without it
+    // the whole battery block below (power, SoC, SoC bar, stats view) never updates.
+    const hasBatt = (mode === 'dual' || mode === 'battery-left' || mode === 'battery-only');
     const hasEv = (mode === 'dual' || mode === 'ev-only');
 
     const pKey = (this._config && this._config.palette) || 'solar';
@@ -3261,7 +3315,7 @@ const mode = this._getLayoutMode();
       }
 
       // Battery View Toggling (Live Telemetry vs Stats View)
-      const isBattStats = (this._batteryViewMode === 'stats');
+      const isBattStats = ((this._batteryViewMode ?? ((this._config?.battery_primary_view === 'stats') ? 'stats' : 'live')) === 'stats');
       if (el.batteryViewLive) el.batteryViewLive.style.display = isBattStats ? 'none' : 'flex';
       if (el.batteryViewStats) el.batteryViewStats.style.display = isBattStats ? 'flex' : 'none';
 
@@ -3423,6 +3477,23 @@ const mode = this._getLayoutMode();
     el.rowExportPct.textContent = `${exportPct}%`;
     el.rowExportKwh.childNodes[0].textContent = `${fmtKwh(kwhGridExport)} `;
     el.barExport.style.width = `${exportPct}%`;
+
+    // Row 4: battery discharged today. A false 0.00 would be a lie when the sensor is
+    // missing or unavailable, so show a dash unless the entity actually reports a number.
+    const kwhBattDischarged = this._parseEnergy(eBattDischarge);
+    const battDischargeKnown = Boolean(eBattDischarge) && eBattDischarge.state !== 'unavailable' && eBattDischarge.state !== 'unknown';
+    const battUsedPct = kwhTotalLoad > 0 ? Math.min(100, Math.max(0, Math.round((kwhBattDischarged / kwhTotalLoad) * 100))) : 0;
+    if (el.rowBatteryPct) el.rowBatteryPct.textContent = battDischargeKnown ? `${battUsedPct}%` : '--';
+    if (el.rowBatteryKwh) el.rowBatteryKwh.childNodes[0].textContent = battDischargeKnown ? `${fmtKwh(kwhBattDischarged)} ` : '-- ';
+    if (el.barBatteryDischarged) el.barBatteryDischarged.style.width = battDischargeKnown ? `${battUsedPct}%` : '0%';
+    if (el.battToday) {
+      if (battDischargeKnown) {
+        el.battToday.textContent = `${fmtKwh(kwhBattDischarged)} kWh today`;
+        el.battToday.style.display = 'block';
+      } else {
+        el.battToday.style.display = 'none';
+      }
+    }
 
     el.ringAutarky.style.strokeDashoffset = String(c1 - (c1 * (autarkyPct / 100.0)));
     el.ringImport.style.strokeDashoffset = String(c2 - (c2 * (gridReliancePct / 100.0)));
@@ -4078,7 +4149,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
 
           { key: "row_exported_title", label: "Row 3 (Exported) Title & %", default: "#ffd54f" },
           { key: "row_exported_kwh", label: "Row 3 Energy Number (kWh)", default: "#ffffff" },
-          { key: "row_exported_bar", label: "Row 3 Progress Bar Fill", default: "#ffd54f" }
+          { key: "row_exported_bar", label: "Row 3 Progress Bar Fill", default: "#ffd54f" },
+
+          { key: "row_battery_title", label: "Row 4 (Discharged Today) Title & %", default: "#10b981" },
+          { key: "row_battery_kwh", label: "Row 4 Energy Number (kWh)", default: "#ffffff" },
+          { key: "row_battery_bar", label: "Row 4 Progress Bar Fill", default: "#10b981" }
         ]
       },
       {
@@ -4423,6 +4498,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         battery_position: this._config.battery_position || 'left',
         show_battery_soc: this._config.show_battery_soc !== false,
         show_battery_badge: this._config.show_battery_badge !== false,
+        show_battery_row: this._config.show_battery_row !== false,
+        battery_primary_view: this._config.battery_primary_view === 'stats' ? 'stats' : 'live',
         battery_tapped_view: this._config.battery_tapped_view || 'energy_totals',
         battery_custom_stat_1: this._config.battery_custom_stat_1 || '',
         battery_custom_stat_1_name: this._config.battery_custom_stat_1_name || '',
@@ -4586,6 +4663,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.battery_capacity_kwh = parseFloat(val.battery_capacity_kwh) || 0;
       cfg.show_battery_soc = Boolean(val.show_battery_soc);
       cfg.show_battery_badge = Boolean(val.show_battery_badge);
+      cfg.show_battery_row = val.show_battery_row !== false;
+      cfg.battery_primary_view = val.battery_primary_view === 'stats' ? 'stats' : 'live';
       cfg.show_ev = Boolean(val.show_ev);
       cfg.allow_battery_to_ev = Boolean(val.allow_battery_to_ev);
       cfg.show_ev_soc_bar = Boolean(val.show_ev_soc_bar);
@@ -4748,6 +4827,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       ] } } },
       { name: "show_battery_soc", label: "Show Home Battery % and Progress Bar", selector: { boolean: {} } },
       { name: "show_battery_badge", label: "Show Home Battery State Badge", selector: { boolean: {} } },
+      { name: "show_battery_row", label: "Show 'Discharged Today' Row in the Scorecard", selector: { boolean: {} } },
+      { name: "battery_primary_view", label: "Home Battery Node: Default View", selector: { select: { options: [
+        { value: "live", label: "Live Power & State of Charge (Default)" },
+        { value: "stats", label: "Today's Charged & Discharged kWh" }
+      ] } } },
 
       { name: "show_ev", label: "Show Electric Vehicle (EV)", selector: { boolean: {} } },
       { name: "allow_battery_to_ev", label: "Allow Home Battery to Charge EV", selector: { boolean: {} } },
