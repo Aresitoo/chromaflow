@@ -11,7 +11,7 @@ I built ChromaFlow because I wanted a clean Home Assistant energy card that comb
 It supports solar panels, grid import and export, home load, home battery storage (BESS) with bidirectional grid export, EV fast charging, simultaneous Dual Battery + EV mode, and Solcast solar forecasts.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
-![Version](https://img.shields.io/badge/version-v2.1.0-success.svg)
+![Version](https://img.shields.io/badge/version-v2.3.8-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
@@ -129,7 +129,7 @@ ChromaFlow v2.1.0 introduces simultaneous Dual Mode for homes with both stationa
 1. Download `ares-energy-flow-card.js` from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
 3. Add the resource reference in **Settings ➔ Dashboards ➔ Resources**:
-   - **URL**: `/local/ares-energy-flow-card.js?v=2.1.0`
+   - **URL**: `/local/ares-energy-flow-card.js?v=v2.3.8`
    - **Resource Type**: `JavaScript Module`
 
 ### Dev-lab build

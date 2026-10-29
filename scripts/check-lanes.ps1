@@ -7,7 +7,8 @@
 # two seconds instead of two days.
 [CmdletBinding()]
 param(
-  [string]$GitRef = 'HEAD'
+  [string]$GitRef = 'HEAD',
+  [string]$HaBase = 'http://homeassistant.local:8123'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -95,13 +96,55 @@ if ($refProd) {
   $notes.Add("could not read ares-energy-flow-card.js at $GitRef")
 }
 
-# 4. Resource URLs
+# 4. Resource URLs, and the bytes Home Assistant actually serves for them.
+#
+# The URL list lives in .storage, which HA writes asynchronously: right after a resource
+# change the file on disk can still hold the previous URL for a few seconds. So the list
+# below is labelled with its mtime, and the authoritative answer comes from fetching each
+# URL over HTTP (/local/ needs no credentials) and hashing what comes back.
 if (Test-Path 'H:\.storage\lovelace_resources') {
+  $stamp = (Get-Item 'H:\.storage\lovelace_resources').LastWriteTime
+  Write-Host ("  resource list: .storage copy written {0:HH:mm:ss}, HA may lag a few seconds" -f $stamp)
+
   $res = [IO.File]::ReadAllText('H:\.storage\lovelace_resources')
   $urls = [regex]::Matches($res, '"/local/ares-energy-flow-card[^"]*"') | ForEach-Object { $_.Value.Trim('"') }
-  foreach ($u in $urls) { Write-Host "  resource: $u" }
+
   if (-not ($urls | Where-Object { $_ -match 'ares-energy-flow-card\.js\?v=' })) { $problems.Add('production resource URL has no ?v= cache buster') }
   if (-not ($urls | Where-Object { $_ -match 'ares-energy-flow-card-dev\.js\?v=' })) { $problems.Add('sandbox resource URL has no ?v= cache buster') }
+
+  $lanes = @(
+    @{ name = 'prod'; pattern = 'ares-energy-flow-card\.js\?'; path = $prodPath },
+    @{ name = 'sandbox'; pattern = 'ares-energy-flow-card-dev\.js\?'; path = $devPath }
+  )
+
+  $wc = New-Object Net.WebClient
+  $wc.Headers.Add('User-Agent', 'check-lanes')
+
+  foreach ($lane in $lanes) {
+    $url = $urls | Where-Object { $_ -match $lane.pattern } | Select-Object -First 1
+    if (-not $url) { $problems.Add("$($lane.name) resource URL not found in .storage"); continue }
+
+    $served = $null
+    $servedBytes = 0
+    try {
+      $bytes = $wc.DownloadData($HaBase + $url)
+      $servedBytes = $bytes.Length
+      $served = Get-NormalizedHash $bytes
+    } catch {
+      $problems.Add("$($lane.name) resource $url is not reachable at $HaBase : $($_.Exception.Message)")
+    }
+
+    if ($null -ne $served) {
+      if (Test-Path $lane.path) {
+        $deployed = Get-NormalizedHash ([IO.File]::ReadAllBytes($lane.path))
+        $verdict = if ($served -eq $deployed) { 'matches the deployed file' } else { "MISMATCH vs deployed file $($deployed.Substring(0,12))" }
+        Write-Host ("  {0,-8} {1}  served {2} bytes, sha {3}, {4}" -f $lane.name, $url, $servedBytes, $served.Substring(0,12), $verdict)
+        if ($served -ne $deployed) { $problems.Add("$($lane.name): the bytes HA serves do not match $($lane.path) (stale share, failed upload, or an old ?v=)") }
+      } else {
+        Write-Host ("  {0,-8} {1}  served {2} bytes, sha {3}" -f $lane.name, $url, $servedBytes, $served.Substring(0,12))
+      }
+    }
+  }
 }
 
 Write-Host ''
