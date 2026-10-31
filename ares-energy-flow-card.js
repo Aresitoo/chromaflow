@@ -2232,36 +2232,37 @@ const mode = this._getLayoutMode();
       const evMidY = Math.round(evTopY + (evH / 2));
 
       // 1. Solar Exit Ports (distributed vertically on Solar's right edge)
-      const sHomeY = nodeSolarTopY + 14;     // Upper port (to Home)
-      const sEvY = nodeSolarTopY + 27;       // Middle port (to EV)
-      const sGridY = nodeSolarTopY + 40;     // Lower-middle port (to Grid Out)
-      const sBattY = nodeSolarTopY + 53;     // Port to BESS
+      // 4px of air between ports: separate lines, still one bundle.
+      const sHomeY = nodeSolarTopY + 16;
+      const sEvY = nodeSolarTopY + 20;
+      const sGridY = nodeSolarTopY + 24;
+      const sBattY = nodeSolarTopY + 28;
 
       // 2. Grid In Exit Ports (distributed vertically on Grid In's right edge)
-      const gBattY = nodeGridTopY + 12;      // Top port (to BESS)
-      const gHomeY = nodeGridTopY + 25;      // Middle port (to Home)
-      const gEvY = nodeGridTopY + 38;        // Lower port (to EV)
+      const gBattY = nodeGridTopY + 16;
+      const gHomeY = nodeGridTopY + 20;
+      const gEvY = nodeGridTopY + 24;
 
       // 3. Home Landing Ports (clean 10px center-to-center air gaps on Home's left edge)
-      const hSolarLandingY = homeMidY - 10;  // Solar enters top port
-      const hBatteryLandingY = homeMidY;      // Battery enters center port
-      const hGridLandingY = homeMidY + 10;   // Grid In enters bottom port
+      const hSolarLandingY = homeMidY - 4;
+      const hBatteryLandingY = homeMidY;
+      const hGridLandingY = homeMidY + 4;
 
       // 4. EV Landing Ports (clean 8px center-to-center air gaps on EV's left edge)
-      const evSolarLandingY = evMidY - 8;    // Solar enters top port
-      const evBatteryLandingY = evMidY;      // Battery enters center port
-      const evGridLandingY = evMidY + 8;     // Grid In enters bottom port
+      const evSolarLandingY = evMidY - 4;
+      const evBatteryLandingY = evMidY;
+      const evGridLandingY = evMidY + 4;
 
       // 5. Grid Out Landing Ports (clean 16px center-to-center air gap on Grid Out's left edge)
-      const goSolarLandingY = exportMidY - 8;   // Solar enters top port
-      const goBatteryLandingY = exportMidY + 8; // Battery enters bottom port
+      const goSolarLandingY = exportMidY - 2;
+      const goBatteryLandingY = exportMidY + 2;
 
       // BESS Middle Cluster Ports (all 5 incoming and outgoing lines centered at battMidY)
-      const bSolarLandingY = battMidY - 12; // Solar charges BESS (top of cluster)
-      const bHomeY = battMidY - 6;          // BESS powers Home (upper mid)
-      const bEvY = battMidY;                // BESS powers EV (center)
-      const bGridOutY = battMidY + 6;       // BESS exports to Grid (lower mid)
-      const bGridLandingY = battMidY + 12;  // Grid In charges BESS (bottom of cluster)
+      const bSolarLandingY = battMidY - 8;
+      const bHomeY = battMidY - 4;
+      const bEvY = battMidY;
+      const bGridOutY = battMidY + 4;
+      const bGridLandingY = battMidY + 8;
 
       // Arc radius out into canvas for vertical transitions along the left column
       const cpArcX = Math.round(startX + Math.min(26, Math.max(18, (endX - startX) * 0.2)));
@@ -2291,19 +2292,19 @@ const mode = this._getLayoutMode();
       const battMidY = Math.round(battTopY + (battH / 2));
       const homeBottomY = Math.round(nodeHomeTopY + nodeHomeH);
 
-      const sHomeY = nodeSolarTopY + 14;
-      const sBattY = nodeSolarTopY + 30;
-      const sGridY = nodeSolarTopY + 44;
+      const sHomeY = nodeSolarTopY + 16;
+      const sBattY = nodeSolarTopY + 20;
+      const sGridY = nodeSolarTopY + 24;
 
       const gHomeY = nodeGridTopY + 16;
-      const gBattY = nodeGridTopY + 28;
+      const gBattY = nodeGridTopY + 20;
 
-      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
-      pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${battMidY - 6}, ${endX} ${battMidY - 6}`;
-      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 4}, ${endX} ${homeMidY - 4}`;
+      pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${battMidY - 4}, ${endX} ${battMidY - 4}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
 
-      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
-      pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${battMidY + 6}, ${endX} ${battMidY + 6}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 4}, ${endX} ${homeMidY + 4}`;
+      pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${battMidY + 4}, ${endX} ${battMidY + 4}`;
 
       const maxSweep = Math.max(12, (endX - startX) * 0.4);
       const cpArcX = Math.round(endX - Math.min(36, Math.min(maxSweep, (endX - startX) - 16)));
@@ -2317,28 +2318,28 @@ const mode = this._getLayoutMode();
       const evH = Math.max(50, nodeEv.offsetHeight);
       const evMidY = Math.round(evTopY + (evH / 2));
 
-      const sHomeY = nodeSolarTopY + 14;
-      const sEvY = nodeSolarTopY + 30;
-      const sGridY = nodeSolarTopY + 44;
+      const sHomeY = nodeSolarTopY + 16;
+      const sEvY = nodeSolarTopY + 20;
+      const sGridY = nodeSolarTopY + 24;
 
       const gHomeY = nodeGridTopY + 16;
-      const gEvY = nodeGridTopY + 28;
+      const gEvY = nodeGridTopY + 20;
 
-      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
-      pSolarEV = `M ${startX} ${sEvY} C ${cp1X} ${sEvY}, ${cp2X} ${evMidY}, ${endX} ${evMidY}`;
-      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 4}, ${endX} ${homeMidY - 4}`;
+      pSolarEV = `M ${startX} ${sEvY} C ${cp1X} ${sEvY}, ${cp2X} ${evMidY - 4}, ${endX} ${evMidY - 4}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
 
-      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
-      pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evMidY + 8}, ${endX} ${evMidY + 8}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 4}, ${endX} ${homeMidY + 4}`;
+      pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evMidY + 4}, ${endX} ${evMidY + 4}`;
 
     } else { // 'none' (4-node mode)
       const sHomeY = nodeSolarTopY + 16;
-      const sGridY = nodeSolarTopY + 36;
+      const sGridY = nodeSolarTopY + 20;
       const gHomeY = nodeGridTopY + 16;
 
-      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
-      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
-      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 4}, ${endX} ${homeMidY - 4}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 4}, ${endX} ${homeMidY + 4}`;
     }
 
     const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
