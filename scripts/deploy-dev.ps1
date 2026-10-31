@@ -29,15 +29,21 @@ if ($dirty) {
 $bash = 'C:\Program Files\Git\bin\bash.exe'
 if (-not (Test-Path $bash)) { Fail 'Git bash not found at C:\Program Files\Git\bin\bash.exe' }
 
-& $bash -lc "cd '$(($root -replace '\\','/'))' && tools/make-dev-build.sh ares-energy-flow-card.js .git/deploy-dev.js"
+# Scratch file goes in the git dir, not .git/ by name: in a worktree .git is a file
+# (a gitdir pointer), so a literal .git/ path is not a directory and the build fails.
+$gitDir = (git rev-parse --git-dir).Trim()
+if (-not [IO.Path]::IsPathRooted($gitDir)) { $gitDir = Join-Path $root $gitDir }
+$gitDirUnix = $gitDir -replace '\\','/'
+
+& $bash -lc "cd '$(($root -replace '\\','/'))' && tools/make-dev-build.sh ares-energy-flow-card.js '$gitDirUnix/deploy-dev.js'"
 if ($LASTEXITCODE -ne 0) { Fail 'make-dev-build.sh failed' }
 
-node scripts/check-tags.mjs .git/deploy-dev.js --expect dev
+node scripts/check-tags.mjs "$gitDir/deploy-dev.js" --expect dev
 if ($LASTEXITCODE -ne 0) { Fail 'sandbox build does not register the dev tags, refusing to deploy' }
 
 # Normalise to LF so a deploy from a Windows checkout is byte-identical to one built
 # on the server, and so check-lanes hashes line up exactly.
-$tmp = Join-Path $root '.git\deploy-dev.js'
+$tmp = Join-Path $gitDir 'deploy-dev.js'
 [IO.File]::WriteAllText($tmp, ([IO.File]::ReadAllText($tmp) -replace "`r`n", "`n"), (New-Object Text.UTF8Encoding($false)))
 
 $target = 'H:\www\ares-energy-flow-card-dev.js'
