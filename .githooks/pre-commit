@@ -20,10 +20,13 @@ fi
 node --check ares-energy-flow-card.js
 node scripts/check-tags.mjs ares-energy-flow-card.js --expect prod
 
-# Build the sandbox variant and check it too. Relative paths on purpose: Git for
-# Windows hands node a POSIX /tmp path it cannot open.
-bash tools/make-dev-build.sh ares-energy-flow-card.js .git/pre-commit-dev.js >/dev/null
-node scripts/check-tags.mjs .git/pre-commit-dev.js --expect dev
-rm -f .git/pre-commit-dev.js
+# Build the sandbox variant and check it too. The scratch file goes in the git dir,
+# not .git/ by name: in a worktree .git is a file (a gitdir pointer), so a literal
+# .git/ path is not a directory and the hook would abort every worktree commit.
+# Ask git for the dir instead; it is absolute and node can open it.
+gitdir=$(git rev-parse --git-dir)
+bash tools/make-dev-build.sh ares-energy-flow-card.js "$gitdir/pre-commit-dev.js" >/dev/null
+node scripts/check-tags.mjs "$gitdir/pre-commit-dev.js" --expect dev
+rm -f "$gitdir/pre-commit-dev.js"
 
 echo "pre-commit: card checks passed"
