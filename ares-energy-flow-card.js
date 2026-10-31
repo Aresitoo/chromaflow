@@ -2150,7 +2150,14 @@ const mode = this._getLayoutMode();
 
     // Dynamic node relocation based on layout mode
     if (mode === 'dual' || mode === 'battery-left') {
-      if (this._el.colLeft && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colLeft) {
+      // battery_position: right stacks the BESS under the EV. Honoured in dual now that the
+      // canvas is content-fitted: a fourth box on the right no longer squeezes anything.
+      const battRight = (mode === 'dual' && this._config?.battery_position === 'right');
+      if (battRight) {
+        if (this._el.colRight && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colRight) {
+          this._el.colRight.insertBefore(this._el.nodeBattery, this._el.nodeExport);
+        }
+      } else if (this._el.colLeft && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colLeft) {
         this._el.colLeft.insertBefore(this._el.nodeBattery, this._el.nodeGrid);
       }
       if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'flex';
@@ -2223,8 +2230,11 @@ const mode = this._getLayoutMode();
     let pBatteryGrid = '';
 
     if (mode === 'dual' || mode === 'battery-left') {
-      // Battery is in col-left (middle), EV is in col-right (middle)
-      const battTopY = Math.round(cLeft.offsetTop + nodeBattery.offsetTop);
+      // Battery is in col-left (middle) unless battery_position is right, where it stacks
+      // under the EV and the right column runs Home > EV > BESS > Grid Out.
+      const battRight = (mode === 'dual' && this._config?.battery_position === 'right');
+      const battCol = battRight ? cRight : cLeft;
+      const battTopY = Math.round(battCol.offsetTop + nodeBattery.offsetTop);
       const battH = Math.max(50, nodeBattery.offsetHeight);
       const battBottomY = battTopY + battH;
       const battMidY = Math.round(battTopY + (battH / 2));
@@ -2269,8 +2279,14 @@ const mode = this._getLayoutMode();
       // Arc radius out into canvas for vertical transitions along the left column
       const cpArcX = Math.round(startX + Math.min(26, Math.max(18, (endX - startX) * 0.2)));
 
-      pSolarBattery = `M ${startX} ${sBattY} C ${cpArcX} ${sBattY + 25}, ${cpArcX} ${bSolarLandingY - 20}, ${startX} ${bSolarLandingY}`;
-      pGridBattery = `M ${startX} ${gBattY} C ${cpArcX} ${gBattY - 15}, ${cpArcX} ${bGridLandingY + 15}, ${startX} ${bGridLandingY}`;
+      if (battRight) {
+        // Charging crosses the gutter onto the BESS's left edge, like any other cross flow.
+        pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${bSolarLandingY}, ${endX} ${bSolarLandingY}`;
+        pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${bGridLandingY}, ${endX} ${bGridLandingY}`;
+      } else {
+        pSolarBattery = `M ${startX} ${sBattY} C ${cpArcX} ${sBattY + 25}, ${cpArcX} ${bSolarLandingY - 20}, ${startX} ${bSolarLandingY}`;
+        pGridBattery = `M ${startX} ${gBattY} C ${cpArcX} ${gBattY - 15}, ${cpArcX} ${bGridLandingY + 15}, ${startX} ${bGridLandingY}`;
+      }
 
       // Cross flows from Solar
       pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${hSolarLandingY}, ${endX} ${hSolarLandingY}`;
@@ -2282,9 +2298,18 @@ const mode = this._getLayoutMode();
       pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evGridLandingY}, ${endX} ${evGridLandingY}`;
 
       // Battery discharge paths (radiating from BESS middle cluster)
-      pBatteryHome = `M ${startX} ${bHomeY} C ${cp1X} ${bHomeY}, ${cp2X} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
-      pBatteryEV = `M ${startX} ${bEvY} C ${cp1X} ${bEvY}, ${cp2X} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
-      pBatteryGrid = `M ${startX} ${bGridOutY} C ${cp1X} ${bGridOutY}, ${cp2X} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+      if (battRight) {
+        // Source and destination now share an x, so each departure hooks out into the
+        // gutter and returns. The Home hook is widest to clear the EV box above it.
+        const hook = Math.max(18, Math.min(46, Math.round((endX - startX) * 0.3)));
+        pBatteryHome = `M ${endX} ${bHomeY} C ${endX - hook} ${bHomeY}, ${endX - hook} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
+        pBatteryEV = `M ${endX} ${bEvY} C ${endX - Math.round(hook * 0.55)} ${bEvY}, ${endX - Math.round(hook * 0.55)} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
+        pBatteryGrid = `M ${endX} ${bGridOutY} C ${endX - Math.round(hook * 0.35)} ${bGridOutY}, ${endX - Math.round(hook * 0.35)} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+      } else {
+        pBatteryHome = `M ${startX} ${bHomeY} C ${cp1X} ${bHomeY}, ${cp2X} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
+        pBatteryEV = `M ${startX} ${bEvY} C ${cp1X} ${bEvY}, ${cp2X} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
+        pBatteryGrid = `M ${startX} ${bGridOutY} C ${cp1X} ${bGridOutY}, ${cp2X} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+      }
 
     } else if (mode === 'battery-only') {
       // Battery is in col-right (middle)
