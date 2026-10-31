@@ -3706,6 +3706,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       battery_soc: resolve('battery_soc', ['sensor.battery_soc', 'sensor.battery_state_of_charge', 'sensor.powerwall_charge']),
       battery_daily_charge: resolve('battery_daily_charge', ['sensor.battery_daily_charge_energy', 'sensor.battery_charge_today']),
       battery_daily_discharge: resolve('battery_daily_discharge', ['sensor.battery_daily_discharge_energy', 'sensor.battery_discharge_today']),
+      battery_temp: resolve('battery_temp', ['sensor.battery_temperature', 'sensor.powerwall_battery_temperature', 'sensor.bess_temperature']),
+      battery_soh: resolve('battery_soh', ['sensor.battery_state_of_health', 'sensor.bess_soh', 'sensor.battery_health']),
       ev_power: resolve('ev_power', ['sensor.evse_192_168_0_249_charge_power', 'sensor.v2c_trydan_power', 'sensor.wallbox_power']),
       ev_charging: resolve('ev_charging', ['binary_sensor.evse_192_168_0_249_charging', 'binary_sensor.v2c_trydan_charging', 'binary_sensor.wallbox_charging']),
       ev_daily_energy: resolve('ev_daily_energy', ['sensor.v2c_charging_stats', 'sensor.evse_192_168_0_249_charge_energy', 'sensor.wallbox_energy_added']),
