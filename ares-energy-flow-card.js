@@ -379,7 +379,8 @@ class AresEnergyFlowCard extends HTMLElement {
       battery_name: 'BESS',
       ev_name: 'Tesla',
       battery_positive_charging: true,
-      home_net_battery: false
+      home_net_battery: false,
+      show_sim_toolbar: false
     };
   }
 
@@ -793,7 +794,7 @@ class AresEnergyFlowCard extends HTMLElement {
       spaced_layout: false,
       battery_capacity_kwh: 0,
       solar_priority: 'home',
-      show_sim_toolbar: true,
+      show_sim_toolbar: false,
       ...config
     };
 
@@ -1484,7 +1485,7 @@ class AresEnergyFlowCard extends HTMLElement {
         <div class="bg-glow"></div>
         <div class="content">
           <!-- Interactive Simulation Test Bench Toolbar -->
-          <div id="sim-toolbar" class="sim-toolbar" style="display: ${this._config?.show_sim_toolbar !== false ? 'flex' : 'none'};">
+          <div id="sim-toolbar" class="sim-toolbar" style="display: ${this._config?.show_sim_toolbar === true ? 'flex' : 'none'};">
             <span class="sim-label"><span class="node-emoji">🎮 </span>SCENARIO:</span>
             <select id="sim-scenario-select" class="sim-select">
               <option value="live">🟢 Live Telemetry (My Card Settings)</option>
@@ -2489,7 +2490,7 @@ const mode = this._getLayoutMode();
     const showBattRow = hasBatt && (this._config?.show_battery_row !== false);
     if (this._el.rowBatteryContainer) this._el.rowBatteryContainer.style.display = showBattRow ? 'flex' : 'none';
 
-    const showSim = (this._config?.show_sim_toolbar !== false);
+    const showSim = (this._config?.show_sim_toolbar === true);
     const simEl = this.shadowRoot.getElementById('sim-toolbar');
     if (simEl) simEl.style.display = showSim ? 'flex' : 'none';
 
@@ -3595,7 +3596,7 @@ const mode = this._getLayoutMode();
     const eTariff = ents.electricity_tariff ? this._hass?.states[ents.electricity_tariff] : null;
     const spotTariff = (eTariff && !isNaN(parseFloat(eTariff.state))) ? parseFloat(eTariff.state) : (typeof this._config?.fixed_tariff === 'number' ? this._config.fixed_tariff : 0.118);
     const exportRate = typeof this._config?.export_compensation_rate === 'number' ? this._config.export_compensation_rate : 0.0726;
-    const curr = this._config?.currency_symbol || '€';
+    const curr = this._getCurrencySymbol();
 
     const selfConsumedVal = selfConsumedKwh * spotTariff;
     const exportCreditVal = kwhGridExport * exportRate;
@@ -3603,8 +3604,8 @@ const mode = this._getLayoutMode();
     const gridImportCost = kwhGridImport * spotTariff;
     const netBalanceVal = exportCreditVal - gridImportCost;
 
-    const grossSolarStr = `${grossSolarVal.toFixed(2).replace('.', ',')} ${curr}`;
-    const netBalanceStr = `${netBalanceVal >= 0 ? '+' : ''}${netBalanceVal.toFixed(2).replace('.', ',')} ${curr}`;
+    const grossSolarStr = this._formatCurrency(grossSolarVal, curr, false);
+    const netBalanceStr = this._formatCurrency(netBalanceVal, curr, true);
     const isNetPositive = (netBalanceVal >= 0);
 
     // Apply visibility based on placement
@@ -3629,7 +3630,7 @@ const mode = this._getLayoutMode();
     if (el.badgeSolarFin) {
       if (finPlacement === 'solar_box') {
         el.badgeSolarFin.style.display = 'inline-block';
-        el.badgeSolarFin.textContent = `+${grossSolarStr}`;
+        el.badgeSolarFin.textContent = this._formatCurrency(grossSolarVal, curr, true);
       } else {
         el.badgeSolarFin.style.display = 'none';
       }
@@ -3644,6 +3645,30 @@ const mode = this._getLayoutMode();
         el.scorecardFinRow.style.display = 'none';
       }
     }
+  }
+
+  _getCurrencySymbol() {
+    if (this._config?.currency_symbol) return this._config.currency_symbol;
+    const haCurr = this._hass?.config?.currency;
+    if (haCurr) {
+      if (['USD', 'CAD', 'AUD', 'NZD'].includes(haCurr)) return '$';
+      if (haCurr === 'GBP') return '£';
+      if (haCurr === 'EUR') return '€';
+      if (haCurr === 'JPY') return '¥';
+      return haCurr;
+    }
+    return '€';
+  }
+
+  _formatCurrency(val, curr, includePlus = false) {
+    const isPrefix = (curr === '$' || curr === '£' || curr === '¥');
+    const absVal = Math.abs(val);
+    const numStr = isPrefix ? absVal.toFixed(2) : absVal.toFixed(2).replace('.', ',');
+    const sign = val < -0.0001 ? '-' : (includePlus && val > 0.0001 ? '+' : '');
+    if (isPrefix) {
+      return `${sign}${curr}${numStr}`;
+    }
+    return `${sign}${numStr} ${curr}`;
   }
 
   getCardSize() {
@@ -4559,7 +4584,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         electricity_tariff: ents.electricity_tariff || this._config.electricity_tariff || '',
         export_compensation_rate: (typeof this._config.export_compensation_rate === 'number') ? this._config.export_compensation_rate : 0.0726,
         fixed_tariff: (typeof this._config.fixed_tariff === 'number') ? this._config.fixed_tariff : 0.118,
-        currency_symbol: this._config.currency_symbol || '€',
+        currency_symbol: this._config.currency_symbol || '',
         ...srcSlots
       };
       if (this._hass) this._forms.solar.hass = this._hass;
@@ -4657,7 +4682,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       this._forms.display.data = {
         financial_placement: this._config?.financial_placement || 'none',
         show_emojis: this._config?.show_emojis !== false,
-        show_sim_toolbar: this._config?.show_sim_toolbar !== false,
+        show_sim_toolbar: this._config?.show_sim_toolbar === true,
         show_idle_rails: this._config?.show_idle_rails !== false,
         spaced_layout: this._config?.spaced_layout === true,
         solar_priority: this._config?.solar_priority || 'home',
@@ -4743,7 +4768,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.financial_placement = val.financial_placement || 'none';
       if (typeof val.export_compensation_rate === 'number') cfg.export_compensation_rate = val.export_compensation_rate;
       if (typeof val.fixed_tariff === 'number') cfg.fixed_tariff = val.fixed_tariff;
-      if (val.currency_symbol) cfg.currency_symbol = val.currency_symbol;
+      cfg.currency_symbol = val.currency_symbol || '';
     } else if (secId === 'grid') {
       cfg.show_grid_in = val.show_grid_in !== false;
       cfg.show_grid_out = Boolean(val.show_grid_out);
@@ -4900,10 +4925,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         { value: "solar_box", label: "Solar Node Badge" },
         { value: "scorecard", label: "Autarky Scorecard Row" }
       ] } } },
-      { name: "electricity_tariff", label: "Electricity Spot Tariff Sensor (€/kWh)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "export_compensation_rate", label: "Solar Export Compensation Rate (€/kWh)", selector: { number: { min: 0, max: 1, step: 0.0001, mode: "box" } } },
-      { name: "fixed_tariff", label: "Fallback / Fixed Tariff (€/kWh)", selector: { number: { min: 0, max: 1, step: 0.001, mode: "box" } } },
-      { name: "currency_symbol", label: "Currency Symbol", selector: { text: {} } }
+      { name: "electricity_tariff", label: "Electricity Spot Tariff Sensor (cost/kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "export_compensation_rate", label: "Solar Export Compensation Rate (credit/kWh)", selector: { number: { min: 0, max: 1, step: 0.0001, mode: "box" } } },
+      { name: "fixed_tariff", label: "Fallback / Fixed Tariff (cost/kWh)", selector: { number: { min: 0, max: 1, step: 0.001, mode: "box" } } },
+      { name: "currency_symbol", label: "Currency Symbol (e.g. $, €, £ - auto-detected from Home Assistant if blank)", selector: { text: {} } }
     ];
   }
 
@@ -5022,7 +5047,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       },
       {
         name: "show_sim_toolbar",
-        label: "Show Simulation Test Bench (Clickable scenario presets at top)",
+        label: "Show Simulation Test Bench (Scenario presets toolbar at top - for testing only)",
         selector: { boolean: {} }
       },
       {
