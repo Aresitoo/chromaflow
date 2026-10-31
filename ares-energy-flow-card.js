@@ -378,7 +378,8 @@ class AresEnergyFlowCard extends HTMLElement {
       battery_position: 'left',
       battery_name: 'BESS',
       ev_name: 'Tesla',
-      battery_positive_charging: true
+      battery_positive_charging: true,
+      home_net_battery: false
     };
   }
 
@@ -782,6 +783,7 @@ class AresEnergyFlowCard extends HTMLElement {
       show_battery_row: true,
       battery_primary_view: 'live',
       battery_positive_charging: true,
+      home_net_battery: false,
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
       show_grid_out: true,
@@ -3305,10 +3307,19 @@ const mode = this._getLayoutMode();
     const kwhGridImport = this._parseEnergy(eGridImport);
     const kwhGridExport = this._parseEnergy(eGridExport);
     const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
-    const homeSolarKwh = (hasEv && evDailyKwh > 0) ? Math.max(0, selfConsumedKwh - evDailyKwh) : selfConsumedKwh;
+    let homeSolarKwh = selfConsumedKwh;
+    if (this._config?.home_net_battery === true && hasBatt) {
+      const kwhBattCharge = this._parseEnergy(eBattCharge);
+      const kwhBattDischarge = this._parseEnergy(eBattDischarge);
+      homeSolarKwh = Math.max(0, selfConsumedKwh - kwhBattCharge + kwhBattDischarge);
+    }
+    if (hasEv && evDailyKwh > 0) {
+      homeSolarKwh = Math.max(0, homeSolarKwh - evDailyKwh);
+    }
 
+    const homeSolarLabel = (this._config?.home_net_battery && this._config?.allow_grid_to_battery) ? 'home use' : 'solar';
     el.pwrHome.textContent = fmtPwr(liveHomeW);
-    el.kwhHome.textContent = `${fmtKwh(homeSolarKwh)} kWh solar`;
+    el.kwhHome.textContent = `${fmtKwh(homeSolarKwh)} kWh ${homeSolarLabel}`;
 
     // Dynamic Home Badge (restored from original design)
     const showHomeBadge = (this._config?.show_home_badge !== false);
@@ -4583,6 +4594,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         show_battery_soc: this._config.show_battery_soc !== false,
         show_battery_badge: this._config.show_battery_badge !== false,
         show_battery_row: this._config.show_battery_row !== false,
+        home_net_battery: this._config.home_net_battery === true,
         battery_primary_view: this._config.battery_primary_view === 'stats' ? 'stats' : 'live',
         battery_tapped_view: this._config.battery_tapped_view || 'energy_totals',
         battery_custom_stat_1: this._config.battery_custom_stat_1 || '',
@@ -4752,6 +4764,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.show_battery_soc = Boolean(val.show_battery_soc);
       cfg.show_battery_badge = Boolean(val.show_battery_badge);
       cfg.show_battery_row = val.show_battery_row !== false;
+      cfg.home_net_battery = Boolean(val.home_net_battery);
       cfg.battery_primary_view = val.battery_primary_view === 'stats' ? 'stats' : 'live';
       cfg.show_ev = Boolean(val.show_ev);
       cfg.allow_battery_to_ev = Boolean(val.allow_battery_to_ev);
@@ -4918,6 +4931,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "show_battery_soc", label: "Show Home Battery % and Progress Bar", selector: { boolean: {} } },
       { name: "show_battery_badge", label: "Show Home Battery State Badge", selector: { boolean: {} } },
       { name: "show_battery_row", label: "Show 'Discharged Today' Row in the Scorecard", selector: { boolean: {} } },
+      { name: "home_net_battery", label: "Home Solar: Deduct Battery Charging & Add Discharging (Net Solar Consumed)", selector: { boolean: {} } },
       { name: "battery_positive_charging", label: "Battery Sign: Positive Power Means Charging (turn off if your inverter reports charging as negative)", selector: { boolean: {} } },
       { name: "battery_primary_view", label: "Home Battery Node: Default View", selector: { select: { options: [
         { value: "live", label: "Live Power & State of Charge (Default)" },
