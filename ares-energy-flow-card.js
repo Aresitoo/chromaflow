@@ -323,7 +323,7 @@ function resolveRailColors(colors, pal) {
     home: p.home || '#00e5ff',
     battery: p.battery || '#10b981',
     ev: p.ev || p.device || '#b388ff',
-    export: p.export || '#00e676'
+    export: p.export_ring || p.export || '#ffd54f'
   };
   const out = {};
   for (const rail of Object.keys(RAIL_TARGETS)) {
@@ -372,6 +372,7 @@ class AresEnergyFlowCard extends HTMLElement {
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
       show_grid_out: true,
+      show_grid_in: true,
       battery_capacity_kwh: 0,
       solar_priority: 'home',
       battery_position: 'left',
@@ -784,8 +785,10 @@ class AresEnergyFlowCard extends HTMLElement {
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
       show_grid_out: true,
+      show_grid_in: true,
       show_export: true,
       show_idle_rails: true,
+      spaced_layout: false,
       battery_capacity_kwh: 0,
       solar_priority: 'home',
       show_sim_toolbar: true,
@@ -846,7 +849,7 @@ class AresEnergyFlowCard extends HTMLElement {
       // hass after setConfig, so the first visibility pass runs while nothing is resolvable.
       // Re-run it whenever those inputs change, or the EV and battery rails stay hidden for
       // the life of the card.
-      const visKey = [this._getLayoutMode(), this._hasBattery(), this._hasEv(), this._config?.show_grid_out, this._config?.show_export].join('|');
+      const visKey = [this._getLayoutMode(), this._hasBattery(), this._hasEv(), this._config?.show_grid_out, this._config?.show_grid_in, this._config?.show_export].join('|');
       if (this._visKey !== visKey) {
         this._visKey = visKey;
         this._applyConfigVisibility();
@@ -1041,7 +1044,7 @@ class AresEnergyFlowCard extends HTMLElement {
     const cSolarEvEnd = colors.flow_solar_ev_end || (colors.flow_solar_ev ? colors.flow_solar_ev : (pal.ev || pal.device));
 
     const cSolarGridStart = colors.flow_solar_grid_start || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.solar);
-    const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.export);
+    const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : (pal.export_ring || pal.export));
 
     const cGridHomeStart = colors.flow_grid_home_start || (colors.flow_grid_home ? colors.flow_grid_home : pal.grid);
     const cGridHomeEnd = colors.flow_grid_home_end || (colors.flow_grid_home ? colors.flow_grid_home : pal.home);
@@ -1059,7 +1062,7 @@ class AresEnergyFlowCard extends HTMLElement {
     const cBatteryEvEnd = colors.flow_battery_ev_end || (colors.flow_battery_ev ? colors.flow_battery_ev : (pal.ev || pal.device));
 
     const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : (pal.battery || '#10b981'));
-    const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.export);
+    const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : (pal.export_ring || pal.export));
 
     const railColors = resolveRailColors(colors, pal);
 
@@ -1250,6 +1253,9 @@ class AresEnergyFlowCard extends HTMLElement {
           z-index: 2;
           box-sizing: border-box;
         }
+        /* Nodes keep their content height and the canvas is fitted to them, so a
+           column with only two boxes packs instead of spreading over dead space. */
+        .col-left > .node, .col-right > .node { flex-shrink: 0; }
         svg.flow-svg {
           position: absolute;
           inset: 0;
@@ -2091,11 +2097,54 @@ class AresEnergyFlowCard extends HTMLElement {
     setTimeout(() => this._updateFlowPaths(), 200);
   }
 
+  _fitCanvasHeight() {
+    const canvas = this._canvasArea;
+    if (!canvas || !this._el) return 0;
+    const PAD = 3;
+    const GAP = 6;
+    let needed = 0;
+    for (const col of [this._el.colLeft, this._el.colRight]) {
+      if (!col) continue;
+      let count = 0;
+      let sum = 0;
+      for (const node of Array.from(col.children)) {
+        if (!node || node.offsetHeight <= 0) continue;
+        if (node.style && node.style.display === 'none') continue;
+        sum += node.offsetHeight;
+        count++;
+      }
+      if (!count) continue;
+      needed = Math.max(needed, sum + GAP * (count - 1) + PAD * 2);
+    }
+    if (needed <= 0) return 0;
+
+    // Spaced layout keeps the pre-fit look: the canvas falls back to its CSS height
+    // (232 / 258 / 290 / 330 by layout) and only grows when content needs more.
+    if (this._config?.spaced_layout === true) {
+      const prevT = canvas.style.transition;
+      canvas.style.transition = 'none';
+      canvas.style.height = '';
+      needed = Math.max(needed, Math.round(canvas.getBoundingClientRect().height));
+      canvas.style.transition = prevT;
+    }
+
+    needed = Math.round(needed);
+    const current = Math.round(canvas.getBoundingClientRect().height);
+    if (Math.abs(current - needed) <= 1) return current;
+    // Jump straight to the fitted height; the 0.3s height transition would make
+    // the path pass measure the boxes mid-slide.
+    const prevTransition = canvas.style.transition;
+    canvas.style.transition = 'none';
+    canvas.style.height = needed + 'px';
+    void canvas.offsetHeight;
+    canvas.style.transition = prevTransition;
+    return needed;
+  }
+
   _updateFlowPaths(w, h) {
     if (!this._canvasArea || !this._svg || !this._el) return;
     const width = Math.round(w || this._canvasArea.clientWidth || 400);
-    const height = Math.round(h || this._canvasArea.clientHeight || 232);
-    if (width <= 0 || height <= 0) return;
+    if (width <= 0) return;
 
 const mode = this._getLayoutMode();
     const card = this.shadowRoot.querySelector('ha-card');
@@ -2111,7 +2160,14 @@ const mode = this._getLayoutMode();
 
     // Dynamic node relocation based on layout mode
     if (mode === 'dual' || mode === 'battery-left') {
-      if (this._el.colLeft && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colLeft) {
+      // battery_position: right stacks the BESS under the EV. Honoured in dual now that the
+      // canvas is content-fitted: a fourth box on the right no longer squeezes anything.
+      const battRight = (mode === 'dual' && this._config?.battery_position === 'right');
+      if (battRight) {
+        if (this._el.colRight && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colRight) {
+          this._el.colRight.insertBefore(this._el.nodeBattery, this._el.nodeExport);
+        }
+      } else if (this._el.colLeft && this._el.nodeBattery && this._el.nodeBattery.parentNode !== this._el.colLeft) {
         this._el.colLeft.insertBefore(this._el.nodeBattery, this._el.nodeGrid);
       }
       if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'flex';
@@ -2129,6 +2185,13 @@ const mode = this._getLayoutMode();
       if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'none';
       if (this._el.nodeEv) this._el.nodeEv.style.display = 'none';
     }
+
+    // Fit the canvas to the tallest column before measuring anything. The columns
+    // are absolutely positioned and stretch to the canvas, so a fixed canvas height
+    // leaves slack that `justify-content: space-between` pushes between the boxes.
+    this._fitCanvasHeight();
+    const height = Math.round(h || this._canvasArea.clientHeight || 232);
+    if (height <= 0) return;
 
     this._svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
@@ -2177,8 +2240,11 @@ const mode = this._getLayoutMode();
     let pBatteryGrid = '';
 
     if (mode === 'dual' || mode === 'battery-left') {
-      // Battery is in col-left (middle), EV is in col-right (middle)
-      const battTopY = Math.round(cLeft.offsetTop + nodeBattery.offsetTop);
+      // Battery is in col-left (middle) unless battery_position is right, where it stacks
+      // under the EV and the right column runs Home > EV > BESS > Grid Out.
+      const battRight = (mode === 'dual' && this._config?.battery_position === 'right');
+      const battCol = battRight ? cRight : cLeft;
+      const battTopY = Math.round(battCol.offsetTop + nodeBattery.offsetTop);
       const battH = Math.max(50, nodeBattery.offsetHeight);
       const battBottomY = battTopY + battH;
       const battMidY = Math.round(battTopY + (battH / 2));
@@ -2188,42 +2254,49 @@ const mode = this._getLayoutMode();
       const evMidY = Math.round(evTopY + (evH / 2));
 
       // 1. Solar Exit Ports (distributed vertically on Solar's right edge)
-      const sHomeY = nodeSolarTopY + 14;     // Upper port (to Home)
-      const sEvY = nodeSolarTopY + 27;       // Middle port (to EV)
-      const sGridY = nodeSolarTopY + 40;     // Lower-middle port (to Grid Out)
-      const sBattY = nodeSolarTopY + 53;     // Port to BESS
+      // 4px of air between ports: separate lines, still one bundle.
+      const sHomeY = nodeSolarTopY + 16;
+      const sEvY = nodeSolarTopY + 20;
+      const sGridY = nodeSolarTopY + 24;
+      const sBattY = nodeSolarTopY + 28;
 
       // 2. Grid In Exit Ports (distributed vertically on Grid In's right edge)
-      const gBattY = nodeGridTopY + 12;      // Top port (to BESS)
-      const gHomeY = nodeGridTopY + 25;      // Middle port (to Home)
-      const gEvY = nodeGridTopY + 38;        // Lower port (to EV)
+      const gBattY = nodeGridTopY + 16;
+      const gHomeY = nodeGridTopY + 20;
+      const gEvY = nodeGridTopY + 24;
 
       // 3. Home Landing Ports (clean 10px center-to-center air gaps on Home's left edge)
-      const hSolarLandingY = homeMidY - 10;  // Solar enters top port
-      const hBatteryLandingY = homeMidY;      // Battery enters center port
-      const hGridLandingY = homeMidY + 10;   // Grid In enters bottom port
+      const hSolarLandingY = homeMidY - 4;
+      const hBatteryLandingY = homeMidY;
+      const hGridLandingY = homeMidY + 4;
 
       // 4. EV Landing Ports (clean 8px center-to-center air gaps on EV's left edge)
-      const evSolarLandingY = evMidY - 8;    // Solar enters top port
-      const evBatteryLandingY = evMidY;      // Battery enters center port
-      const evGridLandingY = evMidY + 8;     // Grid In enters bottom port
+      const evSolarLandingY = evMidY - 4;
+      const evBatteryLandingY = evMidY;
+      const evGridLandingY = evMidY + 4;
 
       // 5. Grid Out Landing Ports (clean 16px center-to-center air gap on Grid Out's left edge)
-      const goSolarLandingY = exportMidY - 8;   // Solar enters top port
-      const goBatteryLandingY = exportMidY + 8; // Battery enters bottom port
+      const goSolarLandingY = exportMidY - 2;
+      const goBatteryLandingY = exportMidY + 2;
 
       // BESS Middle Cluster Ports (all 5 incoming and outgoing lines centered at battMidY)
-      const bSolarLandingY = battMidY - 12; // Solar charges BESS (top of cluster)
-      const bHomeY = battMidY - 6;          // BESS powers Home (upper mid)
-      const bEvY = battMidY;                // BESS powers EV (center)
-      const bGridOutY = battMidY + 6;       // BESS exports to Grid (lower mid)
-      const bGridLandingY = battMidY + 12;  // Grid In charges BESS (bottom of cluster)
+      const bSolarLandingY = battMidY - 8;
+      const bHomeY = battMidY - 4;
+      const bEvY = battMidY;
+      const bGridOutY = battMidY + 4;
+      const bGridLandingY = battMidY + 8;
 
       // Arc radius out into canvas for vertical transitions along the left column
       const cpArcX = Math.round(startX + Math.min(26, Math.max(18, (endX - startX) * 0.2)));
 
-      pSolarBattery = `M ${startX} ${sBattY} C ${cpArcX} ${sBattY + 25}, ${cpArcX} ${bSolarLandingY - 20}, ${startX} ${bSolarLandingY}`;
-      pGridBattery = `M ${startX} ${gBattY} C ${cpArcX} ${gBattY - 15}, ${cpArcX} ${bGridLandingY + 15}, ${startX} ${bGridLandingY}`;
+      if (battRight) {
+        // Charging crosses the gutter onto the BESS's left edge, like any other cross flow.
+        pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${bSolarLandingY}, ${endX} ${bSolarLandingY}`;
+        pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${bGridLandingY}, ${endX} ${bGridLandingY}`;
+      } else {
+        pSolarBattery = `M ${startX} ${sBattY} C ${cpArcX} ${sBattY + 25}, ${cpArcX} ${bSolarLandingY - 20}, ${startX} ${bSolarLandingY}`;
+        pGridBattery = `M ${startX} ${gBattY} C ${cpArcX} ${gBattY - 15}, ${cpArcX} ${bGridLandingY + 15}, ${startX} ${bGridLandingY}`;
+      }
 
       // Cross flows from Solar
       pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${hSolarLandingY}, ${endX} ${hSolarLandingY}`;
@@ -2235,9 +2308,18 @@ const mode = this._getLayoutMode();
       pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evGridLandingY}, ${endX} ${evGridLandingY}`;
 
       // Battery discharge paths (radiating from BESS middle cluster)
-      pBatteryHome = `M ${startX} ${bHomeY} C ${cp1X} ${bHomeY}, ${cp2X} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
-      pBatteryEV = `M ${startX} ${bEvY} C ${cp1X} ${bEvY}, ${cp2X} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
-      pBatteryGrid = `M ${startX} ${bGridOutY} C ${cp1X} ${bGridOutY}, ${cp2X} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+      if (battRight) {
+        // Source and destination now share an x, so each departure hooks out into the
+        // gutter and returns. The Home hook is widest to clear the EV box above it.
+        const hook = Math.max(18, Math.min(46, Math.round((endX - startX) * 0.3)));
+        pBatteryHome = `M ${endX} ${bHomeY} C ${endX - hook} ${bHomeY}, ${endX - hook} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
+        pBatteryEV = `M ${endX} ${bEvY} C ${endX - Math.round(hook * 0.55)} ${bEvY}, ${endX - Math.round(hook * 0.55)} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
+        pBatteryGrid = `M ${endX} ${bGridOutY} C ${endX - Math.round(hook * 0.35)} ${bGridOutY}, ${endX - Math.round(hook * 0.35)} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+      } else {
+        pBatteryHome = `M ${startX} ${bHomeY} C ${cp1X} ${bHomeY}, ${cp2X} ${hBatteryLandingY}, ${endX} ${hBatteryLandingY}`;
+        pBatteryEV = `M ${startX} ${bEvY} C ${cp1X} ${bEvY}, ${cp2X} ${evBatteryLandingY}, ${endX} ${evBatteryLandingY}`;
+        pBatteryGrid = `M ${startX} ${bGridOutY} C ${cp1X} ${bGridOutY}, ${cp2X} ${goBatteryLandingY}, ${endX} ${goBatteryLandingY}`;
+      }
 
     } else if (mode === 'battery-only') {
       // Battery is in col-right (middle)
@@ -2247,19 +2329,19 @@ const mode = this._getLayoutMode();
       const battMidY = Math.round(battTopY + (battH / 2));
       const homeBottomY = Math.round(nodeHomeTopY + nodeHomeH);
 
-      const sHomeY = nodeSolarTopY + 14;
-      const sBattY = nodeSolarTopY + 30;
-      const sGridY = nodeSolarTopY + 44;
+      const sHomeY = nodeSolarTopY + 16;
+      const sBattY = nodeSolarTopY + 20;
+      const sGridY = nodeSolarTopY + 24;
 
       const gHomeY = nodeGridTopY + 16;
-      const gBattY = nodeGridTopY + 28;
+      const gBattY = nodeGridTopY + 20;
 
-      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
-      pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${battMidY - 6}, ${endX} ${battMidY - 6}`;
-      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 4}, ${endX} ${homeMidY - 4}`;
+      pSolarBattery = `M ${startX} ${sBattY} C ${cp1X} ${sBattY}, ${cp2X} ${battMidY - 4}, ${endX} ${battMidY - 4}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
 
-      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
-      pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${battMidY + 6}, ${endX} ${battMidY + 6}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 4}, ${endX} ${homeMidY + 4}`;
+      pGridBattery = `M ${startX} ${gBattY} C ${cp1X} ${gBattY}, ${cp2X} ${battMidY + 4}, ${endX} ${battMidY + 4}`;
 
       const maxSweep = Math.max(12, (endX - startX) * 0.4);
       const cpArcX = Math.round(endX - Math.min(36, Math.min(maxSweep, (endX - startX) - 16)));
@@ -2273,34 +2355,42 @@ const mode = this._getLayoutMode();
       const evH = Math.max(50, nodeEv.offsetHeight);
       const evMidY = Math.round(evTopY + (evH / 2));
 
-      const sHomeY = nodeSolarTopY + 14;
-      const sEvY = nodeSolarTopY + 30;
-      const sGridY = nodeSolarTopY + 44;
+      const sHomeY = nodeSolarTopY + 16;
+      const sEvY = nodeSolarTopY + 20;
+      const sGridY = nodeSolarTopY + 24;
 
       const gHomeY = nodeGridTopY + 16;
-      const gEvY = nodeGridTopY + 28;
+      const gEvY = nodeGridTopY + 20;
 
-      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
-      pSolarEV = `M ${startX} ${sEvY} C ${cp1X} ${sEvY}, ${cp2X} ${evMidY}, ${endX} ${evMidY}`;
-      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 4}, ${endX} ${homeMidY - 4}`;
+      pSolarEV = `M ${startX} ${sEvY} C ${cp1X} ${sEvY}, ${cp2X} ${evMidY - 4}, ${endX} ${evMidY - 4}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
 
-      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
-      pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evMidY + 8}, ${endX} ${evMidY + 8}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 4}, ${endX} ${homeMidY + 4}`;
+      pGridEV = `M ${startX} ${gEvY} C ${cp1X} ${gEvY}, ${cp2X} ${evMidY + 4}, ${endX} ${evMidY + 4}`;
 
     } else { // 'none' (4-node mode)
       const sHomeY = nodeSolarTopY + 16;
-      const sGridY = nodeSolarTopY + 36;
+      const sGridY = nodeSolarTopY + 20;
       const gHomeY = nodeGridTopY + 16;
 
-      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 8}, ${endX} ${homeMidY - 8}`;
-      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY - 8}, ${endX} ${exportMidY - 8}`;
-      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 8}, ${endX} ${homeMidY + 8}`;
+      pSolarHome = `M ${startX} ${sHomeY} C ${cp1X} ${sHomeY}, ${cp2X} ${homeMidY - 4}, ${endX} ${homeMidY - 4}`;
+      pSolarGrid = `M ${startX} ${sGridY} C ${cp1X} ${sGridY}, ${cp2X} ${exportMidY}, ${endX} ${exportMidY}`;
+      pGridHome = `M ${startX} ${gHomeY} C ${cp1X} ${gHomeY}, ${cp2X} ${homeMidY + 4}, ${endX} ${homeMidY + 4}`;
     }
 
     const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
     if (!showExport) {
       pSolarGrid = '';
       pBatteryGrid = '';
+    }
+
+    // A hidden Grid In takes its offsetTop with it, so blank the paths that would
+    // otherwise be drawn from y=0.
+    if (this._config?.show_grid_in === false) {
+      pGridHome = '';
+      pGridEV = '';
+      pGridBattery = '';
     }
 
     const setAttr = (el, d) => {
@@ -2378,6 +2468,8 @@ const mode = this._getLayoutMode();
     const isStress = (this._activePreset === 'all_flows_active');
     const allowBattToEv = Boolean(this._config?.allow_battery_to_ev) || (this._activePreset === 'batt_to_ev') || isStress || (this._activePreset === 'solar_batt_supply');
     const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
+    const showGridIn = (this._config?.show_grid_in !== false);
+    if (this._el.nodeGrid) this._el.nodeGrid.style.display = showGridIn ? 'flex' : 'none';
     if (this._el.nodeExport) this._el.nodeExport.style.display = showExport ? 'flex' : 'none';
     if (this._el.railSolarGrid) this._el.railSolarGrid.style.display = showExport ? 'block' : 'none';
     if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = (showExport && hasBatt) ? 'block' : 'none';
@@ -4464,6 +4556,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
 
     if (this._forms.grid) {
       this._forms.grid.data = {
+        show_grid_in: this._config.show_grid_in !== false,
         show_grid_out: this._config.show_grid_out !== false && this._config.show_export !== false,
         grid_power: ents.grid_power || '',
         grid_export_power: ents.grid_export_power || '',
@@ -4554,6 +4647,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         show_emojis: this._config?.show_emojis !== false,
         show_sim_toolbar: this._config?.show_sim_toolbar !== false,
         show_idle_rails: this._config?.show_idle_rails !== false,
+        spaced_layout: this._config?.spaced_layout === true,
         solar_priority: this._config?.solar_priority || 'home',
         font_scale: this._config.font_scale ?? 1.0,
         speed_multiplier: this._config.speed_multiplier ?? 1.0,
@@ -4639,6 +4733,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       if (typeof val.fixed_tariff === 'number') cfg.fixed_tariff = val.fixed_tariff;
       if (val.currency_symbol) cfg.currency_symbol = val.currency_symbol;
     } else if (secId === 'grid') {
+      cfg.show_grid_in = val.show_grid_in !== false;
       cfg.show_grid_out = Boolean(val.show_grid_out);
       cfg.show_export = Boolean(val.show_grid_out);
       const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
@@ -4721,6 +4816,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.show_emojis = val.show_emojis !== false;
       cfg.show_sim_toolbar = Boolean(val.show_sim_toolbar);
       cfg.show_idle_rails = val.show_idle_rails !== false;
+      cfg.spaced_layout = val.spaced_layout === true;
       if (val.solar_priority) cfg.solar_priority = val.solar_priority;
       cfg.font_scale = typeof val.font_scale === 'number' ? val.font_scale : 1.0;
       cfg.speed_multiplier = typeof val.speed_multiplier === 'number' ? val.speed_multiplier : 1.0;
@@ -4800,6 +4896,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
 
   _getGridSchema() {
     return [
+      { name: "show_grid_in", label: "Show Grid In (Import Node)", selector: { boolean: {} } },
       { name: "show_grid_out", label: "Show Grid Out (Export Node & Gauge Ring)", selector: { boolean: {} } },
       { name: "grid_power", label: "Grid Meter (Import / Export)", selector: { entity: { domain: ["sensor"] } } },
       { name: "grid_export_power", label: "Separate Export Meter (Optional)", selector: { entity: { domain: ["sensor"] } } },
@@ -4917,6 +5014,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       {
         name: "show_idle_rails",
         label: "Keep flow lines visible when idle (turn off to only draw a line while it carries power)",
+        selector: { boolean: {} }
+      },
+      {
+        name: "spaced_layout",
+        label: "Spaced Layout (extra air between the boxes, like the earlier card)",
         selector: { boolean: {} }
       },
       {
