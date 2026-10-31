@@ -4931,7 +4931,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "show_battery_soc", label: "Show Home Battery % and Progress Bar", selector: { boolean: {} } },
       { name: "show_battery_badge", label: "Show Home Battery State Badge", selector: { boolean: {} } },
       { name: "show_battery_row", label: "Show 'Discharged Today' Row in the Scorecard", selector: { boolean: {} } },
-      { name: "home_net_battery", label: "Home Solar: Deduct Battery Charging & Add Discharging (Net Solar Consumed)", selector: { boolean: {} } },
+      { name: "home_net_battery", label: "Net Solar Consumed: Deduct Battery Charging, Add Discharging (assumes the battery charges from solar)", selector: { boolean: {} } },
       { name: "battery_positive_charging", label: "Battery Sign: Positive Power Means Charging (turn off if your inverter reports charging as negative)", selector: { boolean: {} } },
       { name: "battery_primary_view", label: "Home Battery Node: Default View", selector: { select: { options: [
         { value: "live", label: "Live Power & State of Charge (Default)" },
