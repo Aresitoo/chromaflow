@@ -788,6 +788,7 @@ class AresEnergyFlowCard extends HTMLElement {
       show_grid_in: true,
       show_export: true,
       show_idle_rails: true,
+      spaced_layout: false,
       battery_capacity_kwh: 0,
       solar_priority: 'home',
       show_sim_toolbar: true,
@@ -2117,6 +2118,15 @@ class AresEnergyFlowCard extends HTMLElement {
     }
     if (needed <= 0) return 0;
 
+    // Spaced layout keeps the pre-fit look: the canvas falls back to its CSS height
+    // (232 / 258 / 290 / 330 by layout) and only grows when content needs more.
+    if (this._config?.spaced_layout === true) {
+      const prevT = canvas.style.transition;
+      canvas.style.transition = 'none';
+      canvas.style.height = '';
+      needed = Math.max(needed, Math.round(canvas.getBoundingClientRect().height));
+      canvas.style.transition = prevT;
+    }
 
     needed = Math.round(needed);
     const current = Math.round(canvas.getBoundingClientRect().height);
@@ -4637,6 +4647,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         show_emojis: this._config?.show_emojis !== false,
         show_sim_toolbar: this._config?.show_sim_toolbar !== false,
         show_idle_rails: this._config?.show_idle_rails !== false,
+        spaced_layout: this._config?.spaced_layout === true,
         solar_priority: this._config?.solar_priority || 'home',
         font_scale: this._config.font_scale ?? 1.0,
         speed_multiplier: this._config.speed_multiplier ?? 1.0,
@@ -4805,6 +4816,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.show_emojis = val.show_emojis !== false;
       cfg.show_sim_toolbar = Boolean(val.show_sim_toolbar);
       cfg.show_idle_rails = val.show_idle_rails !== false;
+      cfg.spaced_layout = val.spaced_layout === true;
       if (val.solar_priority) cfg.solar_priority = val.solar_priority;
       cfg.font_scale = typeof val.font_scale === 'number' ? val.font_scale : 1.0;
       cfg.speed_multiplier = typeof val.speed_multiplier === 'number' ? val.speed_multiplier : 1.0;
@@ -5002,6 +5014,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       {
         name: "show_idle_rails",
         label: "Keep flow lines visible when idle (turn off to only draw a line while it carries power)",
+        selector: { boolean: {} }
+      },
+      {
+        name: "spaced_layout",
+        label: "Spaced Layout (extra air between the boxes, like the earlier card)",
         selector: { boolean: {} }
       },
       {
