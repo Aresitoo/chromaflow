@@ -323,7 +323,7 @@ function resolveRailColors(colors, pal) {
     home: p.home || '#00e5ff',
     battery: p.battery || '#10b981',
     ev: p.ev || p.device || '#b388ff',
-    export: p.export || '#00e676'
+    export: p.export_ring || p.export || '#ffd54f'
   };
   const out = {};
   for (const rail of Object.keys(RAIL_TARGETS)) {
@@ -1041,7 +1041,7 @@ class AresEnergyFlowCard extends HTMLElement {
     const cSolarEvEnd = colors.flow_solar_ev_end || (colors.flow_solar_ev ? colors.flow_solar_ev : (pal.ev || pal.device));
 
     const cSolarGridStart = colors.flow_solar_grid_start || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.solar);
-    const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : pal.export);
+    const cSolarGridEnd = colors.flow_solar_grid_end || (colors.flow_solar_grid ? colors.flow_solar_grid : (pal.export_ring || pal.export));
 
     const cGridHomeStart = colors.flow_grid_home_start || (colors.flow_grid_home ? colors.flow_grid_home : pal.grid);
     const cGridHomeEnd = colors.flow_grid_home_end || (colors.flow_grid_home ? colors.flow_grid_home : pal.home);
@@ -1059,7 +1059,7 @@ class AresEnergyFlowCard extends HTMLElement {
     const cBatteryEvEnd = colors.flow_battery_ev_end || (colors.flow_battery_ev ? colors.flow_battery_ev : (pal.ev || pal.device));
 
     const cBatteryGridStart = colors.flow_battery_grid_start || (colors.flow_battery_grid ? colors.flow_battery_grid : (pal.battery || '#10b981'));
-    const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : pal.export);
+    const cBatteryGridEnd = colors.flow_battery_grid_end || (colors.flow_battery_grid ? colors.flow_battery_grid : (pal.export_ring || pal.export));
 
     const railColors = resolveRailColors(colors, pal);
 
