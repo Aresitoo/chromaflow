@@ -76,20 +76,64 @@ if (Test-Path $prodPath) {
 } else { $problems.Add('production file missing from H:\www') }
 
 # 3. Git drift: deployed bytes vs the build from the git ref
-$refProd = Get-RepoFile $GitRef 'ares-energy-flow-card.js'
+#
+# Production is deployed from tags, so it is compared against the tag its own resource
+# URL names (?v=vX.Y.Z), not against HEAD. A commit that has not been released yet is
+# not drift; it is simply newer than production.
+function Get-ProdTag {
+  $store = 'H:\.storage\lovelace_resources'
+  if (-not (Test-Path $store)) { return $null }
+  $m = [regex]::Match([IO.File]::ReadAllText($store), '/local/ares-energy-flow-card\.js\?v=(v\d+\.\d+\.\d+)')
+  if ($m.Success) { return $m.Groups[1].Value }
+  return $null
+}
+
+$prodTag = Get-ProdTag
+$prodRef = $prodTag
+if ($prodRef) {
+  & git rev-parse --verify --quiet "refs/tags/$prodRef" | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    $notes.Add("production URL names $prodRef but no such tag exists; comparing production against $GitRef")
+    $prodRef = $GitRef
+  }
+} else {
+  $notes.Add("production resource URL carries no vX.Y.Z tag; comparing production against $GitRef")
+  $prodRef = $GitRef
+}
+
+$refProd = Get-RepoFile $prodRef 'ares-energy-flow-card.js'
+if (-not $refProd) {
+  $notes.Add("could not read ares-energy-flow-card.js at $prodRef")
+  $prodRef = $GitRef
+  $refProd = Get-RepoFile $prodRef 'ares-energy-flow-card.js'
+}
+
+$headProd = Get-RepoFile $GitRef 'ares-energy-flow-card.js'
 if ($refProd) {
   $refProdHash = Get-NormalizedHash $refProd
-  $refDevHash = Get-NormalizedHash ([Text.Encoding]::UTF8.GetBytes("$flagLine`n" + [Text.Encoding]::UTF8.GetString($refProd)))
-  Write-Host ("  git {0}: prod {1}  dev {2}" -f $GitRef, $refProdHash.Substring(0, 12), $refDevHash.Substring(0, 12))
+  $headDevHash = Get-NormalizedHash ([Text.Encoding]::UTF8.GetBytes("$flagLine`n" + [Text.Encoding]::UTF8.GetString($headProd)))
+  Write-Host ("  git {0}: prod {1}  dev {2}" -f $GitRef, (Get-NormalizedHash $headProd).Substring(0, 12), $headDevHash.Substring(0, 12))
+  if ($prodRef -ne $GitRef) {
+    Write-Host ("  production ref {0}: prod {1}" -f $prodRef, $refProdHash.Substring(0, 12))
+  }
 
   if (Test-Path $prodPath) {
     $liveProd = Get-NormalizedHash ([IO.File]::ReadAllBytes($prodPath))
-    if ($liveProd -eq $refProdHash) { Write-Host "  production file: matches $GitRef" -ForegroundColor Green }
-    else { $problems.Add("production file DRIFTED from $GitRef (deployed $($liveProd.Substring(0,12))). Someone wrote H:\www outside git: run scripts\adopt-deployed.ps1 -Lane prod") }
+    if ($liveProd -eq $refProdHash) {
+      if ($prodRef -eq $GitRef) { Write-Host "  production file: matches $GitRef" -ForegroundColor Green }
+      else {
+        Write-Host "  production file: matches $prodRef" -ForegroundColor Green
+        $ahead = 0
+        try { $ahead = [int](& git rev-list --count "$prodRef..$GitRef") } catch { $ahead = 0 }
+        if ($ahead -gt 0) { $notes.Add("$ahead unreleased commit(s) on $GitRef; production is still $prodRef") }
+      }
+    } else {
+      $problems.Add("production file DRIFTED (deployed $($liveProd.Substring(0,12)) matches neither $prodRef nor $GitRef). Someone wrote H:\www outside git: run scripts\adopt-deployed.ps1 -Lane prod")
+    }
   }
   if (Test-Path $devPath) {
     $liveDev = Get-NormalizedHash ([IO.File]::ReadAllBytes($devPath))
-    if ($liveDev -eq $refDevHash) { Write-Host "  sandbox file: matches $GitRef + flag" -ForegroundColor Green }
+    if ($liveDev -eq $headDevHash) { Write-Host "  sandbox file: matches $GitRef + flag" -ForegroundColor Green }
     else { $notes.Add("sandbox file differs from $GitRef (normal while experimenting; use adopt-deployed.ps1 -Lane dev to capture it)") }
   }
 } else {
