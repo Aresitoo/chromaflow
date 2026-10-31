@@ -372,6 +372,7 @@ class AresEnergyFlowCard extends HTMLElement {
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
       show_grid_out: true,
+      show_grid_in: true,
       battery_capacity_kwh: 0,
       solar_priority: 'home',
       battery_position: 'left',
@@ -784,6 +785,7 @@ class AresEnergyFlowCard extends HTMLElement {
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
       show_grid_out: true,
+      show_grid_in: true,
       show_export: true,
       show_idle_rails: true,
       battery_capacity_kwh: 0,
@@ -846,7 +848,7 @@ class AresEnergyFlowCard extends HTMLElement {
       // hass after setConfig, so the first visibility pass runs while nothing is resolvable.
       // Re-run it whenever those inputs change, or the EV and battery rails stay hidden for
       // the life of the card.
-      const visKey = [this._getLayoutMode(), this._hasBattery(), this._hasEv(), this._config?.show_grid_out, this._config?.show_export].join('|');
+      const visKey = [this._getLayoutMode(), this._hasBattery(), this._hasEv(), this._config?.show_grid_out, this._config?.show_grid_in, this._config?.show_export].join('|');
       if (this._visKey !== visKey) {
         this._visKey = visKey;
         this._applyConfigVisibility();
@@ -2348,6 +2350,14 @@ const mode = this._getLayoutMode();
       pBatteryGrid = '';
     }
 
+    // A hidden Grid In takes its offsetTop with it, so blank the paths that would
+    // otherwise be drawn from y=0.
+    if (this._config?.show_grid_in === false) {
+      pGridHome = '';
+      pGridEV = '';
+      pGridBattery = '';
+    }
+
     const setAttr = (el, d) => {
       if (el) el.setAttribute('d', d || '');
     };
@@ -2423,6 +2433,8 @@ const mode = this._getLayoutMode();
     const isStress = (this._activePreset === 'all_flows_active');
     const allowBattToEv = Boolean(this._config?.allow_battery_to_ev) || (this._activePreset === 'batt_to_ev') || isStress || (this._activePreset === 'solar_batt_supply');
     const showExport = (this._config?.show_grid_out !== false && this._config?.show_export !== false);
+    const showGridIn = (this._config?.show_grid_in !== false);
+    if (this._el.nodeGrid) this._el.nodeGrid.style.display = showGridIn ? 'flex' : 'none';
     if (this._el.nodeExport) this._el.nodeExport.style.display = showExport ? 'flex' : 'none';
     if (this._el.railSolarGrid) this._el.railSolarGrid.style.display = showExport ? 'block' : 'none';
     if (this._el.railBatteryGrid) this._el.railBatteryGrid.style.display = (showExport && hasBatt) ? 'block' : 'none';
@@ -4509,6 +4521,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
 
     if (this._forms.grid) {
       this._forms.grid.data = {
+        show_grid_in: this._config.show_grid_in !== false,
         show_grid_out: this._config.show_grid_out !== false && this._config.show_export !== false,
         grid_power: ents.grid_power || '',
         grid_export_power: ents.grid_export_power || '',
@@ -4684,6 +4697,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       if (typeof val.fixed_tariff === 'number') cfg.fixed_tariff = val.fixed_tariff;
       if (val.currency_symbol) cfg.currency_symbol = val.currency_symbol;
     } else if (secId === 'grid') {
+      cfg.show_grid_in = val.show_grid_in !== false;
       cfg.show_grid_out = Boolean(val.show_grid_out);
       cfg.show_export = Boolean(val.show_grid_out);
       const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
@@ -4845,6 +4859,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
 
   _getGridSchema() {
     return [
+      { name: "show_grid_in", label: "Show Grid In (Import Node)", selector: { boolean: {} } },
       { name: "show_grid_out", label: "Show Grid Out (Export Node & Gauge Ring)", selector: { boolean: {} } },
       { name: "grid_power", label: "Grid Meter (Import / Export)", selector: { entity: { domain: ["sensor"] } } },
       { name: "grid_export_power", label: "Separate Export Meter (Optional)", selector: { entity: { domain: ["sensor"] } } },
