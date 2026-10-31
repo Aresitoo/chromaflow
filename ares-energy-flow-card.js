@@ -1250,6 +1250,9 @@ class AresEnergyFlowCard extends HTMLElement {
           z-index: 2;
           box-sizing: border-box;
         }
+        /* Nodes keep their content height and the canvas is fitted to them, so a
+           column with only two boxes packs instead of spreading over dead space. */
+        .col-left > .node, .col-right > .node { flex-shrink: 0; }
         svg.flow-svg {
           position: absolute;
           inset: 0;
@@ -2091,11 +2094,45 @@ class AresEnergyFlowCard extends HTMLElement {
     setTimeout(() => this._updateFlowPaths(), 200);
   }
 
+  _fitCanvasHeight() {
+    const canvas = this._canvasArea;
+    if (!canvas || !this._el) return 0;
+    const PAD = 3;
+    const GAP = 6;
+    let needed = 0;
+    for (const col of [this._el.colLeft, this._el.colRight]) {
+      if (!col) continue;
+      let count = 0;
+      let sum = 0;
+      for (const node of Array.from(col.children)) {
+        if (!node || node.offsetHeight <= 0) continue;
+        if (node.style && node.style.display === 'none') continue;
+        sum += node.offsetHeight;
+        count++;
+      }
+      if (!count) continue;
+      needed = Math.max(needed, sum + GAP * (count - 1) + PAD * 2);
+    }
+    if (needed <= 0) return 0;
+
+
+    needed = Math.round(needed);
+    const current = Math.round(canvas.getBoundingClientRect().height);
+    if (Math.abs(current - needed) <= 1) return current;
+    // Jump straight to the fitted height; the 0.3s height transition would make
+    // the path pass measure the boxes mid-slide.
+    const prevTransition = canvas.style.transition;
+    canvas.style.transition = 'none';
+    canvas.style.height = needed + 'px';
+    void canvas.offsetHeight;
+    canvas.style.transition = prevTransition;
+    return needed;
+  }
+
   _updateFlowPaths(w, h) {
     if (!this._canvasArea || !this._svg || !this._el) return;
     const width = Math.round(w || this._canvasArea.clientWidth || 400);
-    const height = Math.round(h || this._canvasArea.clientHeight || 232);
-    if (width <= 0 || height <= 0) return;
+    if (width <= 0) return;
 
 const mode = this._getLayoutMode();
     const card = this.shadowRoot.querySelector('ha-card');
@@ -2129,6 +2166,13 @@ const mode = this._getLayoutMode();
       if (this._el.nodeBattery) this._el.nodeBattery.style.display = 'none';
       if (this._el.nodeEv) this._el.nodeEv.style.display = 'none';
     }
+
+    // Fit the canvas to the tallest column before measuring anything. The columns
+    // are absolutely positioned and stretch to the canvas, so a fixed canvas height
+    // leaves slack that `justify-content: space-between` pushes between the boxes.
+    this._fitCanvasHeight();
+    const height = Math.round(h || this._canvasArea.clientHeight || 232);
+    if (height <= 0) return;
 
     this._svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
