@@ -667,6 +667,17 @@ class AresEnergyFlowCard extends HTMLElement {
     const uom = cfgUnit || entUnit;
     if (uom === 'wh' || (uom.includes('wh') && !uom.includes('kwh') && !uom.includes('mwh'))) return val / 1000.0;
     if (uom === 'mwh' || uom.includes('mwh')) return val * 1000.0;
+    // A power sensor in an energy slot parses fine and produces nonsense: refuse it
+    // once, loudly, instead of quietly adding kW to kWh.
+    if (uom === 'w' || uom === 'kw' || uom === 'mw') {
+      const key = ent.entity_id || 'sensor';
+      if (!this._energyUnitWarned) this._energyUnitWarned = new Set();
+      if (!this._energyUnitWarned.has(key)) {
+        this._energyUnitWarned.add(key);
+        console.warn(`[ChromaFlow] ${key} reports ${entUnit || uom}, which is power. Use a daily energy total in kWh for this slot.`);
+      }
+      return 0.0;
+    }
     return val;
   }
 
@@ -3309,7 +3320,10 @@ const mode = this._getLayoutMode();
     const kwhGridExport = this._parseEnergy(eGridExport);
     const selfConsumedKwh = Math.max(0, kwhSolarYield - kwhGridExport);
     let homeSolarKwh = selfConsumedKwh;
-    if (this._config?.home_net_battery === true && hasBatt) {
+    // The accounting is about the numbers, not about whether the battery box is drawn:
+    // run it whenever the daily totals resolve, even if the node is hidden.
+    const battAccountingReady = Boolean(eBattCharge || eBattDischarge);
+    if (this._config?.home_net_battery === true && (hasBatt || battAccountingReady)) {
       const kwhBattCharge = this._parseEnergy(eBattCharge);
       const kwhBattDischarge = this._parseEnergy(eBattDischarge);
       homeSolarKwh = Math.max(0, selfConsumedKwh - kwhBattCharge + kwhBattDischarge);
