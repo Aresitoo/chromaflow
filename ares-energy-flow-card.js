@@ -342,6 +342,28 @@ function getRandomVibrantHex(baseHue) {
   return hslToHex(h, s, l);
 }
 
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
+function safeColor(c, fallback = 'transparent') {
+  const v = String(c ?? '').trim();
+  if (!v || v.length > 128) return fallback;
+  if (!/^[-\w#%.,()\s/]+$/.test(v)) return fallback; // Rejects < > " ' ; { } \ @
+  if (/url\s*\(|src\s*\(|image-set\s*\(|expression\s*\(|attr\s*\(|element\s*\(/i.test(v)) return fallback;
+  return v;
+}
+
+const safeColors = (o) => Object.fromEntries(
+  Object.entries(o || {}).map(([k, v]) => [k, safeColor(v, '')])
+);
+
 class AresEnergyFlowCard extends HTMLElement {
   static async getConfigElement() {
     if (window.loadCardHelpers) {
@@ -405,7 +427,6 @@ class AresEnergyFlowCard extends HTMLElement {
 
     return {
       solar_power: resolve('solar_power', [
-        'sensor.shellyem_e4525b_channel_2_power',
         'sensor.solar_power',
         'sensor.envoy_current_power_production',
         'sensor.pv_power',
@@ -417,8 +438,7 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.energy_production_today'
       ]),
       solar_daily_peak: resolve('solar_daily_peak', [
-        'sensor.solar_daily_peak_power',
-        'sensor.living_room_shellyem_e4525b_channel_2_solar_peak_today'
+        'sensor.solar_daily_peak_power'
       ]),
       electricity_tariff: resolve('electricity_tariff', [
         'sensor.precio_kwh',
@@ -436,7 +456,6 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.battery_health'
       ]),
       grid_power: resolve('grid_power', [
-        'sensor.shellyem_e4525b_channel_1_power',
         'sensor.return_to_grid_new',
         'sensor.grid_power',
         'sensor.power_meter',
@@ -447,13 +466,11 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.grid_export_power'
       ]),
       grid_daily_import: resolve('grid_daily_import', [
-        'sensor.living_room_shellyem_e4525b_channel_1_grid_daily_import_energy',
         'sensor.grid_daily_import_energy',
         'sensor.energy_imported_today'
       ]),
       grid_daily_export: resolve('grid_daily_export', [
         'sensor.grid_daily_export_energy',
-        'sensor.living_room_shellyem_e4525b_channel_1_grid_daily_export_energy',
         'sensor.energy_exported_today',
         'sensor.daily_grid_export',
         'sensor.grid_export_today'
@@ -464,7 +481,6 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.home_power'
       ]),
       ev_power: resolve('ev_power', [
-        'sensor.evse_192_168_0_249_charge_power',
         'sensor.v2c_trydan_power',
         'sensor.wallbox_power',
         'sensor.wallbox_portal_charging_power',
@@ -478,8 +494,6 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.charger_power'
       ]),
       tesla_soc: resolve('tesla_soc', [
-        'sensor.mr_white_battery_level',
-        'sensor.mr_white_usable_battery_level',
         'sensor.tesla_ble_garage_charge_level',
         'sensor.tesla_battery_level',
         'sensor.ev_battery_level',
@@ -487,36 +501,27 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.ev_soc'
       ]),
       tesla_range: resolve('tesla_range', [
-        'sensor.mr_white_battery_range',
-        'sensor.mr_white_ideal_battery_range',
         'sensor.tesla_ble_garage_range',
         'sensor.tesla_range',
         'sensor.ev_range'
       ]),
       tesla_charging_state: resolve('tesla_charging_state', [
-        'sensor.mr_white_charging_state',
         'sensor.tesla_ble_garage_charging_state',
         'sensor.tesla_charging_state',
         'sensor.ev_status'
       ]),
       tesla_charge_limit: resolve('tesla_charge_limit', [
-        'number.mr_white_charge_limit',
         'number.tesla_charge_limit',
-        'sensor.mr_white_charge_limit',
         'sensor.tesla_charge_limit'
       ]),
       tesla_time_to_full: resolve('tesla_time_to_full', [
-        'sensor.mr_white_time_to_full_charge',
         'sensor.tesla_time_to_full_charge'
       ]),
       ev_session_energy: resolve('ev_session_energy', [
-        'sensor.mr_white_charge_energy_added',
-        'sensor.evse_192_168_0_249_charge_energy',
         'sensor.v2c_trydan_charge_energy',
         'sensor.wallbox_energy_added'
       ]),
       ev_charging: resolve('ev_charging', [
-        'binary_sensor.evse_192_168_0_249_charging',
         'binary_sensor.v2c_trydan_charging',
         'binary_sensor.wallbox_charging',
         'binary_sensor.easee_is_charging',
@@ -527,7 +532,6 @@ class AresEnergyFlowCard extends HTMLElement {
       ]),
       ev_daily_energy: resolve('ev_daily_energy', [
         'sensor.v2c_charging_stats',
-        'sensor.evse_192_168_0_249_charge_energy',
         'sensor.wallbox_energy_added',
         'sensor.easee_lifetime_energy',
         'sensor.charger_energy'
@@ -745,21 +749,20 @@ class AresEnergyFlowCard extends HTMLElement {
       return;
     }
     const t = this._solarSrcTheme || {};
-    const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const key = srcs.map((src) => `${src.name}|${src.color}`).join(';');
     if (this._solarSrcKey !== key || box.childElementCount !== srcs.length) {
       this._solarSrcKey = key;
       box.innerHTML = srcs.map((src) => `
-        <div class="solar-src" style="border-color: ${esc(src.color || t.border || 'rgba(255,255,255,0.2)')};">
+        <div class="solar-src" style="border-color: ${safeColor(src.color || t.border || 'rgba(255,255,255,0.2)')};">
           <div class="solar-src-row">
-            <span class="solar-src-name" style="color: ${esc(t.title || 'inherit')};">${esc(src.name)}</span>
-            <span class="solar-src-pwr" style="color: ${esc(t.pwr || 'inherit')};">0 W</span>
+            <span class="solar-src-name" style="color: ${safeColor(t.title || 'inherit')};">${esc(src.name)}</span>
+            <span class="solar-src-pwr" style="color: ${safeColor(t.pwr || 'inherit')};">0 W</span>
           </div>
           <div class="solar-src-row">
-            <span class="solar-src-kwh" style="color: ${esc(t.kwh || 'inherit')};"></span>
-            <span class="solar-src-pct" style="color: ${esc(t.kwh || 'inherit')};"></span>
+            <span class="solar-src-kwh" style="color: ${safeColor(t.kwh || 'inherit')};"></span>
+            <span class="solar-src-pct" style="color: ${safeColor(t.kwh || 'inherit')};"></span>
           </div>
-          <div class="solar-src-track"><div class="solar-src-bar" style="background: ${esc(src.color || t.bar || '#ffd54f')};"></div></div>
+          <div class="solar-src-track"><div class="solar-src-bar" style="background: ${safeColor(src.color || t.bar || '#ffd54f')};"></div></div>
         </div>`).join('');
       requestAnimationFrame(() => this._updateFlowPaths());
     } else if (!wasOn) {
@@ -806,7 +809,8 @@ class AresEnergyFlowCard extends HTMLElement {
       battery_capacity_kwh: 0,
       solar_priority: 'home',
       show_sim_toolbar: false,
-      ...config
+      ...config,
+      colors: safeColors(config.colors)
     };
 
     this._fontScale = typeof this._config.font_scale === 'number' ? this._config.font_scale : 1.0;
@@ -1594,7 +1598,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleSolar}; min-width: 0; flex-shrink: 1;">
                     <span class="node-emoji" style="font-size: 13px; line-height: 1; flex-shrink: 0;">☀️</span>
-                    <span id="lbl-solar" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.solar}</span>
+                    <span id="lbl-solar" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${esc(lbls.solar)}</span>
                   </div>
                   <span id="badge-solar-forecast" class="badge" style="color: ${cBadgeSolarText}; background: ${cBadgeSolarBg}; border: 0.5px solid ${cSolarBorder};">-- kWh EST</span>
                   <span id="badge-solar-fin" class="badge" style="display: none; color: #00e676; background: rgba(0, 230, 118, 0.12); border: 0.5px solid rgba(0, 230, 118, 0.35); font-size: 7px; padding: 1px 4px; border-radius: 6px; font-weight: 700;">+0,00 €</span>
@@ -1635,7 +1639,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleBattery}; min-width: 0; flex-shrink: 1;">
                     <span class="node-emoji" style="font-size: 12px; line-height: 1; flex-shrink: 0;">🔋</span>
-                    <span id="lbl-battery" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.battery}</span>
+                    <span id="lbl-battery" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${esc(lbls.battery)}</span>
                   </div>
                   <span id="badge-battery" class="badge" style="color: ${cBadgeBatteryText}; background: ${cBadgeBatteryBg}; border: 0.5px solid ${cBatteryBorder}; display: none;">IDLE</span>
                 </div>
@@ -1671,7 +1675,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleGrid}; min-width: 0; flex-shrink: 1;">
                     <span class="node-emoji" style="font-size: 12px; line-height: 1; flex-shrink: 0;">🏭</span>
-                    <span id="lbl-grid-in" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.grid_in}</span>
+                    <span id="lbl-grid-in" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${esc(lbls.grid_in)}</span>
                   </div>
                   <span id="badge-grid-guard" class="badge" style="color: ${cBadgeGridText}; background: ${cBadgeGridBg}; border: 0.5px solid ${cGridBorder}; display: none;">4.2 kW MAX</span>
                 </div>
@@ -1687,7 +1691,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleHome}; min-width: 0; flex-shrink: 1;">
                     <span class="node-emoji" style="font-size: 12px; line-height: 1; flex-shrink: 0;">🏠</span>
-                    <span id="lbl-home" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.home}</span>
+                    <span id="lbl-home" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${esc(lbls.home)}</span>
                   </div>
                   <span id="badge-home" class="badge" style="color: ${cBadgeHomeText}; background: ${cBadgeHomeBg}; border: 0.5px solid ${cHomeBorder};">100% SOLAR</span>
                 </div>
@@ -1700,7 +1704,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleEv}; min-width: 0; flex-shrink: 1;">
                     <span id="icon-ev" class="node-emoji" style="font-size: 12px; line-height: 1; flex-shrink: 0;">🚗</span>
-                    <span id="lbl-ev" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.ev}</span>
+                    <span id="lbl-ev" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${esc(lbls.ev)}</span>
                   </div>
                   <span id="badge-ev" class="badge" style="color: ${cBadgeEvText}; background: ${cBadgeEvBg}; border: 0.5px solid ${cEvBorder}; display: none;">CHARGING</span>
                 </div>
@@ -1716,7 +1720,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0;">
                   <div class="node-title" style="color: ${cTitleExport}; min-width: 0; flex-shrink: 1;">
                     <span class="node-emoji" style="font-size: 12px; line-height: 1; flex-shrink: 0;">🏭</span>
-                    <span id="lbl-grid-out" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${lbls.grid_out}</span>
+                    <span id="lbl-grid-out" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;">${esc(lbls.grid_out)}</span>
                   </div>
                 </div>
                 <div id="pwr-export" class="node-pwr" style="color: ${cPwrExport};">0 W</div>
@@ -1744,8 +1748,8 @@ class AresEnergyFlowCard extends HTMLElement {
               </svg>
               <div class="rings-center-text" style="position: absolute; text-align: center; pointer-events: none; width: 72px;">
                 <div id="autarky-center-pct" class="rings-center-pct" style="font-size: clamp(18px, calc(20px * var(--ares-font-scale, 1)), 23px); font-weight: 900; color: ${cPctCenter}; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
-                <div class="rings-center-sub" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cLblCenter}; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;"><span id="lbl-autarky">${lbls.autarky}</span></div>
-                <div class="rings-center-sub2" style="font-size: calc(7.5px * var(--ares-font-scale, 1)); color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;"><span id="lbl-autarky-sub">${lbls.autarky_sub}</span></div>
+                <div class="rings-center-sub" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cLblCenter}; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;"><span id="lbl-autarky">${esc(lbls.autarky)}</span></div>
+                <div class="rings-center-sub2" style="font-size: calc(7.5px * var(--ares-font-scale, 1)); color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;"><span id="lbl-autarky-sub">${esc(lbls.autarky_sub)}</span></div>
               </div>
             </div>
 
@@ -1754,12 +1758,12 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 1: Solar Self-Consumed -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-self-consumed">${lbls.self_consumed}</span></span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-self-consumed">${esc(lbls.self_consumed)}</span></span>
                   <span id="row-autarky-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowSelfTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-solar-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-self-consumed-sub">${lbls.self_consumed_sub}</span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-self-consumed-sub">${esc(lbls.self_consumed_sub)}</span></span>
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
@@ -1771,12 +1775,12 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 2: Utility Grid Reliance -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-grid-reliance">${lbls.grid_reliance}</span></span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-grid-reliance">${esc(lbls.grid_reliance)}</span></span>
                   <span id="row-grid-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowGridTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-grid-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-grid-reliance-sub">${lbls.grid_reliance_sub}</span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-grid-reliance-sub">${esc(lbls.grid_reliance_sub)}</span></span>
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
@@ -1788,12 +1792,12 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 3: Exported to Grid -->
               <div id="row-export-container" style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-exported">${lbls.exported}</span></span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-exported">${esc(lbls.exported)}</span></span>
                   <span id="row-export-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowExportTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-export-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-exported-sub">${lbls.exported_sub}</span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-exported-sub">${esc(lbls.exported_sub)}</span></span>
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF SOLAR</span>
                 </div>
@@ -1805,12 +1809,12 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 4: Battery Discharged Today (battery layouts only) -->
               <div id="row-battery-container" style="display: none; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-battery-row">${lbls.battery_discharged_today}</span></span>
+                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-battery-row">${esc(lbls.battery_discharged_today)}</span></span>
                   <span id="row-battery-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowBattTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-battery-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    -- <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-battery-row-sub">${lbls.battery_discharged_sub}</span></span>
+                    -- <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-battery-row-sub">${esc(lbls.battery_discharged_sub)}</span></span>
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
@@ -1823,7 +1827,7 @@ class AresEnergyFlowCard extends HTMLElement {
               <div id="scorecard-fin-row" style="display: none; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 8.5px; font-weight: 700;">
                 <span style="color: rgba(255, 255, 255, 0.65); display: flex; align-items: center; gap: 4px;">
                   <span class="node-emoji">☀️</span>
-                  <span id="scorecard-fin-title">${lbls.scorecard_solar_value}</span>
+                  <span id="scorecard-fin-title">${esc(lbls.scorecard_solar_value)}</span>
                 </span>
                 <span id="scorecard-fin-val" style="color: #00e676; font-size: 11px; font-weight: 800;">0,00 €</span>
               </div>
@@ -1837,11 +1841,11 @@ class AresEnergyFlowCard extends HTMLElement {
               <div style="display: flex; justify-content: space-between; align-items: baseline;">
                 <div style="display: flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 700; color: rgba(255, 255, 255, 0.7); text-transform: uppercase;">
                   <span class="node-emoji" style="font-size: 11px;">☀️</span>
-                  <span id="fin-solar-title">${lbls.solar_value}</span>
+                  <span id="fin-solar-title">${esc(lbls.solar_value)}</span>
                 </div>
                 <div id="fin-gross-solar" style="font-size: 13px; font-weight: 800; color: #00e676; line-height: 1;">0,00 €</div>
               </div>
-              <div id="fin-solar-sub" style="font-size: 7.5px; color: rgba(255, 255, 255, 0.5);">${lbls.solar_value_sub}</div>
+              <div id="fin-solar-sub" style="font-size: 7.5px; color: rgba(255, 255, 255, 0.5);">${esc(lbls.solar_value_sub)}</div>
             </div>
 
             <!-- Virtual Battery Pill -->
@@ -1849,11 +1853,11 @@ class AresEnergyFlowCard extends HTMLElement {
               <div style="display: flex; justify-content: space-between; align-items: baseline;">
                 <div style="display: flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 700; color: #00e5ff; text-transform: uppercase;">
                   <span class="node-emoji" style="font-size: 11px;">🔋</span>
-                  <span id="fin-wallet-title">${lbls.virtual_battery}</span>
+                  <span id="fin-wallet-title">${esc(lbls.virtual_battery)}</span>
                 </div>
                 <div id="fin-wallet-val" style="font-size: 13px; font-weight: 800; color: #00e5ff; line-height: 1;">+0,00 €</div>
               </div>
-              <div id="fin-wallet-sub" style="font-size: 7.5px; color: #00e5ff; font-weight: 600;">${lbls.virtual_battery_sub}</div>
+              <div id="fin-wallet-sub" style="font-size: 7.5px; color: #00e5ff; font-weight: 600;">${esc(lbls.virtual_battery_sub)}</div>
             </div>
           </div>
         </div>
@@ -2798,8 +2802,7 @@ const mode = this._getLayoutMode();
 
     if (hasEv) {
       const pwrEvRaw = Math.max(0, this._parsePower(eEvPwr));
-      const liveShellyW = this._parsePower(this._hass.states['sensor.tesla_shelly_energy_meter_0_power']);
-      liveEvW = Math.max(pwrEvRaw, liveShellyW);
+      liveEvW = pwrEvRaw;
       const evBinary = eEvCharging ? (eEvCharging.state === 'on') : false;
       isEvActive = (liveEvW > 15) || evBinary;
 
@@ -2823,11 +2826,6 @@ const mode = this._getLayoutMode();
           evDailyKwh = this._parseEnergy(eEvEnergy);
         }
       }
-      const liveSessionEnt = this._hass.states['sensor.evse_192_168_0_249_charge_energy'] ||
-                             this._hass.states['sensor.v2c_trydan_charge_energy'] ||
-                             this._hass.states['sensor.wallbox_energy_added'];
-      const liveSessionKwh = liveSessionEnt ? this._parseEnergy(liveSessionEnt) : 0;
-      evDailyKwh = Math.max(evDailyKwh, liveSessionKwh);
     }
 
     // Interactive Test Bench Scenario Overrides
@@ -3714,7 +3712,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.2';
+const CARD_VERSION = '2.5.3';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -3847,11 +3845,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     };
 
     return {
-      solar_power: resolve('solar_power', ['sensor.shellyem_e4525b_channel_2_power', 'sensor.solar_power', 'sensor.envoy_current_power_production', 'sensor.pv_power']),
+      solar_power: resolve('solar_power', ['sensor.solar_power', 'sensor.envoy_current_power_production', 'sensor.pv_power']),
       solar_daily_yield: resolve('solar_daily_yield', ['sensor.solar_daily_yield', 'sensor.solar_today', 'sensor.energy_production_today']),
       grid_power: resolve('grid_power', ['sensor.return_to_grid_new', 'sensor.grid_power', 'sensor.power_meter']),
       grid_export_power: resolve('grid_export_power', ['sensor.true_grid_export_power', 'sensor.grid_export_power']),
-      grid_daily_import: resolve('grid_daily_import', ['sensor.living_room_shellyem_e4525b_channel_1_grid_daily_import_energy', 'sensor.grid_daily_import_energy']),
+      grid_daily_import: resolve('grid_daily_import', ['sensor.grid_daily_import_energy']),
       grid_daily_export: resolve('grid_daily_export', ['sensor.grid_daily_export_energy', 'sensor.energy_exported_today']),
       load_power: resolve('load_power', ['sensor.load_power', 'sensor.house_consumption_power', 'sensor.home_power']),
       battery_power: resolve('battery_power', ['sensor.battery_power', 'sensor.bess_power', 'sensor.powerwall_battery_now']),
@@ -3860,9 +3858,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       battery_daily_discharge: resolve('battery_daily_discharge', ['sensor.battery_daily_discharge_energy', 'sensor.battery_discharge_today']),
       battery_temp: resolve('battery_temp', ['sensor.battery_temperature', 'sensor.powerwall_battery_temperature', 'sensor.bess_temperature']),
       battery_soh: resolve('battery_soh', ['sensor.battery_state_of_health', 'sensor.bess_soh', 'sensor.battery_health']),
-      ev_power: resolve('ev_power', ['sensor.evse_192_168_0_249_charge_power', 'sensor.v2c_trydan_power', 'sensor.wallbox_power']),
-      ev_charging: resolve('ev_charging', ['binary_sensor.evse_192_168_0_249_charging', 'binary_sensor.v2c_trydan_charging', 'binary_sensor.wallbox_charging']),
-      ev_daily_energy: resolve('ev_daily_energy', ['sensor.v2c_charging_stats', 'sensor.evse_192_168_0_249_charge_energy', 'sensor.wallbox_energy_added']),
+      ev_power: resolve('ev_power', ['sensor.v2c_trydan_power', 'sensor.wallbox_power']),
+      ev_charging: resolve('ev_charging', ['binary_sensor.v2c_trydan_charging', 'binary_sensor.wallbox_charging']),
+      ev_daily_energy: resolve('ev_daily_energy', ['sensor.v2c_charging_stats', 'sensor.wallbox_energy_added']),
       solcast_today: resolve('solcast_today', ['sensor.solcast_pv_forecast_forecast_today', 'sensor.solcast_forecast_today']),
       solcast_remaining: resolve('solcast_remaining', ['sensor.solcast_pv_forecast_forecast_remaining_today', 'sensor.solcast_forecast_remaining_today'])
     };
