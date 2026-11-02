@@ -3712,8 +3712,13 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 // The flag has to stay module-scoped: a window.* flag would leak into the other file and
 // turn the production build into a dev build when the dev file happens to load first.
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
+// Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
+// match this string, so it cannot drift silently. Bump it in the release commit.
+const CARD_VERSION = '2.5.2';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
+AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
+AresEnergyFlowCardDev.VERSION = CARD_VERSION;
 
 const CARD_TAGS = CARD_BUILD === 'dev'
   ? [['ares-energy-flow-card-dev', AresEnergyFlowCardDev]]
@@ -3722,10 +3727,15 @@ const CARD_TAGS = CARD_BUILD === 'dev'
       ['ha-energy-flow-card', HaEnergyFlowCard]
     ];
 
+let announcedVersion = false;
 for (const [tag, cls] of CARD_TAGS) {
   try {
     if (!customElements.get(tag)) {
       customElements.define(tag, cls);
+      if (!announcedVersion) {
+        announcedVersion = true;
+        console.info(`%c CHROMAFLOW %c v${CARD_VERSION} ${CARD_BUILD} `, 'background:#00bcd4;color:#fff;font-weight:700;border-radius:3px 0 0 3px;', 'background:#1a2130;color:#00bcd4;border-radius:0 3px 3px 0;');
+      }
     }
   } catch (e) {}
 }
@@ -3868,6 +3878,12 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           gap: 12px;
           padding: 8px 0;
           font-family: inherit;
+        }
+        .version-line {
+          font-size: 11px;
+          letter-spacing: 0.02em;
+          opacity: 0.55;
+          padding: 0 4px 2px;
         }
         ha-expansion-panel {
           --expansion-panel-summary-padding: 0 16px;
@@ -4041,6 +4057,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         }
       </style>
       <div class="editor-container">
+        <div class="version-line">ChromaFlow v${CARD_VERSION} (${CARD_BUILD})</div>
         <!-- Section 1: Solar -->
         <ha-expansion-panel outlined>
           <div slot="header" class="expansion-header-title"><span class="header-icon-badge"><ha-icon icon="mdi:solar-power"></ha-icon></span>Solar Panels</div>

@@ -44,3 +44,8 @@ jobs:
         run: |
           tail -n +2 /tmp/dev-build.js > /tmp/dev-body.js
           diff -q /tmp/dev-body.js ares-energy-flow-card.js
+
+      - name: Version stamp matches the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          node -e "const fs=require('fs');const s=fs.readFileSync('ares-energy-flow-card.js','utf8');const m=s.match(/const CARD_VERSION = '([^']+)'/);if(!m){console.error('CARD_VERSION not found');process.exit(1)}const tag=process.env.GITHUB_REF_NAME.replace(/^v/,'');if(m[1]!==tag){console.error('CARD_VERSION '+m[1]+' does not match tag '+tag);process.exit(1)}console.log('CARD_VERSION '+m[1]+' matches tag')"
