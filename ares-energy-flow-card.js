@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.4.3 (Retired Tesla Line Keys)
+ * Version: v2.5.4 (Outer Card Border & Glow Customization)
  */
 
 const PALETTES = {
@@ -1119,11 +1119,11 @@ class AresEnergyFlowCard extends HTMLElement {
     const useHaTheme = this._config.use_ha_theme === true;
     const cCardBg = colors.card_bg || (useHaTheme ? 'var(--ha-card-background, var(--card-background-color, #11141a))' : 'linear-gradient(145deg, #11141a 0%, #1a1e26 100%)');
     const cCardBorder = colors.card_border || (useHaTheme ? 'var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.12)))' : pal.card_border);
-    const cCardRadius = useHaTheme ? 'var(--ha-card-border-radius, 12px)' : '20px';
+    const cCardRadius = colors.card_radius || (useHaTheme ? 'var(--ha-card-border-radius, 12px)' : '20px');
     const cCardShadow = useHaTheme ? 'var(--ha-card-box-shadow, none)' : '0 12px 40px rgba(0, 0, 0, 0.5)';
     const cCardFont = useHaTheme ? 'var(--primary-font-family, -apple-system, BlinkMacSystemFont, Roboto, sans-serif)' : "-apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif";
-    const cCardGlow = colors.card_glow
-      ? `radial-gradient(circle at 50% 0%, ${colors.card_glow} 0%, transparent 60%)`
+    const cCardGlow = (colors.card_glow !== undefined && colors.card_glow !== null)
+      ? (colors.card_glow === 'transparent' || colors.card_glow === 'none' || colors.card_glow === '' ? 'none' : `radial-gradient(circle at 50% 0%, ${colors.card_glow} 0%, transparent 60%)`)
       : (useHaTheme
         ? 'radial-gradient(circle at 50% 0%, rgba(var(--rgb-primary-color, 0, 229, 255), 0.10) 0%, transparent 60%)'
         : `radial-gradient(circle at 50% 0%, ${isFitness ? 'rgba(250, 17, 79, 0.08)' : 'rgba(0, 229, 255, 0.08)'} 0%, rgba(14, 17, 24, 0.98) 60%)`);
@@ -3712,7 +3712,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.3';
+const CARD_VERSION = '2.5.4';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4215,7 +4215,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           { key: "pwr_ev", label: "EV Charging Power (kW)", default: "#ffffff" },
           { key: "kwh_ev", label: "Daily EV Energy Charged (kWh)", default: "rgba(255, 255, 255, 0.6)" },
           { key: "badge_ev_text", label: "Charging Badge Text", default: "#b388ff" },
-          { key: "badge_ev_bg", label: "Charging Badge Background", default: "rgba(179, 136, 255, 0.12)" }
+          { key: "badge_ev_bg", label: "Charging Badge Background", default: "rgba(179, 136, 255, 0.12)" },
+          { key: "bar_ev_soc", label: "EV Battery State of Charge (SOC) Bar Fill", default: "#b388ff" }
         ]
       },
       {
@@ -4308,6 +4309,16 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           { key: "fin_solar_val", label: "Total Solar Value Pill & Badge Color", default: "#00e676" },
           { key: "fin_virtual_battery", label: "Virtual Battery Pill Color", default: "#00e5ff" }
         ]
+      },
+      {
+        icon: "mdi:card-outline",
+        title: "11. Card Outer Frame & Ambient Glow",
+        items: [
+          { key: "card_border", label: "Outer Card Border (e.g. rgba(255,255,255,0.08))", default: "rgba(0, 230, 118, 0.25)" },
+          { key: "card_glow", label: "Top Ambient Glow (or 'transparent' to disable)", default: "rgba(0, 229, 255, 0.08)" },
+          { key: "card_bg", label: "Outer Card Background Tint / Gradient", default: "rgba(255, 255, 255, 0.03)" },
+          { key: "card_radius", label: "Custom Corner Radius (e.g. 16px, 12px)", default: "12px", enableColorPicker: false }
+        ]
       }
     ];
 
@@ -4344,11 +4355,14 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     for (const grp of groups) {
       html += `<div class="color-group-box"><div class="color-group-title" style="display: flex; align-items: center;"><span class="header-icon-badge"><ha-icon icon="${grp.icon}"></ha-icon></span>${grp.title}</div>`;
       for (const item of grp.items) {
+        const wheel = item.enableColorPicker === false
+          ? ''
+          : `<input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${colorToHex(item.default, '#ffd54f')}">`;
         html += `
           <div class="color-row">
             <div class="color-label">${item.label}</div>
             <div class="color-input-pair">
-              <input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${colorToHex(item.default, '#ffd54f')}">
+              ${wheel}
               <input type="text" class="color-text-input" data-color-key="${item.key}" placeholder="${item.default}">
             </div>
           </div>
