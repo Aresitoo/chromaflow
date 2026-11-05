@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.4 (Outer Card Border & Glow Customization)
+ * Version: v2.5.5 (Format Battery SoC precision and round raw floats)
  */
 
 const PALETTES = {
@@ -3401,7 +3401,11 @@ const mode = this._getLayoutMode();
       el.pwrBattery.textContent = fmtPwr(Math.abs(rawBattW));
       const showBattSoc = (this._config?.show_battery_soc !== false);
       if (batterySoc !== null && showBattSoc) {
-        el.kwhBattery.textContent = `${batterySoc}% SoC`;
+        const prec = this._hass?.entities?.[ents.battery_soc]?.display_precision;
+        const formattedSoc = (typeof prec === 'number')
+          ? batterySoc.toFixed(prec)
+          : (batterySoc % 1 === 0 ? batterySoc.toFixed(0) : batterySoc.toFixed(1));
+        el.kwhBattery.textContent = `${formattedSoc}% SoC`;
         if (el.barBatterySocFill) el.barBatterySocFill.style.width = `${Math.min(100, Math.max(0, batterySoc))}%`;
         if (el.barBatterySocBox) el.barBatterySocBox.style.display = 'block';
       } else {
@@ -3712,7 +3716,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.4';
+const CARD_VERSION = '2.5.5';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
