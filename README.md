@@ -13,7 +13,7 @@ It supports solar panels, grid import and export, home load, home battery storag
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
 ![Version](https://img.shields.io/github/v/release/Aresitoo/chromaflow?label=version&color=success)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![HACS Compatible](https://img.shields.io/badge/HACS-Custom%20Repo-orange.svg)
+![Marketplace / HACS Compatible](https://img.shields.io/badge/Marketplace%20%2F%20HACS-Custom%20Repo-blue.svg)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
 
 <p align="center">
@@ -148,15 +148,27 @@ Other keys worth knowing, all optional: `battery_tapped_view` (what the battery 
 
 > 💡 **Note:** This is a **Lovelace Dashboard Card**, not a widget for the built-in Home Assistant Energy panel.
 
-### Step 1: Install via HACS (Custom Repository)
-1. Open **HACS** in your Home Assistant sidebar.
-2. Click the **3 dots** (top right) ➔ **Custom repositories**.
-3. Paste the repository URL:
+### Step 1: Install via Marketplace (Home Assistant 2026.11+)
+1. Go to **Settings** ➔ **Marketplace** in Home Assistant.
+2. Click the three dots (⋮) in the top right corner and select **Add from link**, which opens the **Add from a GitHub link** dialog.
+3. Paste the repository URL into the **GitHub link** field:
    ```text
    https://github.com/Aresitoo/chromaflow
    ```
+4. Click **Add**. This needs a GitHub account connected to the Marketplace, and it asks you to connect one if you have not.
+5. Open **ChromaFlow**, click **Install**, and reload your browser cache (`Ctrl + F5`).
+
+The card installs to `www/community` and the Marketplace registers the dashboard resource for you. If you manage dashboard resources in YAML it cannot, and the install dialog shows the URL to add yourself.
+
+<details>
+<summary>Using Legacy HACS? (Home Assistant &lt; 2026.11)</summary>
+
+1. Open **HACS** in your sidebar.
+2. Click the **three dots (⋮)** ➔ **Custom repositories**.
+3. Paste `https://github.com/Aresitoo/chromaflow`.
 4. Set the category to **Dashboard / Lovelace** and click **Add**.
-5. Find **ChromaFlow**, click Download, and reload your browser (Ctrl + F5).
+5. Find **ChromaFlow**, click **Download**, and reload your browser.
+</details>
 
 ---
 
@@ -179,7 +191,7 @@ Other keys worth knowing, all optional: `battery_tapped_view` (what the battery 
 1. Download `ares-energy-flow-card.js` from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
 3. Add the resource reference in **Settings ➔ Dashboards ➔ Resources**:
-   - **URL**: `/local/ares-energy-flow-card.js?v=v2.4.1` (any tag works, e.g. the latest release)
+   - **URL**: `/local/ares-energy-flow-card.js?v=v2.5.4` (any tag works, e.g. the latest release)
    - **Resource Type**: `JavaScript Module`
 
 ### Dev-lab build
