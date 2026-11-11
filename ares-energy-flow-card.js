@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.5 (Format Battery SoC precision and round raw floats)
+ * Version: v2.5.6 (Light mode: theme-aware neutrals and a Light palette)
  */
 
 const PALETTES = {
@@ -341,6 +341,42 @@ function getRandomVibrantHex(baseHue) {
   const l = 54 + Math.floor(Math.random() * 12);
   return hslToHex(h, s, l);
 }
+
+// Light preset. Derived from Solar so every key keeps its meaning, with the accent hues
+// darkened until they read against a light card, and the white tints flipped to dark ones.
+// Only used when the user picks the Light preset: a card that follows the HA theme gets its
+// neutrals from the theme variables instead, which is what makes that path work in both modes.
+function darkenHex(hex, factor) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => Math.max(0, Math.round(c * factor)));
+  return '#' + ch.map((c) => c.toString(16).padStart(2, '0')).join('');
+}
+
+function toLightPalette(pal) {
+  const out = {};
+  for (const [k, v] of Object.entries(pal)) {
+    if (typeof v !== 'string') { out[k] = v; continue; }
+    if (/^rgba?\(\s*255\s*,\s*255\s*,\s*255/i.test(v)) {
+      const a = v.match(/,\s*([\d.]+)\s*\)$/);
+      const alpha = Math.min(0.12, a ? Number(a[1]) * 1.6 : 0.05);
+      out[k] = `rgba(15, 23, 42, ${alpha.toFixed(2)})`;
+    } else if (/^#[0-9a-f]{6}$/i.test(v)) {
+      out[k] = darkenHex(v, 0.5);
+    } else {
+      out[k] = v;
+    }
+  }
+  out.card_bg = '#f7f8fa';
+  out.card_border = 'rgba(15, 23, 42, 0.12)';
+  out.card_glow = 'transparent';
+  out.pwr_text = '#0f172a';
+  out.kwh_text = 'rgba(15, 23, 42, 0.65)';
+  return out;
+}
+
+PALETTES.light = toLightPalette(PALETTES.solar);
 
 function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, (c) => ({
@@ -889,6 +925,10 @@ class AresEnergyFlowCard extends HTMLElement {
 
     // 100% Pure Independent Color Defaults (Zero Cascading Fallbacks)
     const colors = this._config.colors || {};
+    // Follow the Home Assistant theme when asked: the neutral tokens below come from the theme
+    // itself. A colour set in the Color Studio still wins, because every token reads
+    // colors.<key> first and only falls back to these defaults.
+    const useHaTheme = this._config.use_ha_theme === true;
 
     const d = {
       // 1. Solar Box Elements
@@ -993,6 +1033,31 @@ class AresEnergyFlowCard extends HTMLElement {
       row_battery_kwh: '#ffffff',
       row_battery_bar: pal.device || pal.ev || '#b388ff'
     };
+
+    // Neutral text and tints resolve in three steps: the theme's own variables when the card
+    // follows the theme, the light palette's dark values when the user picked that preset, or
+    // the palette as written. Only the neutral keys move; accents stay with the palette.
+    const themeText = useHaTheme ? 'var(--primary-text-color, #ffffff)' : pal.pwr_text;
+    const themeMuted = useHaTheme ? 'var(--secondary-text-color, rgba(255, 255, 255, 0.6))' : (pal.kwh_text || pal.pwr_text);
+    if (themeText) {
+      for (const k of Object.keys(d)) {
+        if (k.startsWith('pwr_')) d[k] = themeText;
+        else if (k.startsWith('kwh_') || k.endsWith('_kwh')) d[k] = themeMuted;
+      }
+      d.autarky_center_pct = themeText;
+    }
+    if (useHaTheme) {
+      const neutralTint = 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)';
+      for (const k of Object.keys(d)) if (k.startsWith('bg_')) d[k] = neutralTint;
+      d.border_scorecard = 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.12)';
+    }
+
+    // Card chrome (simulation banner). It sits on the card background, so it follows the same
+    // three-step rule as the neutral tokens: theme variables, then the light preset, then white.
+    const cChromeText = themeText || 'rgba(255, 255, 255, 0.9)';
+    const cChromeMuted = themeMuted || 'rgba(255, 255, 255, 0.55)';
+    const cChromeLine = useHaTheme ? 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.22)' : (pal.pwr_text ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.2)');
+    const cChromeTint = useHaTheme ? 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.06)' : (pal.pwr_text ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.08)');
 
     // 1. Solar Box
     const cSolarBg = colors.bg_solar || d.bg_solar;
@@ -1116,7 +1181,6 @@ class AresEnergyFlowCard extends HTMLElement {
 
     // Card chrome: optionally follow the active Home Assistant theme (use_ha_theme),
     // with optional colors.card_bg / colors.card_border / colors.card_glow overrides
-    const useHaTheme = this._config.use_ha_theme === true;
     const cCardBg = colors.card_bg || (useHaTheme ? 'var(--ha-card-background, var(--card-background-color, #11141a))' : 'linear-gradient(145deg, #11141a 0%, #1a1e26 100%)');
     const cCardBorder = colors.card_border || (useHaTheme ? 'var(--ha-card-border-color, var(--divider-color, rgba(255, 255, 255, 0.12)))' : pal.card_border);
     const cCardRadius = colors.card_radius || (useHaTheme ? 'var(--ha-card-border-radius, 12px)' : '20px');
@@ -1179,7 +1243,7 @@ class AresEnergyFlowCard extends HTMLElement {
         .sim-label {
           font-size: 9.5px;
           font-weight: 800;
-          color: rgba(255, 255, 255, 0.55);
+          color: ${cChromeMuted};
           letter-spacing: 0.8px;
           flex-shrink: 0;
           text-transform: uppercase;
@@ -1213,9 +1277,9 @@ class AresEnergyFlowCard extends HTMLElement {
           border-radius: 8px;
           font-size: 11px;
           font-weight: 700;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(255, 255, 255, 0.08);
-          color: rgba(255, 255, 255, 0.9);
+          border: 1px solid ${cChromeLine};
+          background: ${cChromeTint};
+          color: ${cChromeText};
           cursor: pointer;
           white-space: nowrap;
           transition: all 0.2s ease;
@@ -2530,7 +2594,7 @@ const mode = this._getLayoutMode();
     const cAutarky = colors.ring_autarky || d.ring_autarky || d.autarky || '#00e676';
     const cImportRing = colors.ring_import || d.ring_import || d.import_ring || '#ff7043';
     const cExportRing = colors.ring_export || d.ring_export || d.export_ring || '#ffd54f';
-    const cPctCenter = colors.autarky_center_pct || '#ffffff';
+    const cPctCenter = colors.autarky_center_pct || (this._config?.use_ha_theme ? 'var(--primary-text-color, #ffffff)' : '#ffffff');
     const cLblCenter = colors.autarky_center_lbl || cAutarky;
 
     const ringTracks = resolveRingTracks(colors, d);
@@ -3716,7 +3780,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.5';
+const CARD_VERSION = '2.5.6';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4335,6 +4399,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         </label>
         <select id="select-theme-preset" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: var(--secondary-background-color, #1a1e26); border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.18)); color: var(--primary-text-color, #ffffff); font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
           <option value="solar" ${curPal === 'solar' ? 'selected' : ''}>☀️ Solar Harmonized (Default)</option>
+          <option value="light" ${curPal === 'light' ? 'selected' : ''}>☁️ Light (readable on light dashboards)</option>
           <option value="synthwave" ${curPal === 'synthwave' ? 'selected' : ''}>🌅 Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)</option>
           <option value="cyberpunk" ${curPal === 'cyberpunk' ? 'selected' : ''}>🌆 Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)</option>
           <option value="nord" ${curPal === 'nord' ? 'selected' : ''}>❄️ Nord Frost (Polar Night, Ice Blue & Arctic Teal)</option>
