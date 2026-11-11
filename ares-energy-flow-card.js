@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.6 (Light mode: theme-aware neutrals and a Light palette)
+ * Version: v2.5.7 (Signed battery power and test bench fixes)
  */
 
 const PALETTES = {
@@ -378,6 +378,10 @@ function toLightPalette(pal) {
 
 PALETTES.light = toLightPalette(PALETTES.solar);
 
+// Test-bench scenario, held outside the element. The card editor rebuilds the preview element on
+// every config change, which wipes instance state; without this the scenario resets each toggle.
+let SIM_PRESET = null;
+
 function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;',
@@ -437,6 +441,7 @@ class AresEnergyFlowCard extends HTMLElement {
       battery_name: 'BESS',
       ev_name: 'Tesla',
       battery_positive_charging: true,
+      show_signed_battery_power: false,
       home_net_battery: false,
       show_sim_toolbar: false
     };
@@ -834,6 +839,7 @@ class AresEnergyFlowCard extends HTMLElement {
       show_battery_row: true,
       battery_primary_view: 'live',
       battery_positive_charging: true,
+      show_signed_battery_power: false,
       home_net_battery: false,
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
@@ -857,9 +863,10 @@ class AresEnergyFlowCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
     } else {
-      this._activePreset = null;
+      // Never drop the simulation scenario on a config edit: the test bench is the one place
+      // where a toggle must not change what is on screen. Reset to Default clears it explicitly.
       const simSel = this.shadowRoot?.getElementById('sim-scenario-select');
-      if (simSel) simSel.value = 'live';
+      if (simSel) simSel.value = this._activePreset || 'live';
       this._applyConfigVisibility();
       this._updateCustomStyles();
       this._applyThemeStyles();
@@ -2075,6 +2082,13 @@ class AresEnergyFlowCard extends HTMLElement {
     const simSelect = this.shadowRoot.getElementById('sim-scenario-select');
     const simResetBtn = this.shadowRoot.getElementById('sim-reset-btn');
 
+    // Restore the scenario a previous instance was running, after the editor rebuilt this element.
+    if (!this._activePreset && SIM_PRESET) {
+      this._activePreset = SIM_PRESET;
+      this._bessOverride = undefined;
+      if (simSelect) simSelect.value = SIM_PRESET;
+    }
+
     const applyPreset = (p) => {
       this._activePreset = (p === 'live' || !p) ? null : p;
       if (p === 'live' || !p) {
@@ -2086,6 +2100,7 @@ class AresEnergyFlowCard extends HTMLElement {
       } else {
         this._bessOverride = undefined;
       }
+      SIM_PRESET = this._activePreset;
       if (simSelect) simSelect.value = this._activePreset || 'live';
       this._applyConfigVisibility();
       this._updateFlowPaths();
@@ -3246,7 +3261,7 @@ const mode = this._getLayoutMode();
     this._applyRailVisibility();
 
     // UI Formatting
-    const fmtPwr = (w) => (w >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
+    const fmtPwr = (w) => (Math.abs(w) >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
     const fmtKwh = (kwh) => (kwh ? kwh.toFixed(2) : '0.00');
 
     // Solar UI updates
@@ -3462,7 +3477,7 @@ const mode = this._getLayoutMode();
 
     // Battery UI updates
     if (hasBatt && el.pwrBattery) {
-      el.pwrBattery.textContent = fmtPwr(Math.abs(rawBattW));
+      el.pwrBattery.textContent = fmtPwr(this._config?.show_signed_battery_power === true ? rawBattW : Math.abs(rawBattW));
       const showBattSoc = (this._config?.show_battery_soc !== false);
       if (batterySoc !== null && showBattSoc) {
         const prec = this._hass?.entities?.[ents.battery_soc]?.display_precision;
@@ -3503,7 +3518,7 @@ const mode = this._getLayoutMode();
           el.batteryStat2Val.textContent = eC2 ? `${eC2.state} ${eC2.attributes?.unit_of_measurement || ''}`.trim() : '--';
           el.batteryStat1Lbl.textContent = lbl1;
           el.batteryStat2Lbl.textContent = lbl2;
-          el.batteryStatSub.textContent = `Battery Power: ${fmtPwr(Math.abs(rawBattW))}`;
+          el.batteryStatSub.textContent = `Battery Power: ${fmtPwr(this._config?.show_signed_battery_power === true ? rawBattW : Math.abs(rawBattW))}`;
         } else {
           // Default: Energy Totals (Today Charged & Discharged kWh)
           const chargedKwh = this._parseEnergy(eBattCharge);
@@ -3780,7 +3795,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.6';
+const CARD_VERSION = '2.5.7';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4748,6 +4763,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         ev_secondary_view: this._config.ev_secondary_view || 'soc_range',
         battery_power: ents.battery_power || '',
         battery_positive_charging: this._config.battery_positive_charging !== false,
+        show_signed_battery_power: this._config.show_signed_battery_power === true,
         battery_soc: ents.battery_soc || '',
         battery_daily_charge: ents.battery_daily_charge || '',
         battery_daily_discharge: ents.battery_daily_discharge || '',
@@ -4852,6 +4868,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     if (secId === 'solar') {
       const keys = ['solar_power', 'solar_daily_yield', 'solcast_today', 'solcast_remaining', 'solar_daily_peak', 'electricity_tariff'];
       for (const k of keys) {
+        if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
       }
@@ -4887,6 +4904,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.show_export = Boolean(val.show_grid_out);
       const keys = ['grid_power', 'grid_export_power', 'grid_daily_import', 'grid_daily_export', 'load_power'];
       for (const k of keys) {
+        if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
       }
@@ -4911,6 +4929,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.ev_primary_view = val.ev_primary_view || 'power_energy';
       cfg.ev_secondary_view = val.ev_secondary_view || 'soc_range';
       cfg.battery_positive_charging = val.battery_positive_charging !== false;
+      cfg.show_signed_battery_power = val.show_signed_battery_power === true;
 
       cfg.battery_tapped_view = val.battery_tapped_view || 'energy_totals';
       cfg.battery_custom_stat_1 = val.battery_custom_stat_1 || '';
@@ -4920,11 +4939,13 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
 
       const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge', 'battery_temp', 'battery_soh'];
       for (const k of bKeys) {
+        if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
       }
       const evKeys = ['ev_power', 'ev_charging', 'ev_daily_energy'];
       for (const k of evKeys) {
+        if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
       }
@@ -5070,6 +5091,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "show_battery_row", label: "Show 'Discharged Today' Row in the Scorecard", selector: { boolean: {} } },
       { name: "home_net_battery", label: "Net Solar Consumed: Deduct Battery Charging, Add Discharging (assumes the battery charges from solar)", selector: { boolean: {} } },
       { name: "battery_positive_charging", label: "Battery Sign: Positive Power Means Charging (turn off if your inverter reports charging as negative)", selector: { boolean: {} } },
+      { name: "show_signed_battery_power", label: "Show Signed Battery Power (a minus while discharging, following the sign setting above)", selector: { boolean: {} } },
       { name: "battery_primary_view", label: "Home Battery Node: Default View", selector: { select: { options: [
         { value: "live", label: "Live Power & State of Charge (Default)" },
         { value: "stats", label: "Today's Charged & Discharged kWh" }
@@ -5092,7 +5114,6 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         { value: "session_energy", label: "Current Session Added Energy (kWh)" }
       ] } } },
       { name: "battery_power", label: "Home Battery Power Flow (kW)", selector: { entity: { domain: ["sensor"] } } },
-      { name: "battery_positive_charging", label: "Positive values mean Charging (+)", selector: { boolean: {} } },
       { name: "battery_soc", label: "Battery Charge Level (%)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_charge", label: "Today's Battery Charge", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_discharge", label: "Today's Battery Discharge", selector: { entity: { domain: ["sensor"] } } },
