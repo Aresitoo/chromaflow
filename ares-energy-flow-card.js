@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.7 (Signed battery power and test bench fixes)
+ * Version: v2.5.8 (Time to full for the battery and the car)
  */
 
 const PALETTES = {
@@ -442,6 +442,9 @@ class AresEnergyFlowCard extends HTMLElement {
       ev_name: 'Tesla',
       battery_positive_charging: true,
       show_signed_battery_power: false,
+      ev_capacity_kwh: 0,
+      ev_charge_efficiency: 0.9,
+      ev_charge_limit_pct: 100,
       home_net_battery: false,
       show_sim_toolbar: false
     };
@@ -495,6 +498,11 @@ class AresEnergyFlowCard extends HTMLElement {
         'sensor.battery_state_of_health',
         'sensor.bess_soh',
         'sensor.battery_health'
+      ]),
+      battery_time_to_full: resolve('battery_time_to_full', [
+        'sensor.battery_time_to_full',
+        'sensor.bess_time_to_full',
+        'sensor.sigen_plant_battery_time_to_full'
       ]),
       grid_power: resolve('grid_power', [
         'sensor.return_to_grid_new',
@@ -557,6 +565,11 @@ class AresEnergyFlowCard extends HTMLElement {
       ]),
       tesla_time_to_full: resolve('tesla_time_to_full', [
         'sensor.tesla_time_to_full_charge'
+      ]),
+      ev_time_to_full: resolve('ev_time_to_full', [
+        'sensor.tesla_time_to_full_charge',
+        'sensor.ev_time_to_full',
+        'sensor.car_time_to_full'
       ]),
       ev_session_energy: resolve('ev_session_energy', [
         'sensor.v2c_trydan_charge_energy',
@@ -840,6 +853,9 @@ class AresEnergyFlowCard extends HTMLElement {
       battery_primary_view: 'live',
       battery_positive_charging: true,
       show_signed_battery_power: false,
+      ev_capacity_kwh: 0,
+      ev_charge_efficiency: 0.9,
+      ev_charge_limit_pct: 100,
       home_net_battery: false,
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
@@ -3262,6 +3278,22 @@ const mode = this._getLayoutMode();
 
     // UI Formatting
     const fmtPwr = (w) => (Math.abs(w) >= 1000 ? `${(w / 1000).toFixed(2)} kW` : `${Math.round(w)} W`);
+    // Minutes until a battery reaches its target, from what the card already knows. Null when
+    // there is nothing to estimate from, so callers can fall back to their existing text.
+    const fmtDur = (mins) => {
+      if (!Number.isFinite(mins) || mins <= 0) return '';
+      const m = Math.round(mins);
+      if (m < 60) return `${m}m`;
+      const h = Math.floor(m / 60), rem = m % 60;
+      return rem ? `${h}h ${rem}m` : `${h}h`;
+    };
+    const minsToFull = (socPct, targetPct, capKwh, powerW, eff) => {
+      if (!(capKwh > 0) || !(powerW > 50) || !(socPct >= 0)) return null;
+      const need = ((targetPct - socPct) / 100) * capKwh;
+      if (!(need > 0)) return null;
+      const kw = (powerW / 1000) * (eff > 0 ? eff : 1);
+      return kw > 0 ? (need / kw) * 60 : null;
+    };
     const fmtKwh = (kwh) => (kwh ? kwh.toFixed(2) : '0.00');
 
     // Solar UI updates
@@ -3484,7 +3516,11 @@ const mode = this._getLayoutMode();
         const formattedSoc = (typeof prec === 'number')
           ? batterySoc.toFixed(prec)
           : (batterySoc % 1 === 0 ? batterySoc.toFixed(0) : batterySoc.toFixed(1));
-        el.kwhBattery.textContent = `${formattedSoc}% SoC`;
+        const eBattTtf = this._hass?.states[ents.battery_time_to_full];
+        const battTtfTxt = (eBattTtf?.state && !['unknown', 'unavailable'].includes(eBattTtf.state)) ? eBattTtf.state : null;
+        const battMins = minsToFull(batterySoc, 100, this._config?.battery_capacity_kwh, (typeof batteryChargeW === 'number' ? batteryChargeW : 0), 1);
+        const battToFull = battTtfTxt || (battMins ? fmtDur(battMins) : null);
+        el.kwhBattery.textContent = battToFull ? `${formattedSoc}% SoC · ${battToFull} to full` : `${formattedSoc}% SoC`;
         if (el.barBatterySocFill) el.barBatterySocFill.style.width = `${Math.min(100, Math.max(0, batterySoc))}%`;
         if (el.barBatterySocBox) el.barBatterySocBox.style.display = 'block';
       } else {
@@ -3563,7 +3599,7 @@ const mode = this._getLayoutMode();
       const hasSoc = typeof rawSoc === 'number' && !isNaN(rawSoc);
       const hasRange = typeof rawRange === 'number' && !isNaN(rawRange);
       const eTeslaLimit = this._hass?.states[ents.tesla_charge_limit];
-      const eTeslaTimeToFull = this._hass?.states[ents.tesla_time_to_full];
+      const eTeslaTimeToFull = this._hass?.states[ents.ev_time_to_full] || this._hass?.states[ents.tesla_time_to_full];
       const eSessionEnergy = this._hass?.states[ents.ev_session_energy];
 
       const rawLimit = eTeslaLimit ? parseFloat(eTeslaLimit.state) : null;
@@ -3583,7 +3619,15 @@ const mode = this._getLayoutMode();
       } else if (activeViewMode === 'target_status') {
         el.pwrEv.textContent = (typeof rawLimit === 'number' && !isNaN(rawLimit)) ? `Target: ${Math.round(rawLimit)}%` : (hasSoc ? `${Math.round(rawSoc)}%` : fmtPwr(liveEvW));
         const stateStr = eTeslaState?.state ? eTeslaState.state.toUpperCase() : 'PARKED';
-        el.kwhEv.textContent = rawTimeToFull ? `${rawTimeToFull} to full` : stateStr;
+        const evTarget = (typeof rawLimit === 'number' && !isNaN(rawLimit)) ? rawLimit : (this._config?.ev_charge_limit_pct || 100);
+        const evMins = hasSoc ? minsToFull(rawSoc, evTarget, this._config?.ev_capacity_kwh, liveEvW, this._config?.ev_charge_efficiency || 0.9) : null;
+        el.kwhEv.textContent = rawTimeToFull ? `${rawTimeToFull} to full` : (evMins ? `${fmtDur(evMins)} to full` : stateStr);
+      } else if (activeViewMode === 'time_to_full') {
+        const evTarget2 = (typeof rawLimit === 'number' && !isNaN(rawLimit)) ? rawLimit : (this._config?.ev_charge_limit_pct || 100);
+        const evMins2 = hasSoc ? minsToFull(rawSoc, evTarget2, this._config?.ev_capacity_kwh, liveEvW, this._config?.ev_charge_efficiency || 0.9) : null;
+        const durTxt = rawTimeToFull || (evMins2 ? fmtDur(evMins2) : null);
+        el.pwrEv.textContent = durTxt || '--';
+        el.kwhEv.textContent = hasSoc ? `${Math.round(rawSoc)}% · target ${Math.round(evTarget2)}%` : stateStr;
       } else if (activeViewMode === 'session_energy') {
         el.pwrEv.textContent = fmtPwr(liveEvW);
         el.kwhEv.textContent = rawSessionKwh > 0 ? `${fmtKwh(rawSessionKwh)} kWh session` : `${fmtKwh(evDailyKwh)} kWh charged`;
@@ -3795,7 +3839,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.7';
+const CARD_VERSION = '2.5.8';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4764,6 +4808,12 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         battery_power: ents.battery_power || '',
         battery_positive_charging: this._config.battery_positive_charging !== false,
         show_signed_battery_power: this._config.show_signed_battery_power === true,
+        battery_capacity_kwh: this._config.battery_capacity_kwh ?? 0,
+        ev_capacity_kwh: this._config.ev_capacity_kwh ?? 0,
+        ev_charge_efficiency: this._config.ev_charge_efficiency ?? 0.9,
+        ev_charge_limit_pct: this._config.ev_charge_limit_pct ?? 100,
+        battery_time_to_full: ents.battery_time_to_full || '',
+        ev_time_to_full: ents.ev_time_to_full || '',
         battery_soc: ents.battery_soc || '',
         battery_daily_charge: ents.battery_daily_charge || '',
         battery_daily_discharge: ents.battery_daily_discharge || '',
@@ -4930,6 +4980,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.ev_secondary_view = val.ev_secondary_view || 'soc_range';
       cfg.battery_positive_charging = val.battery_positive_charging !== false;
       cfg.show_signed_battery_power = val.show_signed_battery_power === true;
+      cfg.ev_capacity_kwh = parseFloat(val.ev_capacity_kwh) || 0;
+      cfg.ev_charge_efficiency = (parseFloat(val.ev_charge_efficiency) > 0) ? Math.min(1, parseFloat(val.ev_charge_efficiency)) : 0.9;
+      const rawLimitPct = parseFloat(val.ev_charge_limit_pct);
+      cfg.ev_charge_limit_pct = (rawLimitPct >= 50 && rawLimitPct <= 100) ? rawLimitPct : 100;
 
       cfg.battery_tapped_view = val.battery_tapped_view || 'energy_totals';
       cfg.battery_custom_stat_1 = val.battery_custom_stat_1 || '';
@@ -4937,13 +4991,13 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.battery_custom_stat_2 = val.battery_custom_stat_2 || '';
       cfg.battery_custom_stat_2_name = val.battery_custom_stat_2_name || '';
 
-      const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge', 'battery_temp', 'battery_soh'];
+      const bKeys = ['battery_power', 'battery_soc', 'battery_daily_charge', 'battery_daily_discharge', 'battery_temp', 'battery_soh', 'battery_time_to_full'];
       for (const k of bKeys) {
         if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
       }
-      const evKeys = ['ev_power', 'ev_charging', 'ev_daily_energy'];
+      const evKeys = ['ev_power', 'ev_charging', 'ev_daily_energy', 'ev_time_to_full'];
       for (const k of evKeys) {
         if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
@@ -5105,20 +5159,28 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         { value: "power_energy", label: "Live Power & Today's Energy Charged (Default)" },
         { value: "soc_range", label: "Battery Level (%) & Rated Range (km / mi)" },
         { value: "target_status", label: "Charge Target Limit (%) & Time to Full" },
+        { value: "time_to_full", label: "Time to Full" },
         { value: "session_energy", label: "Current Session Added Energy (kWh)" }
       ] } } },
       { name: "ev_secondary_view", label: "Vehicle Card: Tapped Display Mode", selector: { select: { options: [
         { value: "soc_range", label: "Battery Level (%) & Rated Range (km / mi) (Default)" },
         { value: "power_energy", label: "Live Power & Today's Energy Charged" },
         { value: "target_status", label: "Charge Target Limit (%) & Time to Full" },
+        { value: "time_to_full", label: "Time to Full" },
         { value: "session_energy", label: "Current Session Added Energy (kWh)" }
       ] } } },
+      { name: "battery_capacity_kwh", label: "Home Battery Usable Capacity (kWh, needed for the time to full estimate)", selector: { number: { min: 0, max: 100, step: 0.1, mode: "box" } } },
+      { name: "ev_capacity_kwh", label: "EV Usable Battery Capacity (kWh, used for the time to full estimate)", selector: { number: { min: 0, max: 200, step: 0.1, mode: "box" } } },
+      { name: "ev_charge_limit_pct", label: "Vehicle Charge Target (%) used when the car has no charge limit entity", selector: { number: { min: 50, max: 100, step: 1, mode: "box" } } },
+      { name: "ev_charge_efficiency", label: "EV Charging Efficiency (0.9 means 90%)", selector: { number: { min: 0.5, max: 1, step: 0.01, mode: "box" } } },
+      { name: "ev_time_to_full", label: "Vehicle Time to Full Sensor (optional, overrides the estimate)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_power", label: "Home Battery Power Flow (kW)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_soc", label: "Battery Charge Level (%)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_charge", label: "Today's Battery Charge", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_daily_discharge", label: "Today's Battery Discharge", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_temp", label: "Home Battery Temperature Sensor (°C)", selector: { entity: { domain: ["sensor"] } } },
       { name: "battery_soh", label: "Home Battery Health Sensor (SoH %)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "battery_time_to_full", label: "Home Battery Time to Full Sensor (optional, overrides the estimate)", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_power", label: "EV Charging Power", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_charging", label: "EV Charging Active Status (Binary Sensor)", selector: { entity: { domain: ["binary_sensor"] } } },
       { name: "ev_daily_energy", label: "Today's EV Energy Charged (kWh)", selector: { entity: { domain: ["sensor"] } } }
