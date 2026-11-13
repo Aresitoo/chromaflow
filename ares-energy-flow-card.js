@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.8 (Time to full for the battery and the car)
+ * Version: v2.5.9 (EV charge in progress, and honest wording)
  */
 
 const PALETTES = {
@@ -445,6 +445,7 @@ class AresEnergyFlowCard extends HTMLElement {
       ev_capacity_kwh: 0,
       ev_charge_efficiency: 0.9,
       ev_charge_limit_pct: 100,
+      ev_energy_mode: 'today',
       home_net_battery: false,
       show_sim_toolbar: false
     };
@@ -856,6 +857,7 @@ class AresEnergyFlowCard extends HTMLElement {
       ev_capacity_kwh: 0,
       ev_charge_efficiency: 0.9,
       ev_charge_limit_pct: 100,
+      ev_energy_mode: 'today',
       home_net_battery: false,
       allow_battery_to_ev: false,
       allow_grid_to_battery: false,
@@ -1796,7 +1798,7 @@ class AresEnergyFlowCard extends HTMLElement {
                   <span id="badge-ev" class="badge" style="color: ${cBadgeEvText}; background: ${cBadgeEvBg}; border: 0.5px solid ${cEvBorder}; display: none;">CHARGING</span>
                 </div>
                 <div id="pwr-ev" class="node-pwr" style="color: ${cPwrEv};">0 W</div>
-                <div id="kwh-ev" class="node-kwh" style="color: ${cKwhEv};">0.00 kWh charged</div>
+                <div id="kwh-ev" class="node-kwh" style="color: ${cKwhEv};">0.00 kWh added</div>
                 <div id="bar-ev-soc-box" style="margin-top: 4px; width: 100%; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; display: none;">
                   <div id="bar-ev-soc-fill" style="width: 0%; height: 100%; background: ${cBarEvSoc}; transition: width 0.4s ease;"></div>
                 </div>
@@ -2894,6 +2896,7 @@ const mode = this._getLayoutMode();
     let liveEvW = 0;
     let isEvActive = false;
     let evDailyKwh = 0;
+    let evSessionKwh = 0;
 
     if (hasEv) {
       const pwrEvRaw = Math.max(0, this._parsePower(eEvPwr));
@@ -2919,6 +2922,20 @@ const mode = this._getLayoutMode();
           }
         } else {
           evDailyKwh = this._parseEnergy(eEvEnergy);
+        }
+      }
+
+      // Charging history only lists sessions that have finished, so while the car is plugged in
+      // the total sits at zero until it stops. Add the live session counter to bridge that gap.
+      if (isEvActive && ents.ev_session_energy && ents.ev_session_energy !== ents.ev_daily_energy) {
+        const eLiveSession = this._hass?.states[ents.ev_session_energy];
+        const liveSessionKwh = eLiveSession ? this._parseEnergy(eLiveSession) : 0;
+        // A charging session means the counter must be moving. A stale one is either frozen or a
+        // lifetime total, and adding either would inflate today's figure with old energy.
+        const ageMs = eLiveSession?.last_updated ? Date.now() - new Date(eLiveSession.last_updated).getTime() : Infinity;
+        if (liveSessionKwh > 0 && ageMs < 15 * 60 * 1000) {
+          evSessionKwh = liveSessionKwh;
+          evDailyKwh += liveSessionKwh;
         }
       }
     }
@@ -3615,7 +3632,7 @@ const mode = this._getLayoutMode();
       // Dynamic Formatter for EV views
       if (activeViewMode === 'soc_range') {
         el.pwrEv.textContent = hasSoc ? `${Math.round(rawSoc)}%` : fmtPwr(liveEvW);
-        el.kwhEv.textContent = hasRange ? `${Math.round(rawRange)} km range` : `${fmtKwh(evDailyKwh)} kWh charged`;
+        el.kwhEv.textContent = hasRange ? `${Math.round(rawRange)} km range` : `${fmtKwh(evDailyKwh)} kWh added`;
       } else if (activeViewMode === 'target_status') {
         el.pwrEv.textContent = (typeof rawLimit === 'number' && !isNaN(rawLimit)) ? `Target: ${Math.round(rawLimit)}%` : (hasSoc ? `${Math.round(rawSoc)}%` : fmtPwr(liveEvW));
         const stateStr = eTeslaState?.state ? eTeslaState.state.toUpperCase() : 'PARKED';
@@ -3630,11 +3647,13 @@ const mode = this._getLayoutMode();
         el.kwhEv.textContent = hasSoc ? `${Math.round(rawSoc)}% · target ${Math.round(evTarget2)}%` : stateStr;
       } else if (activeViewMode === 'session_energy') {
         el.pwrEv.textContent = fmtPwr(liveEvW);
-        el.kwhEv.textContent = rawSessionKwh > 0 ? `${fmtKwh(rawSessionKwh)} kWh session` : `${fmtKwh(evDailyKwh)} kWh charged`;
+        el.kwhEv.textContent = rawSessionKwh > 0 ? `${fmtKwh(rawSessionKwh)} kWh session` : `${fmtKwh(evDailyKwh)} kWh added`;
       } else {
-        // Default: power_energy
+        // Default: power_energy. "session" shows the live counter alone, for cars whose session
+        // sensor is the only figure that moves while charging.
         el.pwrEv.textContent = fmtPwr(liveEvW);
-        el.kwhEv.textContent = `${fmtKwh(evDailyKwh)} kWh charged`;
+        const evKwhShown = (this._config?.ev_energy_mode === 'session' && evSessionKwh > 0) ? evSessionKwh : evDailyKwh;
+        el.kwhEv.textContent = `${fmtKwh(evKwhShown)} kWh added`;
       }
 
       // Micro SoC progress bar under node
@@ -3839,7 +3858,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.8';
+const CARD_VERSION = '2.5.9';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4340,7 +4359,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           { key: "border_ev", label: "Box Border & Glow", default: "rgba(179, 136, 255, 0.3)" },
           { key: "title_ev", label: "Title Text & Icon", default: "#b388ff" },
           { key: "pwr_ev", label: "EV Charging Power (kW)", default: "#ffffff" },
-          { key: "kwh_ev", label: "Daily EV Energy Charged (kWh)", default: "rgba(255, 255, 255, 0.6)" },
+          { key: "kwh_ev", label: "Daily EV Energy Added (kWh)", default: "rgba(255, 255, 255, 0.6)" },
           { key: "badge_ev_text", label: "Charging Badge Text", default: "#b388ff" },
           { key: "badge_ev_bg", label: "Charging Badge Background", default: "rgba(179, 136, 255, 0.12)" },
           { key: "bar_ev_soc", label: "EV Battery State of Charge (SOC) Bar Fill", default: "#b388ff" }
@@ -4812,6 +4831,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         ev_capacity_kwh: this._config.ev_capacity_kwh ?? 0,
         ev_charge_efficiency: this._config.ev_charge_efficiency ?? 0.9,
         ev_charge_limit_pct: this._config.ev_charge_limit_pct ?? 100,
+        ev_energy_mode: this._config.ev_energy_mode === 'session' ? 'session' : 'today',
         battery_time_to_full: ents.battery_time_to_full || '',
         ev_time_to_full: ents.ev_time_to_full || '',
         battery_soc: ents.battery_soc || '',
@@ -4819,7 +4839,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         battery_daily_discharge: ents.battery_daily_discharge || '',
         ev_power: ents.ev_power || '',
         ev_charging: ents.ev_charging || '',
-        ev_daily_energy: ents.ev_daily_energy || ''
+        ev_daily_energy: ents.ev_daily_energy || '',
+        ev_session_energy: ents.ev_session_energy || ''
       };
       if (this._hass) this._forms.device.hass = this._hass;
     }
@@ -4984,6 +5005,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       cfg.ev_charge_efficiency = (parseFloat(val.ev_charge_efficiency) > 0) ? Math.min(1, parseFloat(val.ev_charge_efficiency)) : 0.9;
       const rawLimitPct = parseFloat(val.ev_charge_limit_pct);
       cfg.ev_charge_limit_pct = (rawLimitPct >= 50 && rawLimitPct <= 100) ? rawLimitPct : 100;
+      cfg.ev_energy_mode = val.ev_energy_mode === 'session' ? 'session' : 'today';
 
       cfg.battery_tapped_view = val.battery_tapped_view || 'energy_totals';
       cfg.battery_custom_stat_1 = val.battery_custom_stat_1 || '';
@@ -4997,7 +5019,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         if (val[k]) cfg.entities[k] = val[k];
         else delete cfg.entities[k];
       }
-      const evKeys = ['ev_power', 'ev_charging', 'ev_daily_energy', 'ev_time_to_full'];
+      const evKeys = ['ev_power', 'ev_charging', 'ev_daily_energy', 'ev_session_energy', 'ev_time_to_full'];
       for (const k of evKeys) {
         if (!(k in val)) continue;
         if (val[k]) cfg.entities[k] = val[k];
@@ -5156,7 +5178,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "show_ev_soc_bar", label: "Show EV Battery Progress Bar", selector: { boolean: {} } },
       { name: "show_ev_soc_badge", label: "Show EV Battery % / State Badge", selector: { boolean: {} } },
       { name: "ev_primary_view", label: "Vehicle Card: Default Display Mode", selector: { select: { options: [
-        { value: "power_energy", label: "Live Power & Today's Energy Charged (Default)" },
+        { value: "power_energy", label: "Live Power & Today's Energy Added (Default)" },
         { value: "soc_range", label: "Battery Level (%) & Rated Range (km / mi)" },
         { value: "target_status", label: "Charge Target Limit (%) & Time to Full" },
         { value: "time_to_full", label: "Time to Full" },
@@ -5164,7 +5186,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       ] } } },
       { name: "ev_secondary_view", label: "Vehicle Card: Tapped Display Mode", selector: { select: { options: [
         { value: "soc_range", label: "Battery Level (%) & Rated Range (km / mi) (Default)" },
-        { value: "power_energy", label: "Live Power & Today's Energy Charged" },
+        { value: "power_energy", label: "Live Power & Today's Energy Added" },
         { value: "target_status", label: "Charge Target Limit (%) & Time to Full" },
         { value: "time_to_full", label: "Time to Full" },
         { value: "session_energy", label: "Current Session Added Energy (kWh)" }
@@ -5183,7 +5205,12 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       { name: "battery_time_to_full", label: "Home Battery Time to Full Sensor (optional, overrides the estimate)", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_power", label: "EV Charging Power", selector: { entity: { domain: ["sensor"] } } },
       { name: "ev_charging", label: "EV Charging Active Status (Binary Sensor)", selector: { entity: { domain: ["binary_sensor"] } } },
-      { name: "ev_daily_energy", label: "Today's EV Energy Charged (kWh)", selector: { entity: { domain: ["sensor"] } } }
+      { name: "ev_daily_energy", label: "Today's EV Energy Added (kWh)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "ev_session_energy", label: "Current Session Energy (kWh, counts the charge in progress)", selector: { entity: { domain: ["sensor"] } } },
+      { name: "ev_energy_mode", label: "Vehicle Energy Line Shows", selector: { select: { options: [
+        { value: "today", label: "Today's Total (finished sessions plus the charge in progress)" },
+        { value: "session", label: "Current Session Only (the live counter)" }
+      ] } } },
     ];
   }
 
