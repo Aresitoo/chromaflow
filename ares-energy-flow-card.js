@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.9 (EV charge in progress, and honest wording)
+ * Version: v2.5.10 (Entity pickers keep what you choose)
  */
 
 const PALETTES = {
@@ -3858,7 +3858,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.9';
+const CARD_VERSION = '2.5.10';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -3990,7 +3990,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       return '';
     };
 
-    return {
+    const out = {
       solar_power: resolve('solar_power', ['sensor.solar_power', 'sensor.envoy_current_power_production', 'sensor.pv_power']),
       solar_daily_yield: resolve('solar_daily_yield', ['sensor.solar_daily_yield', 'sensor.solar_today', 'sensor.energy_production_today']),
       grid_power: resolve('grid_power', ['sensor.return_to_grid_new', 'sensor.grid_power', 'sensor.power_meter']),
@@ -4010,6 +4010,13 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       solcast_today: resolve('solcast_today', ['sensor.solcast_pv_forecast_forecast_today', 'sensor.solcast_forecast_today']),
       solcast_remaining: resolve('solcast_remaining', ['sensor.solcast_pv_forecast_forecast_remaining_today', 'sensor.solcast_forecast_remaining_today'])
     };
+    // Anything configured but not listed above still has to reach the forms, or the editor shows
+    // an empty picker and wipes it on the next change. That was the time-to-full fields.
+    for (const k of Object.keys(cfgEnts)) {
+      if (k in out) continue;
+      out[k] = cfgEnts[k];
+    }
+    return out;
   }
 
   _render() {
