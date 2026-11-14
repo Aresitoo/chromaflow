@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.10 (Entity pickers keep what you choose)
+ * Version: v2.5.11 (Self-consumed shows its share of solar)
  */
 
 const PALETTES = {
@@ -674,7 +674,7 @@ class AresEnergyFlowCard extends HTMLElement {
       autarky: l.autarky || cfg.lbl_autarky || 'AUTARKY',
       autarky_sub: l.autarky_sub || cfg.lbl_autarky_sub || 'Grid-Free',
       self_consumed: l.self_consumed || cfg.lbl_self_consumed || 'SOLAR SELF-CONSUMED',
-      self_consumed_sub: l.self_consumed_sub || cfg.lbl_self_consumed_sub || '100% Free',
+      self_consumed_sub: l.self_consumed_sub || cfg.lbl_self_consumed_sub || '',
       grid_reliance: l.grid_reliance || cfg.lbl_grid_reliance || 'UTILITY GRID RELIANCE',
       grid_reliance_sub: l.grid_reliance_sub || cfg.lbl_grid_reliance_sub || 'Night/Backup',
       exported: l.exported || cfg.lbl_exported || 'EXPORTED TO GRID',
@@ -2075,6 +2075,7 @@ class AresEnergyFlowCard extends HTMLElement {
 
       rowAutarkyPct: getEl('row-autarky-pct'),
       rowSolarKwh: getEl('row-solar-kwh'),
+      lblSelfConsumedSub: getEl('lbl-self-consumed-sub'),
       barSolarSelfConsumedBg: getEl('bar-solar-self-consumed-bg'),
       barSolarSelfConsumed: getEl('bar-solar-self-consumed'),
 
@@ -3709,6 +3710,14 @@ const mode = this._getLayoutMode();
     el.autarkyCenterPct.textContent = `${autarkyPct}%`;
     el.rowAutarkyPct.textContent = `${autarkyPct}%`;
     el.rowSolarKwh.childNodes[0].textContent = `${fmtKwh(selfConsumedKwh)} `;
+    // That trailing label used to be a fixed "100% Free", which read as a calculated percentage
+    // sitting next to a live number. Show the real solar share unless the user wrote their own.
+    if (el.lblSelfConsumedSub) {
+      const customSub = this._config?.lbl_self_consumed_sub;
+      el.lblSelfConsumedSub.textContent = customSub || (kwhSolarYield > 0
+        ? `${Math.round((selfConsumedKwh / kwhSolarYield) * 100)}% of solar`
+        : 'no solar today');
+    }
     el.barSolarSelfConsumed.style.width = `${autarkyPct}%`;
 
     el.rowGridPct.textContent = `${gridReliancePct}%`;
@@ -3858,7 +3867,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.10';
+const CARD_VERSION = '2.5.11';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
