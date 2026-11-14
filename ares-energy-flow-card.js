@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.11 (Self-consumed shows its share of solar)
+ * Version: v2.5.12 (Percentage bases are opt-in)
  */
 
 const PALETTES = {
@@ -1852,7 +1852,7 @@ class AresEnergyFlowCard extends HTMLElement {
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-solar-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-self-consumed-sub">${esc(lbls.self_consumed_sub)}</span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh <span id="self-sub-wrap" style="display: ${(lbls.self_consumed_sub || this._config?.show_percentage_bases === true) ? 'inline' : 'none'};">&bull; <span id="lbl-self-consumed-sub">${esc(lbls.self_consumed_sub)}</span></span></span>
                   </span>
                   <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
@@ -2076,6 +2076,7 @@ class AresEnergyFlowCard extends HTMLElement {
       rowAutarkyPct: getEl('row-autarky-pct'),
       rowSolarKwh: getEl('row-solar-kwh'),
       lblSelfConsumedSub: getEl('lbl-self-consumed-sub'),
+      selfSubWrap: getEl('self-sub-wrap'),
       barSolarSelfConsumedBg: getEl('bar-solar-self-consumed-bg'),
       barSolarSelfConsumed: getEl('bar-solar-self-consumed'),
 
@@ -3712,13 +3713,30 @@ const mode = this._getLayoutMode();
     el.rowSolarKwh.childNodes[0].textContent = `${fmtKwh(selfConsumedKwh)} `;
     // That trailing label used to be a fixed "100% Free", which read as a calculated percentage
     // sitting next to a live number. Show the real solar share unless the user wrote their own.
+    // Explaining the percentage is opt-in: turning it on also reveals each row's base total.
+    const showBases = this._config?.show_percentage_bases === true;
     if (el.lblSelfConsumedSub) {
       const customSub = this._config?.lbl_self_consumed_sub;
-      el.lblSelfConsumedSub.textContent = customSub || (kwhSolarYield > 0
-        ? `${Math.round((selfConsumedKwh / kwhSolarYield) * 100)}% of solar`
-        : 'no solar today');
+      const subText = customSub || (showBases
+        ? (kwhSolarYield > 0
+          ? `${Math.round((selfConsumedKwh / kwhSolarYield) * 100)}% of solar`
+          : 'no solar today')
+        : '');
+      el.lblSelfConsumedSub.textContent = subText;
+      if (el.selfSubWrap) el.selfSubWrap.style.display = subText ? 'inline' : 'none';
     }
     el.barSolarSelfConsumed.style.width = `${autarkyPct}%`;
+
+    // Percentages are opaque unless the base is visible, so each row's tag carries its total.
+    const setBase = (kwhEl, text) => {
+      const tag = kwhEl?.parentElement?.querySelector('.kpi-tag');
+      if (tag) tag.textContent = text;
+    };
+    const loadBase = showBases ? `OF LOAD ${fmtKwh(kwhTotalLoad)}` : 'OF LOAD';
+    setBase(el.rowSolarKwh, loadBase);
+    setBase(el.rowGridKwh, loadBase);
+    setBase(el.rowExportKwh, showBases ? `OF SOLAR ${fmtKwh(kwhSolarYield)}` : 'OF SOLAR');
+    setBase(el.rowBatteryKwh, loadBase);
 
     el.rowGridPct.textContent = `${gridReliancePct}%`;
     el.rowGridKwh.childNodes[0].textContent = `${fmtKwh(kwhGridImport)} `;
@@ -3867,7 +3885,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.11';
+const CARD_VERSION = '2.5.12';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4897,6 +4915,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       this._forms.display.data = {
         financial_placement: this._config?.financial_placement || 'none',
         show_emojis: this._config?.show_emojis !== false,
+        show_percentage_bases: this._config?.show_percentage_bases === true,
         show_sim_toolbar: this._config?.show_sim_toolbar === true,
         show_idle_rails: this._config?.show_idle_rails !== false,
         spaced_layout: this._config?.spaced_layout === true,
@@ -5077,6 +5096,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     } else if (secId === 'display') {
       cfg.financial_placement = val.financial_placement || 'none';
       cfg.show_emojis = val.show_emojis !== false;
+      if ('show_percentage_bases' in val) {
+        if (val.show_percentage_bases === true) cfg.show_percentage_bases = true;
+        else delete cfg.show_percentage_bases;
+      }
       cfg.show_sim_toolbar = Boolean(val.show_sim_toolbar);
       cfg.show_idle_rails = val.show_idle_rails !== false;
       cfg.spaced_layout = val.spaced_layout === true;
@@ -5281,6 +5304,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       {
         name: "show_emojis",
         label: "Show Node & Header Emojis",
+        selector: { boolean: {} }
+      },
+      {
+        name: "show_percentage_bases",
+        label: "Show what each percentage is measured against (adds the totals next to OF LOAD / OF SOLAR, and a solar-share note under self-consumed)",
         selector: { boolean: {} }
       },
       {
