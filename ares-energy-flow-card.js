@@ -3505,7 +3505,7 @@ const mode = this._getLayoutMode();
       const getBadgeTextColor = (col) => {
         if (!isLight) return col;
         if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
-          return `color-mix(in srgb, ${col} 60%, #000000)`;
+          return `color-mix(in srgb, ${col} 50%, #000000)`;
         }
         return col;
       };
