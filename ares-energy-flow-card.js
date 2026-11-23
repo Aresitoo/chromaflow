@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.5.12 (Percentage bases are opt-in)
+ * Version: v2.6.0 (Light theme WCAG compliance, native ha_energy palette, and color overrides drawer)
  */
 
 const PALETTES = {
@@ -258,6 +258,14 @@ function hexToRgba(hex, alpha = 1) {
   if (!hex) return `rgba(255, 255, 255, ${alpha})`;
   if (hex.startsWith('rgba')) return hex.replace(/[\d.]+\)$/, `${alpha})`);
   if (hex.startsWith('rgb(')) return hex.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+  if (hex.startsWith('color-mix')) return hex;
+  if (hex.startsWith('var(')) {
+    if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
+      return `color-mix(in srgb, ${hex} ${Math.round(alpha * 100)}%, transparent)`;
+    }
+    const fallback = hex.match(/,\s*([^)]+)\)$/);
+    if (fallback) return hexToRgba(fallback[1].trim(), alpha);
+  }
   let c = hex.replace('#', '');
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const num = parseInt(c, 16);
@@ -342,41 +350,72 @@ function getRandomVibrantHex(baseHue) {
   return hslToHex(h, s, l);
 }
 
-// Light preset. Derived from Solar so every key keeps its meaning, with the accent hues
-// darkened until they read against a light card, and the white tints flipped to dark ones.
-// Only used when the user picks the Light preset: a card that follows the HA theme gets its
-// neutrals from the theme variables instead, which is what makes that path work in both modes.
-function darkenHex(hex, factor) {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!m) return hex;
-  const n = parseInt(m[1], 16);
-  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => Math.max(0, Math.round(c * factor)));
-  return '#' + ch.map((c) => c.toString(16).padStart(2, '0')).join('');
-}
+// Curated high-contrast Light preset. Hand-tuned WCAG accessible accents
+// for clean readability on white and light dashboards without muddy tones.
+PALETTES.light = {
+  name: 'Light (Readable on Light Dashboards)',
+  solar: '#d97706',       // Amber 600
+  grid: '#ea580c',        // Orange 600
+  home: '#0284c7',        // Sky 600
+  device: '#7c3aed',      // Violet 600
+  battery: '#059669',     // Emerald 600
+  ev: '#7c3aed',          // Violet 600
+  export: '#16a34a',      // Green 600
+  autarky: '#16a34a',     // Green 600
+  import_ring: '#ea580c',
+  export_ring: '#d97706',
+  bg_solar: 'rgba(217, 119, 6, 0.08)',
+  border_solar: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  bg_grid: 'rgba(234, 88, 12, 0.08)',
+  border_grid: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  bg_home: 'rgba(2, 132, 199, 0.08)',
+  border_home: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  bg_device: 'rgba(124, 58, 237, 0.08)',
+  border_device: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  bg_battery: 'rgba(5, 150, 105, 0.08)',
+  border_battery: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  bg_ev: 'rgba(124, 58, 237, 0.08)',
+  border_ev: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  bg_export: 'rgba(22, 163, 74, 0.08)',
+  border_export: 'var(--divider-color, rgba(15, 23, 42, 0.12))',
+  card_bg: '#ffffff',
+  card_border: 'rgba(15, 23, 42, 0.12)',
+  card_glow: 'transparent',
+  pwr_text: '#0f172a',
+  kwh_text: 'rgba(15, 23, 42, 0.65)',
+  scorecard_radial: 'rgba(2, 132, 199, 0.04)'
+};
 
-function toLightPalette(pal) {
-  const out = {};
-  for (const [k, v] of Object.entries(pal)) {
-    if (typeof v !== 'string') { out[k] = v; continue; }
-    if (/^rgba?\(\s*255\s*,\s*255\s*,\s*255/i.test(v)) {
-      const a = v.match(/,\s*([\d.]+)\s*\)$/);
-      const alpha = Math.min(0.12, a ? Number(a[1]) * 1.6 : 0.05);
-      out[k] = `rgba(15, 23, 42, ${alpha.toFixed(2)})`;
-    } else if (/^#[0-9a-f]{6}$/i.test(v)) {
-      out[k] = darkenHex(v, 0.5);
-    } else {
-      out[k] = v;
-    }
-  }
-  out.card_bg = '#f7f8fa';
-  out.card_border = 'rgba(15, 23, 42, 0.12)';
-  out.card_glow = 'transparent';
-  out.pwr_text = '#0f172a';
-  out.kwh_text = 'rgba(15, 23, 42, 0.65)';
-  return out;
-}
-
-PALETTES.light = toLightPalette(PALETTES.solar);
+// Home Assistant Native Energy preset. Automatically inherits native HA energy tokens.
+PALETTES.ha_energy = {
+  name: 'Home Assistant Energy (Native Colors)',
+  solar: 'var(--energy-solar-color, #ff9800)',
+  grid: 'var(--energy-grid-consumption-color, #ff7043)',
+  home: 'var(--primary-color, #03a9f4)',
+  device: 'var(--energy-battery-out-color, #7c4dff)',
+  battery: 'var(--energy-battery-in-color, #4caf50)',
+  ev: 'var(--energy-battery-out-color, #7c4dff)',
+  export: 'var(--energy-grid-return-color, #9c27b0)',
+  autarky: 'var(--energy-solar-color, #ff9800)',
+  import_ring: 'var(--energy-grid-consumption-color, #ff7043)',
+  export_ring: 'var(--energy-grid-return-color, #9c27b0)',
+  bg_solar: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_solar: 'var(--energy-solar-color, rgba(255, 152, 0, 0.4))',
+  bg_grid: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_grid: 'var(--energy-grid-consumption-color, rgba(255, 112, 67, 0.4))',
+  bg_home: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_home: 'var(--primary-color, rgba(3, 169, 244, 0.4))',
+  bg_device: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_device: 'var(--energy-battery-out-color, rgba(124, 77, 255, 0.4))',
+  bg_battery: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_battery: 'var(--energy-battery-in-color, rgba(76, 175, 80, 0.4))',
+  bg_ev: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_ev: 'var(--energy-battery-out-color, rgba(124, 77, 255, 0.4))',
+  bg_export: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  border_export: 'var(--energy-grid-return-color, rgba(156, 39, 176, 0.4))',
+  card_border: 'var(--ha-card-border-color, rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15))',
+  scorecard_radial: 'rgba(var(--rgb-primary-color, 3, 169, 244), 0.06)'
+};
 
 // Test-bench scenario, held outside the element. The card editor rebuilds the preview element on
 // every config change, which wipes instance state; without this the scenario resets each toggle.
@@ -1418,6 +1457,7 @@ class AresEnergyFlowCard extends HTMLElement {
           border-radius: 10px;
           padding: 5px 8px;
           box-sizing: border-box;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
           transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         ha-card.layout-dual .node, ha-card.layout-battery-left .node {
@@ -1838,7 +1878,7 @@ class AresEnergyFlowCard extends HTMLElement {
               <div class="rings-center-text" style="position: absolute; text-align: center; pointer-events: none; width: 72px;">
                 <div id="autarky-center-pct" class="rings-center-pct" style="font-size: clamp(18px, calc(20px * var(--ares-font-scale, 1)), 23px); font-weight: 900; color: ${cPctCenter}; line-height: 1; font-variant-numeric: tabular-nums;">0%</div>
                 <div class="rings-center-sub" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cLblCenter}; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 3px;"><span id="lbl-autarky">${esc(lbls.autarky)}</span></div>
-                <div class="rings-center-sub2" style="font-size: calc(7.5px * var(--ares-font-scale, 1)); color: rgba(255, 255, 255, 0.45); line-height: 1; margin-top: 1px;"><span id="lbl-autarky-sub">${esc(lbls.autarky_sub)}</span></div>
+                <div class="rings-center-sub2" style="font-size: calc(7.5px * var(--ares-font-scale, 1)); color: ${themeMuted || 'rgba(255, 255, 255, 0.45)'}; line-height: 1; margin-top: 1px;"><span id="lbl-autarky-sub">${esc(lbls.autarky_sub)}</span></div>
               </div>
             </div>
 
@@ -1847,14 +1887,14 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 1: Solar Self-Consumed -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-self-consumed">${esc(lbls.self_consumed)}</span></span>
+                  <span class="kpi-title" style="font-size: calc(9.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfTitle}; letter-spacing: 0.2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-self-consumed">${esc(lbls.self_consumed)}</span></span>
                   <span id="row-autarky-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowSelfTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-solar-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowSelfKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh <span id="self-sub-wrap" style="display: ${(lbls.self_consumed_sub || this._config?.show_percentage_bases === true) ? 'inline' : 'none'};">&bull; <span id="lbl-self-consumed-sub">${esc(lbls.self_consumed_sub)}</span></span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: ${themeMuted || 'rgba(255,255,255,0.45)'};">kWh <span id="self-sub-wrap" style="display: ${(lbls.self_consumed_sub || this._config?.show_percentage_bases === true) ? 'inline' : 'none'};">&bull; <span id="lbl-self-consumed-sub">${esc(lbls.self_consumed_sub)}</span></span></span>
                   </span>
-                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: ${themeMuted || 'rgba(255,255,255,0.4)'}; text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
                 <div id="bar-solar-self-consumed-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cAutarkyTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-solar-self-consumed" style="width: 0%; height: 100%; background: ${cRowSelfBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -1864,14 +1904,14 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 2: Utility Grid Reliance -->
               <div style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-grid-reliance">${esc(lbls.grid_reliance)}</span></span>
+                  <span class="kpi-title" style="font-size: calc(9.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridTitle}; letter-spacing: 0.2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-grid-reliance">${esc(lbls.grid_reliance)}</span></span>
                   <span id="row-grid-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowGridTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-grid-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowGridKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-grid-reliance-sub">${esc(lbls.grid_reliance_sub)}</span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: ${themeMuted || 'rgba(255,255,255,0.45)'};">kWh &bull; <span id="lbl-grid-reliance-sub">${esc(lbls.grid_reliance_sub)}</span></span>
                   </span>
-                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: ${themeMuted || 'rgba(255,255,255,0.4)'}; text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
                 <div id="bar-grid-reliance-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cImportTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-grid-reliance" style="width: 0%; height: 100%; background: ${cRowGridBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -1881,14 +1921,14 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 3: Exported to Grid -->
               <div id="row-export-container" style="display: flex; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-exported">${esc(lbls.exported)}</span></span>
+                  <span class="kpi-title" style="font-size: calc(9.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportTitle}; letter-spacing: 0.2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-exported">${esc(lbls.exported)}</span></span>
                   <span id="row-export-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowExportTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-export-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowExportKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-exported-sub">${esc(lbls.exported_sub)}</span></span>
+                    0.00 <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: ${themeMuted || 'rgba(255,255,255,0.45)'};">kWh &bull; <span id="lbl-exported-sub">${esc(lbls.exported_sub)}</span></span>
                   </span>
-                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF SOLAR</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: ${themeMuted || 'rgba(255,255,255,0.4)'}; text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF SOLAR</span>
                 </div>
                 <div id="bar-export-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${cExportTrack}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-export" style="width: 0%; height: 100%; background: ${cRowExportBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -1898,14 +1938,14 @@ class AresEnergyFlowCard extends HTMLElement {
               <!-- Row 4: Battery Discharged Today (battery layouts only) -->
               <div id="row-battery-container" style="display: none; flex-direction: column; gap: 2px; width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                  <span class="kpi-title" style="font-size: calc(10.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattTitle}; letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-battery-row">${esc(lbls.battery_discharged_today)}</span></span>
+                  <span class="kpi-title" style="font-size: calc(9.5px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattTitle}; letter-spacing: 0.2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;"><span id="lbl-battery-row">${esc(lbls.battery_discharged_today)}</span></span>
                   <span id="row-battery-pct" class="kpi-pct" style="font-size: calc(16px * var(--ares-font-scale, 1)); font-weight: 900; color: ${cRowBattTitle}; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0; margin-left: 4px;">0%</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                   <span id="row-battery-kwh" class="kpi-kwh" style="font-size: calc(11px * var(--ares-font-scale, 1)); font-weight: 800; color: ${cRowBattKwh}; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">
-                    -- <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: rgba(255,255,255,0.45);">kWh &bull; <span id="lbl-battery-row-sub">${esc(lbls.battery_discharged_sub)}</span></span>
+                    -- <span style="font-size: calc(10px * var(--ares-font-scale, 1)); font-weight: 600; color: ${themeMuted || 'rgba(255,255,255,0.45)'};">kWh &bull; <span id="lbl-battery-row-sub">${esc(lbls.battery_discharged_sub)}</span></span>
                   </span>
-                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
+                  <span class="kpi-tag" style="font-size: calc(8.5px * var(--ares-font-scale, 1)); font-weight: 700; color: ${themeMuted || 'rgba(255,255,255,0.4)'}; text-transform: uppercase; letter-spacing: 0.3px; flex-shrink: 0; margin-left: 4px;">OF LOAD</span>
                 </div>
                 <div id="bar-battery-discharged-bg" style="width: 100%; height: 4px; border-radius: 2px; background: ${hexToRgba(cRowBattBar, 0.15)}; overflow: hidden; margin-top: 2px;">
                   <div id="bar-battery-discharged" style="width: 0%; height: 100%; background: ${cRowBattBar}; border-radius: 2px; transition: width 0.6s ease;"></div>
@@ -2753,16 +2793,6 @@ const mode = this._getLayoutMode();
     const cRowBattTitle = colors.row_battery_title || d.row_battery_title || d.device || d.ev || '#b388ff';
     const cRowBattKwh = colors.row_battery_kwh || d.row_battery_kwh || '#ffffff';
     const cRowBattBar = colors.row_battery_bar || d.row_battery_bar || d.device || d.ev || '#b388ff';
-    const hexToRgba = (hex, alpha) => {
-      if (!hex) return `rgba(255, 255, 255, ${alpha})`;
-      if (hex.startsWith('rgba')) return hex;
-      if (hex.startsWith('rgb(')) return hex.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
-      let c = hex.replace('#', '');
-      if (c.length === 3) c = c.split('').map(x => x + x).join('');
-      const num = parseInt(c, 16);
-      if (isNaN(num)) return `rgba(255, 255, 255, ${alpha})`;
-      return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
-    };
 
     const lblBattRow = this.shadowRoot.getElementById('lbl-battery-row');
     if (lblBattRow && lblBattRow.parentElement) lblBattRow.parentElement.style.color = cRowBattTitle;
@@ -3397,6 +3427,59 @@ const mode = this._getLayoutMode();
     }
 
     // Grid In UI updates
+    let isLight = pKey === 'light';
+    if (!isLight && (pKey === 'ha_energy' || this._config?.use_ha_theme)) {
+      if (this._hass?.themes?.darkMode === true) {
+        isLight = false;
+        this._cachedIsLight = false;
+      } else if (this._hass?.themes?.darkMode === false) {
+        isLight = true;
+        this._cachedIsLight = true;
+      } else {
+        const now = Date.now();
+        const curTheme = this._hass?.themes?.theme || '';
+        if (this._cachedIsLight !== undefined && this._lastThemeKey === curTheme && (now - (this._lastBgCheck || 0) < 15000)) {
+          isLight = this._cachedIsLight;
+        } else {
+          this._lastBgCheck = now;
+          this._lastThemeKey = curTheme;
+          const bgStyle = (typeof window !== 'undefined' && window.getComputedStyle)
+            ? (window.getComputedStyle(this).getPropertyValue('--ha-card-background') || window.getComputedStyle(this).getPropertyValue('--card-background-color') || '').trim()
+            : '';
+          const bgMatch = bgStyle.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i) || bgStyle.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+          if (bgMatch) {
+            const r = parseInt(bgMatch[1], bgMatch[1].length === 2 ? 16 : 10);
+            const g = parseInt(bgMatch[2], bgMatch[2].length === 2 ? 16 : 10);
+            const b = parseInt(bgMatch[3], bgMatch[3].length === 2 ? 16 : 10);
+            isLight = ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) > 0.5;
+          } else {
+            isLight = this._hass?.themes?.darkMode !== true;
+          }
+          this._cachedIsLight = isLight;
+        }
+      }
+    }
+
+    const getBadgeTextColor = (col) => {
+      if (!isLight || !col) return col;
+      if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
+        let ratio = 55;
+        const hex = col.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i);
+        if (hex) {
+          const lum = 0.2126 * parseInt(hex[1], 16) + 0.7152 * parseInt(hex[2], 16) + 0.0722 * parseInt(hex[3], 16);
+          ratio = lum > 140 ? 50 : 70;
+        } else {
+          const rgb = col.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+          if (rgb) {
+            const lum = 0.2126 * parseInt(rgb[1], 10) + 0.7152 * parseInt(rgb[2], 10) + 0.0722 * parseInt(rgb[3], 10);
+            ratio = lum > 140 ? 50 : 70;
+          }
+        }
+        return `color-mix(in srgb, ${col} ${ratio}%, #000000)`;
+      }
+      return col;
+    };
+
     el.pwrGrid.textContent = fmtPwr(liveImportW);
     el.kwhGrid.textContent = `${fmtKwh(this._parseEnergy(eGridImport))} kWh imported`;
 
@@ -3407,21 +3490,21 @@ const mode = this._getLayoutMode();
     if (icpRatio >= 0.95) {
       // Tier 2: CRITICAL TRIP RISK (>= 95% of limit, e.g. >= 3,990 W for 4.2 kW)
       el.badgeGridGuard.textContent = '⚠️ ICP TRIP RISK';
-      el.badgeGridGuard.style.color = '#ff1744';
-      el.badgeGridGuard.style.background = 'rgba(255, 23, 68, 0.2)';
-      el.badgeGridGuard.style.borderColor = 'rgba(255, 23, 68, 0.5)';
+      el.badgeGridGuard.style.color = getBadgeTextColor('#ff1744');
+      el.badgeGridGuard.style.background = isLight ? 'rgba(220, 38, 38, 0.12)' : 'rgba(255, 23, 68, 0.2)';
+      el.badgeGridGuard.style.borderColor = isLight ? 'rgba(220, 38, 38, 0.35)' : 'rgba(255, 23, 68, 0.5)';
       el.badgeGridGuard.style.display = 'inline-block';
       if (el.nodeGrid) el.nodeGrid.classList.add('pulse-icp-alert');
     } else if (icpRatio >= (icpWarnRatio || 0.85)) {
       // Tier 1: AMBER WARNING (>= 85% of limit, e.g. >= 3,570 W for 4.2 kW)
       el.badgeGridGuard.textContent = (this._config?.show_emojis !== false) ? '⚡ ICP WARN' : 'ICP WARN';
-      el.badgeGridGuard.style.color = '#ffab00';
-      el.badgeGridGuard.style.background = 'rgba(255, 171, 0, 0.2)';
-      el.badgeGridGuard.style.borderColor = 'rgba(255, 171, 0, 0.5)';
+      el.badgeGridGuard.style.color = getBadgeTextColor('#ffab00');
+      el.badgeGridGuard.style.background = isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(255, 171, 0, 0.2)';
+      el.badgeGridGuard.style.borderColor = isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(255, 171, 0, 0.5)';
       el.badgeGridGuard.style.display = 'inline-block';
       if (el.nodeGrid) {
         el.nodeGrid.classList.remove('pulse-icp-alert');
-        el.nodeGrid.style.borderColor = '#ffab00';
+        el.nodeGrid.style.borderColor = isLight ? '#d97706' : '#ffab00';
       }
     } else if (liveImportW >= icpLimit * 0.70) {
       // Normal display when approaching threshold
@@ -3467,58 +3550,66 @@ const mode = this._getLayoutMode();
     // Dynamic Home Badge (restored from original design)
     const showHomeBadge = (this._config?.show_home_badge !== false);
     if (showHomeBadge && el.badgeHome) {
+      const cSolar = themeColors.solar || pal.solar || '#ffd54f';
+      const cBattery = themeColors.battery || pal.battery || '#10b981';
+      const cGrid = themeColors.grid || pal.grid || '#ff7043';
+
       let homeBadgeText = 'IDLE';
-      let homeBadgeColor = 'rgba(255, 255, 255, 0.4)';
-      let homeBadgeBg = 'rgba(255, 255, 255, 0.06)';
-      let homeBadgeBorder = 'rgba(255, 255, 255, 0.12)';
+      let homeBadgeColor = isLight
+        ? (pal.kwh_text || 'rgba(15, 23, 42, 0.65)')
+        : 'var(--secondary-text-color, rgba(255, 255, 255, 0.4))';
+      let homeBadgeBg = hexToRgba(homeBadgeColor, 0.08);
+      let homeBadgeBorder = isLight
+        ? 'var(--divider-color, rgba(15, 23, 42, 0.12))'
+        : 'var(--divider-color, rgba(255, 255, 255, 0.12))';
 
       if (liveHomeW > idleThresh) {
         if (gridToHomeW <= idleThresh) {
           if (batteryToHomeW > idleThresh && solarToHomeW <= idleThresh) {
             homeBadgeText = '100% BESS';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cBattery;
+            homeBadgeBg = hexToRgba(cBattery, 0.12);
+            homeBadgeBorder = hexToRgba(cBattery, 0.35);
           } else if (batteryToHomeW > idleThresh) {
             homeBadgeText = 'SOLAR + BESS';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           } else {
             homeBadgeText = '100% SOLAR';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           }
         } else if (solarToHomeW <= idleThresh && batteryToHomeW <= idleThresh) {
           homeBadgeText = 'GRID';
-          homeBadgeColor = '#ff7043';
-          homeBadgeBg = 'rgba(255, 112, 67, 0.15)';
-          homeBadgeBorder = 'rgba(255, 112, 67, 0.4)';
+          homeBadgeColor = cGrid;
+          homeBadgeBg = hexToRgba(cGrid, 0.12);
+          homeBadgeBorder = hexToRgba(cGrid, 0.35);
         } else {
           const greenW = solarToHomeW + batteryToHomeW;
           const covPct = Math.min(100, Math.round((greenW / liveHomeW) * 100));
           if (covPct >= 99) {
             homeBadgeText = '100% SOLAR';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           } else if (covPct <= 0) {
             homeBadgeText = 'GRID';
-            homeBadgeColor = '#ff7043';
-            homeBadgeBg = 'rgba(255, 112, 67, 0.15)';
-            homeBadgeBorder = 'rgba(255, 112, 67, 0.4)';
+            homeBadgeColor = cGrid;
+            homeBadgeBg = hexToRgba(cGrid, 0.12);
+            homeBadgeBorder = hexToRgba(cGrid, 0.35);
           } else {
             homeBadgeText = `${covPct}% SOLAR`;
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           }
         }
       }
 
       el.badgeHome.textContent = homeBadgeText;
-      el.badgeHome.style.color = homeBadgeColor;
+      el.badgeHome.style.color = getBadgeTextColor(homeBadgeColor);
       el.badgeHome.style.background = homeBadgeBg;
       el.badgeHome.style.borderColor = homeBadgeBorder;
       el.badgeHome.style.display = 'inline-block';
@@ -3673,6 +3764,11 @@ const mode = this._getLayoutMode();
 
       const showEvBadge = (this._config?.show_ev_badge !== false) && (this._config?.show_ev_soc_badge !== false);
       if (showEvBadge && el.badgeEv) {
+        const cEvToken = themeColors.ev || pal.ev || '#7c3aed';
+        el.badgeEv.style.color = getBadgeTextColor(cEvToken);
+        el.badgeEv.style.background = isLight ? hexToRgba(cEvToken, 0.12) : 'rgba(179, 136, 255, 0.15)';
+        el.badgeEv.style.borderColor = isLight ? hexToRgba(cEvToken, 0.35) : 'rgba(179, 136, 255, 0.4)';
+
         if (isEvActive) {
           el.badgeEv.textContent = (this._config?.show_emojis !== false) ? '⚡ CHARGING' : 'CHARGING';
           el.badgeEv.style.display = 'inline-block';
@@ -3885,7 +3981,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.5.12';
+const CARD_VERSION = '2.6.0';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -3921,7 +4017,7 @@ const cardMetaProd = {
 };
 const cardMetaDev = {
   type: 'ares-energy-flow-card-dev',
-  name: 'ChromaFlow 3.0 Dev: Dual Battery & EV Lab',
+  name: 'ChromaFlow Dev: Dual Battery & EV Lab',
   description: 'Experimental sandbox build featuring 6-node Dual Battery & EV simultaneous mode with dynamic routing.',
   preview: true,
   documentationURL: 'https://github.com/Aresitoo/chromaflow'
@@ -3972,6 +4068,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
   _colorToHex(colorStr, fallbackHex = '#ffd54f') {
     if (!colorStr || typeof colorStr !== 'string') return fallbackHex;
     colorStr = colorStr.trim();
+    if (colorStr.startsWith('var(')) {
+      const fallback = colorStr.match(/,\s*([^)]+)\)$/);
+      if (fallback) return this._colorToHex(fallback[1].trim(), fallbackHex);
+    }
     if (colorStr.startsWith('#')) {
       if (colorStr.length === 7) return colorStr;
       if (colorStr.length === 4) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
@@ -4108,9 +4208,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           gap: 6px;
           padding: 7px 4px;
           border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.16));
           background: rgba(255, 255, 255, 0.05);
-          color: #ffffff;
+          color: var(--primary-text-color, #212121);
           font-size: 11.5px;
           justify-content: center;
           text-align: center;
@@ -4141,8 +4241,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           border-color: #ffd54f;
         }
         .btn-reset-colors {
-          background: rgba(255, 255, 255, 0.04);
-          color: rgba(255, 255, 255, 0.7);
+          background: var(--secondary-background-color, rgba(255, 255, 255, 0.04));
+          color: var(--secondary-text-color, rgba(255, 255, 255, 0.7));
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
           margin-left: 0;
         }
         .btn-reset-colors:hover {
@@ -4154,17 +4255,17 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: rgba(0, 229, 255, 0.08);
-          border: 1px solid rgba(0, 229, 255, 0.25);
+          background: var(--secondary-background-color, rgba(0, 229, 255, 0.08));
+          border: 1px solid var(--divider-color, rgba(0, 229, 255, 0.25));
           border-radius: 8px;
           padding: 10px 12px;
           font-size: 12.5px;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--primary-text-color, rgba(255, 255, 255, 0.9));
           margin-bottom: 14px;
         }
         .color-group-box {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.08));
           border-radius: 10px;
           padding: 12px;
           margin-bottom: 12px;
@@ -4176,14 +4277,14 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           display: flex;
           align-items: center;
           gap: 6px;
-          color: #ffffff;
+          color: var(--primary-text-color, #ffffff);
         }
         .color-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 6px 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+          border-bottom: 1px solid var(--divider-color, rgba(255, 255, 255, 0.04));
         }
         .color-row:last-child {
           border-bottom: none;
@@ -4191,7 +4292,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         .color-label {
           font-size: 12px;
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--primary-text-color, rgba(255, 255, 255, 0.85));
           flex: 1;
         }
         .color-input-pair {
@@ -4205,7 +4306,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           width: 28px;
           height: 28px;
           border-radius: 6px;
-          border: 1px solid rgba(255, 255, 255, 0.25);
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.25));
           cursor: pointer;
           padding: 0;
           background: transparent;
@@ -4220,10 +4321,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         .color-text-input {
           width: 140px;
           height: 28px;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          background: var(--secondary-background-color, rgba(0, 0, 0, 0.3));
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.15));
           border-radius: 6px;
-          color: #ffffff;
+          color: var(--primary-text-color, #ffffff);
           padding: 2px 8px;
           font-size: 11.5px;
           font-family: monospace;
@@ -4231,7 +4332,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         }
         .color-text-input:focus {
           outline: none;
-          border-color: #00e5ff;
+          border-color: var(--primary-color, #00e5ff);
         }
       </style>
       <div class="editor-container">
@@ -4314,6 +4415,10 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     function colorToHex(colorStr, fallbackHex) {
       if (!colorStr) return fallbackHex || '#ffd54f';
       colorStr = colorStr.trim();
+      if (colorStr.startsWith('var(')) {
+        const fallback = colorStr.match(/,\s*([^)]+)\)$/);
+        if (fallback) return colorToHex(fallback[1].trim(), fallbackHex);
+      }
       if (colorStr.startsWith('#')) {
         if (colorStr.length === 7) return colorStr;
         if (colorStr.length === 4) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
@@ -4510,8 +4615,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           Color Theme Preset
         </label>
         <select id="select-theme-preset" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: var(--secondary-background-color, #1a1e26); border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.18)); color: var(--primary-text-color, #ffffff); font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
+          <option value="ha_energy" ${curPal === 'ha_energy' ? 'selected' : ''}>⚡ Home Assistant Energy (Native Colors)</option>
           <option value="solar" ${curPal === 'solar' ? 'selected' : ''}>☀️ Solar Harmonized (Default)</option>
-          <option value="light" ${curPal === 'light' ? 'selected' : ''}>☁️ Light (readable on light dashboards)</option>
+          <option value="light" ${curPal === 'light' ? 'selected' : ''}>☁️ Light (Readable on light dashboards)</option>
           <option value="synthwave" ${curPal === 'synthwave' ? 'selected' : ''}>🌅 Synthwave Sunset (Sunset Amber, Magenta & Miami Aqua)</option>
           <option value="cyberpunk" ${curPal === 'cyberpunk' ? 'selected' : ''}>🌆 Cyberpunk Neon (Cyan, Hot Pink & Toxic Lime)</option>
           <option value="nord" ${curPal === 'nord' ? 'selected' : ''}>❄️ Nord Frost (Polar Night, Ice Blue & Arctic Teal)</option>
@@ -4529,8 +4635,15 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         <button id="btn-reset-colors" class="studio-btn btn-reset-colors"><ha-icon icon="mdi:restore" style="--mdc-icon-size: 16px; margin-right: 6px; vertical-align: middle;"></ha-icon>Reset All</button>
       </div>
       <div class="color-studio-tip">
-        <span><ha-icon icon="mdi:information-outline" style="--mdc-icon-size: 16px; vertical-align: middle; margin-right: 6px; color: var(--secondary-text-color, #9e9e9e);"></ha-icon>Tap any color square or enter hex codes. Every box, flow rail, and scorecard row can be independently styled.</span>
+        <span><ha-icon icon="mdi:information-outline" style="--mdc-icon-size: 16px; vertical-align: middle; margin-right: 6px; color: var(--secondary-text-color, #9e9e9e);"></ha-icon>Pick a theme preset above, or expand individual slot overrides below to customize specific boxes and lines.</span>
       </div>
+
+      <details class="custom-color-details" style="margin-top: 14px; border: 1px solid var(--divider-color, rgba(255,255,255,0.12)); border-radius: 8px; padding: 10px 12px; background: var(--secondary-background-color, rgba(255,255,255,0.02));">
+        <summary style="font-weight: 700; font-size: 13px; cursor: pointer; color: var(--primary-text-color, #ffffff); display: flex; align-items: center; justify-content: space-between; user-select: none;">
+          <span>🎨 Custom Color Overrides (Individual Slots)</span>
+          <span style="font-size: 11px; font-weight: normal; color: var(--secondary-text-color, rgba(255,255,255,0.6));">${Object.keys(this._config?.colors || {}).length} customized</span>
+        </summary>
+        <div style="margin-top: 12px;">
     `;
 
     for (const grp of groups) {
@@ -4551,6 +4664,11 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       }
       html += `</div>`;
     }
+
+    html += `
+        </div>
+      </details>
+    `;
 
     container.innerHTML = html;
 
