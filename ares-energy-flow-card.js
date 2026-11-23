@@ -406,11 +406,11 @@ PALETTES.ha_energy = {
   bg_home: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
   border_home: 'var(--primary-color, rgba(3, 169, 244, 0.4))',
   bg_device: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
-  border_device: 'rgba(124, 77, 255, 0.4)',
+  border_device: 'var(--energy-battery-out-color, rgba(124, 77, 255, 0.4))',
   bg_battery: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
   border_battery: 'var(--energy-battery-in-color, rgba(76, 175, 80, 0.4))',
   bg_ev: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
-  border_ev: 'rgba(124, 77, 255, 0.4)',
+  border_ev: 'var(--energy-battery-out-color, rgba(124, 77, 255, 0.4))',
   bg_export: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
   border_export: 'var(--energy-grid-return-color, rgba(156, 39, 176, 0.4))',
   card_border: 'var(--ha-card-border-color, rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15))',
@@ -3498,13 +3498,26 @@ const mode = this._getLayoutMode();
     const showHomeBadge = (this._config?.show_home_badge !== false);
     if (showHomeBadge && el.badgeHome) {
       const cSolar = themeColors.solar || pal.solar || '#ffd54f';
-      const cBattery = themeColors.battery || pal.battery || '#00e5ff';
+      const cBattery = themeColors.battery || pal.battery || '#10b981';
       const cGrid = themeColors.grid || pal.grid || '#ff7043';
 
+      const isLight = pKey === 'light' || (this._hass?.themes?.darkMode === false && (pKey === 'ha_energy' || this._config?.use_ha_theme));
+      const getBadgeTextColor = (col) => {
+        if (!isLight) return col;
+        if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
+          return `color-mix(in srgb, ${col} 70%, #000000)`;
+        }
+        return col;
+      };
+
       let homeBadgeText = 'IDLE';
-      let homeBadgeColor = 'var(--secondary-text-color, rgba(255, 255, 255, 0.4))';
+      let homeBadgeColor = isLight
+        ? (pal.kwh_text || 'rgba(15, 23, 42, 0.65)')
+        : 'var(--secondary-text-color, rgba(255, 255, 255, 0.4))';
       let homeBadgeBg = hexToRgba(homeBadgeColor, 0.08);
-      let homeBadgeBorder = 'var(--divider-color, rgba(255, 255, 255, 0.12))';
+      let homeBadgeBorder = isLight
+        ? 'var(--divider-color, rgba(15, 23, 42, 0.12))'
+        : 'var(--divider-color, rgba(255, 255, 255, 0.12))';
 
       if (liveHomeW > idleThresh) {
         if (gridToHomeW <= idleThresh) {
@@ -3552,7 +3565,7 @@ const mode = this._getLayoutMode();
       }
 
       el.badgeHome.textContent = homeBadgeText;
-      el.badgeHome.style.color = homeBadgeColor;
+      el.badgeHome.style.color = getBadgeTextColor(homeBadgeColor);
       el.badgeHome.style.background = homeBadgeBg;
       el.badgeHome.style.borderColor = homeBadgeBorder;
       el.badgeHome.style.display = 'inline-block';
