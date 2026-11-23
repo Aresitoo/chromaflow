@@ -3427,6 +3427,42 @@ const mode = this._getLayoutMode();
     }
 
     // Grid In UI updates
+    let isLight = pKey === 'light';
+    if (!isLight && (pKey === 'ha_energy' || this._config?.use_ha_theme)) {
+      if (this._hass?.themes?.darkMode === true) {
+        isLight = false;
+      } else if (this._hass?.themes?.darkMode === false) {
+        isLight = true;
+      } else {
+        const bgStyle = (typeof window !== 'undefined' && window.getComputedStyle)
+          ? (window.getComputedStyle(this).getPropertyValue('--ha-card-background') || window.getComputedStyle(this).getPropertyValue('--card-background-color') || '').trim()
+          : '';
+        const bgMatch = bgStyle.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i) || bgStyle.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (bgMatch) {
+          const r = parseInt(bgMatch[1], bgMatch[1].length === 2 ? 16 : 10);
+          const g = parseInt(bgMatch[2], bgMatch[2].length === 2 ? 16 : 10);
+          const b = parseInt(bgMatch[3], bgMatch[3].length === 2 ? 16 : 10);
+          isLight = ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) > 0.5;
+        } else {
+          isLight = this._hass?.themes?.darkMode !== true;
+        }
+      }
+    }
+
+    const getBadgeTextColor = (col) => {
+      if (!isLight) return col;
+      if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
+        let ratio = 55;
+        const m = col.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i);
+        if (m) {
+          const lum = 0.2126 * parseInt(m[1], 16) + 0.7152 * parseInt(m[2], 16) + 0.0722 * parseInt(m[3], 16);
+          ratio = lum > 140 ? 50 : 70;
+        }
+        return `color-mix(in srgb, ${col} ${ratio}%, #000000)`;
+      }
+      return col;
+    };
+
     el.pwrGrid.textContent = fmtPwr(liveImportW);
     el.kwhGrid.textContent = `${fmtKwh(this._parseEnergy(eGridImport))} kWh imported`;
 
@@ -3437,21 +3473,21 @@ const mode = this._getLayoutMode();
     if (icpRatio >= 0.95) {
       // Tier 2: CRITICAL TRIP RISK (>= 95% of limit, e.g. >= 3,990 W for 4.2 kW)
       el.badgeGridGuard.textContent = '⚠️ ICP TRIP RISK';
-      el.badgeGridGuard.style.color = '#ff1744';
-      el.badgeGridGuard.style.background = 'rgba(255, 23, 68, 0.2)';
-      el.badgeGridGuard.style.borderColor = 'rgba(255, 23, 68, 0.5)';
+      el.badgeGridGuard.style.color = getBadgeTextColor('#ff1744');
+      el.badgeGridGuard.style.background = isLight ? 'rgba(220, 38, 38, 0.12)' : 'rgba(255, 23, 68, 0.2)';
+      el.badgeGridGuard.style.borderColor = isLight ? 'rgba(220, 38, 38, 0.35)' : 'rgba(255, 23, 68, 0.5)';
       el.badgeGridGuard.style.display = 'inline-block';
       if (el.nodeGrid) el.nodeGrid.classList.add('pulse-icp-alert');
     } else if (icpRatio >= (icpWarnRatio || 0.85)) {
       // Tier 1: AMBER WARNING (>= 85% of limit, e.g. >= 3,570 W for 4.2 kW)
       el.badgeGridGuard.textContent = (this._config?.show_emojis !== false) ? '⚡ ICP WARN' : 'ICP WARN';
-      el.badgeGridGuard.style.color = '#ffab00';
-      el.badgeGridGuard.style.background = 'rgba(255, 171, 0, 0.2)';
-      el.badgeGridGuard.style.borderColor = 'rgba(255, 171, 0, 0.5)';
+      el.badgeGridGuard.style.color = getBadgeTextColor('#ffab00');
+      el.badgeGridGuard.style.background = isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(255, 171, 0, 0.2)';
+      el.badgeGridGuard.style.borderColor = isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(255, 171, 0, 0.5)';
       el.badgeGridGuard.style.display = 'inline-block';
       if (el.nodeGrid) {
         el.nodeGrid.classList.remove('pulse-icp-alert');
-        el.nodeGrid.style.borderColor = '#ffab00';
+        el.nodeGrid.style.borderColor = isLight ? '#d97706' : '#ffab00';
       }
     } else if (liveImportW >= icpLimit * 0.70) {
       // Normal display when approaching threshold
@@ -3500,42 +3536,6 @@ const mode = this._getLayoutMode();
       const cSolar = themeColors.solar || pal.solar || '#ffd54f';
       const cBattery = themeColors.battery || pal.battery || '#10b981';
       const cGrid = themeColors.grid || pal.grid || '#ff7043';
-
-      let isLight = pKey === 'light';
-      if (!isLight && (pKey === 'ha_energy' || this._config?.use_ha_theme)) {
-        if (this._hass?.themes?.darkMode === true) {
-          isLight = false;
-        } else if (this._hass?.themes?.darkMode === false) {
-          isLight = true;
-        } else {
-          const bgStyle = (typeof window !== 'undefined' && window.getComputedStyle)
-            ? (window.getComputedStyle(this).getPropertyValue('--ha-card-background') || window.getComputedStyle(this).getPropertyValue('--card-background-color') || '').trim()
-            : '';
-          const bgMatch = bgStyle.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i) || bgStyle.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-          if (bgMatch) {
-            const r = parseInt(bgMatch[1], bgMatch[1].length === 2 ? 16 : 10);
-            const g = parseInt(bgMatch[2], bgMatch[2].length === 2 ? 16 : 10);
-            const b = parseInt(bgMatch[3], bgMatch[3].length === 2 ? 16 : 10);
-            isLight = ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) > 0.5;
-          } else {
-            isLight = this._hass?.themes?.darkMode !== true;
-          }
-        }
-      }
-
-      const getBadgeTextColor = (col) => {
-        if (!isLight) return col;
-        if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
-          let ratio = 55;
-          const m = col.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i);
-          if (m) {
-            const lum = 0.2126 * parseInt(m[1], 16) + 0.7152 * parseInt(m[2], 16) + 0.0722 * parseInt(m[3], 16);
-            ratio = lum > 140 ? 50 : 70;
-          }
-          return `color-mix(in srgb, ${col} ${ratio}%, #000000)`;
-        }
-        return col;
-      };
 
       let homeBadgeText = 'IDLE';
       let homeBadgeColor = isLight
@@ -3747,6 +3747,11 @@ const mode = this._getLayoutMode();
 
       const showEvBadge = (this._config?.show_ev_badge !== false) && (this._config?.show_ev_soc_badge !== false);
       if (showEvBadge && el.badgeEv) {
+        const cEvToken = themeColors.ev || pal.ev || '#7c3aed';
+        el.badgeEv.style.color = getBadgeTextColor(cEvToken);
+        el.badgeEv.style.background = isLight ? hexToRgba(cEvToken, 0.12) : 'rgba(179, 136, 255, 0.15)';
+        el.badgeEv.style.borderColor = isLight ? hexToRgba(cEvToken, 0.35) : 'rgba(179, 136, 255, 0.4)';
+
         if (isEvActive) {
           el.badgeEv.textContent = (this._config?.show_emojis !== false) ? '⚡ CHARGING' : 'CHARGING';
           el.badgeEv.style.display = 'inline-block';
@@ -3995,7 +4000,7 @@ const cardMetaProd = {
 };
 const cardMetaDev = {
   type: 'ares-energy-flow-card-dev',
-  name: 'ChromaFlow 3.0 Dev: Dual Battery & EV Lab',
+  name: 'ChromaFlow Dev: Dual Battery & EV Lab',
   description: 'Experimental sandbox build featuring 6-node Dual Battery & EV simultaneous mode with dynamic routing.',
   preview: true,
   documentationURL: 'https://github.com/Aresitoo/chromaflow'
