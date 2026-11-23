@@ -3501,11 +3501,11 @@ const mode = this._getLayoutMode();
       const cBattery = themeColors.battery || pal.battery || '#10b981';
       const cGrid = themeColors.grid || pal.grid || '#ff7043';
 
-      const isLight = pKey === 'light' || (this._hass?.themes?.darkMode === false && (pKey === 'ha_energy' || this._config?.use_ha_theme));
+      const isLight = pKey === 'light' || (this._hass?.themes?.darkMode !== true && (pKey === 'ha_energy' || this._config?.use_ha_theme));
       const getBadgeTextColor = (col) => {
         if (!isLight) return col;
         if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
-          return `color-mix(in srgb, ${col} 70%, #000000)`;
+          return `color-mix(in srgb, ${col} 60%, #000000)`;
         }
         return col;
       };
