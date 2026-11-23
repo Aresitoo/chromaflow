@@ -4186,9 +4186,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           gap: 6px;
           padding: 7px 4px;
           border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.16));
           background: rgba(255, 255, 255, 0.05);
-          color: #ffffff;
+          color: var(--primary-text-color, #212121);
           font-size: 11.5px;
           justify-content: center;
           text-align: center;
@@ -4219,8 +4219,9 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
           border-color: #ffd54f;
         }
         .btn-reset-colors {
-          background: rgba(255, 255, 255, 0.04);
-          color: rgba(255, 255, 255, 0.7);
+          background: var(--secondary-background-color, rgba(255, 255, 255, 0.04));
+          color: var(--secondary-text-color, rgba(255, 255, 255, 0.7));
+          border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
           margin-left: 0;
         }
         .btn-reset-colors:hover {
