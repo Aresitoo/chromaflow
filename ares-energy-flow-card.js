@@ -3431,32 +3431,49 @@ const mode = this._getLayoutMode();
     if (!isLight && (pKey === 'ha_energy' || this._config?.use_ha_theme)) {
       if (this._hass?.themes?.darkMode === true) {
         isLight = false;
+        this._cachedIsLight = false;
       } else if (this._hass?.themes?.darkMode === false) {
         isLight = true;
+        this._cachedIsLight = true;
       } else {
-        const bgStyle = (typeof window !== 'undefined' && window.getComputedStyle)
-          ? (window.getComputedStyle(this).getPropertyValue('--ha-card-background') || window.getComputedStyle(this).getPropertyValue('--card-background-color') || '').trim()
-          : '';
-        const bgMatch = bgStyle.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i) || bgStyle.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-        if (bgMatch) {
-          const r = parseInt(bgMatch[1], bgMatch[1].length === 2 ? 16 : 10);
-          const g = parseInt(bgMatch[2], bgMatch[2].length === 2 ? 16 : 10);
-          const b = parseInt(bgMatch[3], bgMatch[3].length === 2 ? 16 : 10);
-          isLight = ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) > 0.5;
+        const now = Date.now();
+        const curTheme = this._hass?.themes?.theme || '';
+        if (this._cachedIsLight !== undefined && this._lastThemeKey === curTheme && (now - (this._lastBgCheck || 0) < 15000)) {
+          isLight = this._cachedIsLight;
         } else {
-          isLight = this._hass?.themes?.darkMode !== true;
+          this._lastBgCheck = now;
+          this._lastThemeKey = curTheme;
+          const bgStyle = (typeof window !== 'undefined' && window.getComputedStyle)
+            ? (window.getComputedStyle(this).getPropertyValue('--ha-card-background') || window.getComputedStyle(this).getPropertyValue('--card-background-color') || '').trim()
+            : '';
+          const bgMatch = bgStyle.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i) || bgStyle.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+          if (bgMatch) {
+            const r = parseInt(bgMatch[1], bgMatch[1].length === 2 ? 16 : 10);
+            const g = parseInt(bgMatch[2], bgMatch[2].length === 2 ? 16 : 10);
+            const b = parseInt(bgMatch[3], bgMatch[3].length === 2 ? 16 : 10);
+            isLight = ((0.2126 * r + 0.7152 * g + 0.0722 * b) / 255) > 0.5;
+          } else {
+            isLight = this._hass?.themes?.darkMode !== true;
+          }
+          this._cachedIsLight = isLight;
         }
       }
     }
 
     const getBadgeTextColor = (col) => {
-      if (!isLight) return col;
+      if (!isLight || !col) return col;
       if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
         let ratio = 55;
-        const m = col.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i);
-        if (m) {
-          const lum = 0.2126 * parseInt(m[1], 16) + 0.7152 * parseInt(m[2], 16) + 0.0722 * parseInt(m[3], 16);
+        const hex = col.match(/#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i);
+        if (hex) {
+          const lum = 0.2126 * parseInt(hex[1], 16) + 0.7152 * parseInt(hex[2], 16) + 0.0722 * parseInt(hex[3], 16);
           ratio = lum > 140 ? 50 : 70;
+        } else {
+          const rgb = col.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+          if (rgb) {
+            const lum = 0.2126 * parseInt(rgb[1], 10) + 0.7152 * parseInt(rgb[2], 10) + 0.0722 * parseInt(rgb[3], 10);
+            ratio = lum > 140 ? 50 : 70;
+          }
         }
         return `color-mix(in srgb, ${col} ${ratio}%, #000000)`;
       }
