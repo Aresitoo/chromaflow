@@ -260,7 +260,11 @@ function hexToRgba(hex, alpha = 1) {
   if (hex.startsWith('rgb(')) return hex.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
   if (hex.startsWith('color-mix')) return hex;
   if (hex.startsWith('var(')) {
-    return `color-mix(in srgb, ${hex} ${Math.round(alpha * 100)}%, transparent)`;
+    if (typeof CSS !== 'undefined' && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red 50%, blue)')) {
+      return `color-mix(in srgb, ${hex} ${Math.round(alpha * 100)}%, transparent)`;
+    }
+    const fallback = hex.match(/,\s*([^)]+)\)$/);
+    if (fallback) return hexToRgba(fallback[1].trim(), alpha);
   }
   let c = hex.replace('#', '');
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
@@ -3493,52 +3497,56 @@ const mode = this._getLayoutMode();
     // Dynamic Home Badge (restored from original design)
     const showHomeBadge = (this._config?.show_home_badge !== false);
     if (showHomeBadge && el.badgeHome) {
+      const cSolar = themeColors.solar || pal.solar || '#ffd54f';
+      const cBattery = themeColors.battery || pal.battery || '#00e5ff';
+      const cGrid = themeColors.grid || pal.grid || '#ff7043';
+
       let homeBadgeText = 'IDLE';
-      let homeBadgeColor = 'rgba(255, 255, 255, 0.4)';
-      let homeBadgeBg = 'rgba(255, 255, 255, 0.06)';
-      let homeBadgeBorder = 'rgba(255, 255, 255, 0.12)';
+      let homeBadgeColor = 'var(--secondary-text-color, rgba(255, 255, 255, 0.4))';
+      let homeBadgeBg = hexToRgba(homeBadgeColor, 0.08);
+      let homeBadgeBorder = 'var(--divider-color, rgba(255, 255, 255, 0.12))';
 
       if (liveHomeW > idleThresh) {
         if (gridToHomeW <= idleThresh) {
           if (batteryToHomeW > idleThresh && solarToHomeW <= idleThresh) {
             homeBadgeText = '100% BESS';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cBattery;
+            homeBadgeBg = hexToRgba(cBattery, 0.12);
+            homeBadgeBorder = hexToRgba(cBattery, 0.35);
           } else if (batteryToHomeW > idleThresh) {
             homeBadgeText = 'SOLAR + BESS';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           } else {
             homeBadgeText = '100% SOLAR';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           }
         } else if (solarToHomeW <= idleThresh && batteryToHomeW <= idleThresh) {
           homeBadgeText = 'GRID';
-          homeBadgeColor = '#ff7043';
-          homeBadgeBg = 'rgba(255, 112, 67, 0.15)';
-          homeBadgeBorder = 'rgba(255, 112, 67, 0.4)';
+          homeBadgeColor = cGrid;
+          homeBadgeBg = hexToRgba(cGrid, 0.12);
+          homeBadgeBorder = hexToRgba(cGrid, 0.35);
         } else {
           const greenW = solarToHomeW + batteryToHomeW;
           const covPct = Math.min(100, Math.round((greenW / liveHomeW) * 100));
           if (covPct >= 99) {
             homeBadgeText = '100% SOLAR';
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           } else if (covPct <= 0) {
             homeBadgeText = 'GRID';
-            homeBadgeColor = '#ff7043';
-            homeBadgeBg = 'rgba(255, 112, 67, 0.15)';
-            homeBadgeBorder = 'rgba(255, 112, 67, 0.4)';
+            homeBadgeColor = cGrid;
+            homeBadgeBg = hexToRgba(cGrid, 0.12);
+            homeBadgeBorder = hexToRgba(cGrid, 0.35);
           } else {
             homeBadgeText = `${covPct}% SOLAR`;
-            homeBadgeColor = '#00e5ff';
-            homeBadgeBg = 'rgba(0, 229, 255, 0.12)';
-            homeBadgeBorder = 'rgba(0, 229, 255, 0.3)';
+            homeBadgeColor = cSolar;
+            homeBadgeBg = hexToRgba(cSolar, 0.12);
+            homeBadgeBorder = hexToRgba(cSolar, 0.35);
           }
         }
       }
