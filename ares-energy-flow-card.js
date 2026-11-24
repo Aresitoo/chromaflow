@@ -399,20 +399,27 @@ PALETTES.ha_energy = {
   autarky: 'var(--energy-solar-color, #ff9800)',
   import_ring: 'var(--energy-grid-consumption-color, #ff7043)',
   export_ring: 'var(--energy-grid-return-color, #9c27b0)',
-  bg_solar: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  bg_solar: 'transparent',
   border_solar: 'var(--energy-solar-color, rgba(255, 152, 0, 0.4))',
-  bg_grid: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  badge_solar_bg: 'color-mix(in srgb, var(--energy-solar-color, #ff9800) 12%, transparent)',
+  bg_grid: 'transparent',
   border_grid: 'var(--energy-grid-consumption-color, rgba(255, 112, 67, 0.4))',
-  bg_home: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  badge_grid_bg: 'color-mix(in srgb, var(--energy-grid-consumption-color, #ff7043) 12%, transparent)',
+  bg_home: 'transparent',
   border_home: 'var(--primary-color, rgba(3, 169, 244, 0.4))',
-  bg_device: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  badge_home_bg: 'color-mix(in srgb, var(--primary-color, #03a9f4) 12%, transparent)',
+  bg_device: 'transparent',
   border_device: 'var(--energy-battery-out-color, rgba(124, 77, 255, 0.4))',
-  bg_battery: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  badge_device_bg: 'color-mix(in srgb, var(--energy-battery-out-color, #7c4dff) 12%, transparent)',
+  bg_battery: 'transparent',
   border_battery: 'var(--energy-battery-in-color, rgba(76, 175, 80, 0.4))',
-  bg_ev: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  badge_battery_bg: 'color-mix(in srgb, var(--energy-battery-in-color, #4caf50) 12%, transparent)',
+  bg_ev: 'transparent',
   border_ev: 'var(--energy-battery-out-color, rgba(124, 77, 255, 0.4))',
-  bg_export: 'rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04)',
+  badge_ev_bg: 'color-mix(in srgb, var(--energy-battery-out-color, #7c4dff) 12%, transparent)',
+  bg_export: 'transparent',
   border_export: 'var(--energy-grid-return-color, rgba(156, 39, 176, 0.4))',
+  badge_export_bg: 'color-mix(in srgb, var(--energy-grid-return-color, #9c27b0) 12%, transparent)',
   card_border: 'var(--ha-card-border-color, rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15))',
   scorecard_radial: 'rgba(var(--rgb-primary-color, 3, 169, 244), 0.06)'
 };
@@ -1003,7 +1010,7 @@ class AresEnergyFlowCard extends HTMLElement {
       kwh_solar: 'rgba(255, 255, 255, 0.6)',
       kwh_solar_rem: pal.solar,
       badge_solar_text: pal.solar,
-      badge_solar_bg: pal.bg_solar,
+      badge_solar_bg: pal.badge_solar_bg || pal.bg_solar,
       bar_solar_forecast: pal.solar,
 
       // 2. Grid In Box Elements
@@ -1013,7 +1020,7 @@ class AresEnergyFlowCard extends HTMLElement {
       pwr_grid: '#ffffff',
       kwh_grid: 'rgba(255, 255, 255, 0.6)',
       badge_grid_text: pal.grid,
-      badge_grid_bg: pal.bg_grid,
+      badge_grid_bg: pal.badge_grid_bg || pal.bg_grid,
       bar_grid_limit: pal.grid,
 
       // 3. Home Box Elements
@@ -1023,7 +1030,7 @@ class AresEnergyFlowCard extends HTMLElement {
       pwr_home: '#ffffff',
       kwh_home: 'rgba(255, 255, 255, 0.6)',
       badge_home_text: pal.home,
-      badge_home_bg: pal.bg_home,
+      badge_home_bg: pal.badge_home_bg || pal.bg_home,
 
       // 4. Battery Box Elements
       bg_battery: pal.bg_battery || 'rgba(16, 185, 129, 0.12)',
@@ -1032,7 +1039,7 @@ class AresEnergyFlowCard extends HTMLElement {
       pwr_battery: '#ffffff',
       kwh_battery: 'rgba(255, 255, 255, 0.6)',
       badge_battery_text: pal.battery || '#10b981',
-      badge_battery_bg: pal.bg_battery || 'rgba(16, 185, 129, 0.12)',
+      badge_battery_bg: pal.badge_battery_bg || pal.bg_battery || 'rgba(16, 185, 129, 0.12)',
       bar_battery_soc: pal.battery || '#10b981',
 
       // 4b. EV Box Elements
@@ -1042,7 +1049,7 @@ class AresEnergyFlowCard extends HTMLElement {
       pwr_ev: '#ffffff',
       kwh_ev: 'rgba(255, 255, 255, 0.6)',
       badge_ev_text: pal.ev || pal.device,
-      badge_ev_bg: pal.bg_ev || pal.bg_device,
+      badge_ev_bg: pal.badge_ev_bg || pal.bg_ev || pal.bg_device,
       bar_ev_soc: pal.ev || pal.device,
 
       // Legacy fallback mapping
@@ -1052,7 +1059,7 @@ class AresEnergyFlowCard extends HTMLElement {
       pwr_device: '#ffffff',
       kwh_device: 'rgba(255, 255, 255, 0.6)',
       badge_device_text: pal.device,
-      badge_device_bg: pal.bg_device,
+      badge_device_bg: pal.badge_device_bg || pal.bg_device,
       bar_device_soc: pal.device,
 
       // 5. Grid Out (Export) Box Elements
@@ -4090,7 +4097,6 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     this._config = config;
     if (this._rendered) {
       this._updateFormValues();
-      this._renderColorsStudio();
     }
   }
 
@@ -4412,6 +4418,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     const container = this.shadowRoot.getElementById('panel-colors-studio');
     if (!container) return;
 
+    const wasOpen = container.querySelector('.custom-color-details')?.open;
+
     function colorToHex(colorStr, fallbackHex) {
       if (!colorStr) return fallbackHex || '#ffd54f';
       colorStr = colorStr.trim();
@@ -4638,7 +4646,7 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         <span><ha-icon icon="mdi:information-outline" style="--mdc-icon-size: 16px; vertical-align: middle; margin-right: 6px; color: var(--secondary-text-color, #9e9e9e);"></ha-icon>Pick a theme preset above, or expand individual slot overrides below to customize specific boxes and lines.</span>
       </div>
 
-      <details class="custom-color-details" style="margin-top: 14px; border: 1px solid var(--divider-color, rgba(255,255,255,0.12)); border-radius: 8px; padding: 10px 12px; background: var(--secondary-background-color, rgba(255,255,255,0.02));">
+      <details class="custom-color-details" ${wasOpen ? 'open' : ''} style="margin-top: 14px; border: 1px solid var(--divider-color, rgba(255,255,255,0.12)); border-radius: 8px; padding: 10px 12px; background: var(--secondary-background-color, rgba(255,255,255,0.02));">
         <summary style="font-weight: 700; font-size: 13px; cursor: pointer; color: var(--primary-text-color, #ffffff); display: flex; align-items: center; justify-content: space-between; user-select: none;">
           <span>🎨 Custom Color Overrides (Individual Slots)</span>
           <span style="font-size: 11px; font-weight: normal; color: var(--secondary-text-color, rgba(255,255,255,0.6));">${Object.keys(this._config?.colors || {}).length} customized</span>
@@ -4649,15 +4657,17 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     for (const grp of groups) {
       html += `<div class="color-group-box"><div class="color-group-title" style="display: flex; align-items: center;"><span class="header-icon-badge"><ha-icon icon="${grp.icon}"></ha-icon></span>${grp.title}</div>`;
       for (const item of grp.items) {
+        const curVal = (this._config?.colors && this._config.colors[item.key]) || '';
+        const wheelVal = colorToHex(curVal || item.default, '#ffd54f');
         const wheel = item.enableColorPicker === false
           ? ''
-          : `<input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${colorToHex(item.default, '#ffd54f')}">`;
+          : `<input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${wheelVal}">`;
         html += `
           <div class="color-row">
             <div class="color-label">${item.label}</div>
             <div class="color-input-pair">
               ${wheel}
-              <input type="text" class="color-text-input" data-color-key="${item.key}" placeholder="${item.default}">
+              <input type="text" class="color-text-input" data-color-key="${item.key}" placeholder="${item.default}" value="${curVal}">
             </div>
           </div>
         `;
@@ -5067,18 +5077,31 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     // Populate Color Studio inputs
     const container = this.shadowRoot.getElementById('panel-colors-studio');
     if (container) {
+      const activeEl = this.shadowRoot.activeElement;
       const texts = container.querySelectorAll('.color-text-input');
       const wheels = container.querySelectorAll('.color-wheel-btn');
       texts.forEach(t => {
         const k = t.getAttribute('data-color-key');
-        t.value = colors[k] || '';
+        if (t !== activeEl) {
+          t.value = colors[k] || '';
+        }
       });
       wheels.forEach(w => {
         const k = w.getAttribute('data-color-key');
         const def = w.getAttribute('data-default') || '#ffd54f';
         const cur = (colors && colors[k]) || def;
-        w.value = this._colorToHex(cur, '#ffd54f');
+        if (w !== activeEl) {
+          w.value = this._colorToHex(cur, '#ffd54f');
+        }
       });
+      const countEl = container.querySelector('.custom-color-details summary span:last-child');
+      if (countEl) {
+        countEl.textContent = `${Object.keys(colors).length} customized`;
+      }
+      const selectPreset = container.querySelector('#select-theme-preset');
+      if (selectPreset && this._config.palette && selectPreset.value !== this._config.palette) {
+        selectPreset.value = this._config.palette;
+      }
     }
   }
 
