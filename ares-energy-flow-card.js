@@ -1,7 +1,7 @@
 /**
  * Home Assistant Real-Time Energy Flow & Autarky Scorecard Card
  * Hardware-accelerated SVG power flow with WAAPI stutter-free velocity scaling and 3-ring autarky scorecard.
- * Version: v2.6.1 (Color Studio picker persistence, drawer state preservation, and ha_energy clean transparent boxes)
+ * Version: v2.6.2 (Security: fix Color Studio innerHTML XSS and harden hex parsing)
  */
 
 const PALETTES = {
@@ -3988,7 +3988,7 @@ class HaEnergyFlowCard extends AresEnergyFlowCard {}
 const CARD_BUILD = (typeof __ARES_DEV_BUILD !== 'undefined' && __ARES_DEV_BUILD === true) ? 'dev' : 'prod';
 // Stamped version. .github/workflows/validate.yaml fails a tag push whose tag does not
 // match this string, so it cannot drift silently. Bump it in the release commit.
-const CARD_VERSION = '2.6.1';
+const CARD_VERSION = '2.6.2';
 AresEnergyFlowCard.BUILD = CARD_BUILD;
 AresEnergyFlowCard.VERSION = CARD_VERSION;
 AresEnergyFlowCardDev.BUILD = CARD_BUILD;
@@ -4079,10 +4079,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
       const fallback = colorStr.match(/,\s*([^)]+)\)$/);
       if (fallback) return this._colorToHex(fallback[1].trim(), fallbackHex);
     }
-    if (colorStr.startsWith('#')) {
-      if (colorStr.length === 7) return colorStr;
-      if (colorStr.length === 4) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
-    }
+    if (/^#[0-9a-f]{6}$/i.test(colorStr)) return colorStr;
+    if (/^#[0-9a-f]{3}$/i.test(colorStr)) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
     const rgbaMatch = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (rgbaMatch) {
       const r = parseInt(rgbaMatch[1], 10).toString(16).padStart(2, '0');
@@ -4427,10 +4425,8 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
         const fallback = colorStr.match(/,\s*([^)]+)\)$/);
         if (fallback) return colorToHex(fallback[1].trim(), fallbackHex);
       }
-      if (colorStr.startsWith('#')) {
-        if (colorStr.length === 7) return colorStr;
-        if (colorStr.length === 4) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
-      }
+      if (/^#[0-9a-f]{6}$/i.test(colorStr)) return colorStr;
+      if (/^#[0-9a-f]{3}$/i.test(colorStr)) return `#${colorStr[1]}${colorStr[1]}${colorStr[2]}${colorStr[2]}${colorStr[3]}${colorStr[3]}`;
       const rgbaMatch = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (rgbaMatch) {
         const r = parseInt(rgbaMatch[1], 10).toString(16).padStart(2, '0');
@@ -4655,19 +4651,17 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     `;
 
     for (const grp of groups) {
-      html += `<div class="color-group-box"><div class="color-group-title" style="display: flex; align-items: center;"><span class="header-icon-badge"><ha-icon icon="${grp.icon}"></ha-icon></span>${grp.title}</div>`;
+      html += `<div class="color-group-box"><div class="color-group-title" style="display: flex; align-items: center;"><span class="header-icon-badge"><ha-icon icon="${esc(grp.icon)}"></ha-icon></span>${esc(grp.title)}</div>`;
       for (const item of grp.items) {
-        const curVal = (this._config?.colors && this._config.colors[item.key]) || '';
-        const wheelVal = colorToHex(curVal || item.default, '#ffd54f');
         const wheel = item.enableColorPicker === false
           ? ''
-          : `<input type="color" class="color-wheel-btn" data-color-key="${item.key}" data-default="${item.default}" value="${wheelVal}">`;
+          : `<input type="color" class="color-wheel-btn" data-color-key="${esc(item.key)}" data-default="${esc(item.default)}">`;
         html += `
           <div class="color-row">
-            <div class="color-label">${item.label}</div>
+            <div class="color-label">${esc(item.label)}</div>
             <div class="color-input-pair">
               ${wheel}
-              <input type="text" class="color-text-input" data-color-key="${item.key}" placeholder="${item.default}" value="${curVal}">
+              <input type="text" class="color-text-input" data-color-key="${esc(item.key)}" placeholder="${esc(item.default)}">
             </div>
           </div>
         `;
@@ -4681,6 +4675,18 @@ class AresEnergyFlowCardDevEditor extends HTMLElement {
     `;
 
     container.innerHTML = html;
+
+    // Populate configured values via DOM properties (never interpolated into innerHTML)
+    const savedColors = this._config?.colors || {};
+    container.querySelectorAll('.color-text-input').forEach(t => {
+      const k = t.getAttribute('data-color-key');
+      t.value = savedColors[k] || '';
+    });
+    container.querySelectorAll('.color-wheel-btn').forEach(w => {
+      const k = w.getAttribute('data-color-key');
+      const def = w.getAttribute('data-default') || '#ffd54f';
+      w.value = colorToHex(savedColors[k] || def, '#ffd54f');
+    });
 
     // Attach Color Listeners
     const inputs = container.querySelectorAll('.color-text-input, .color-wheel-btn');
