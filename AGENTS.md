@@ -29,6 +29,12 @@ Read this before touching `ares-energy-flow-card.js` or anything under `H:\www`.
    `?v=` (live via `ha_config_set_dashboard_resource`, no HA restart needed).
 6. **Do not let HACS install this repo alongside the manual files.** A second copy claims
    the same tags and you are back to first-one-wins.
+7. **Never interpolate config values into `innerHTML` (XSS).** The card's `setConfig()` runs
+   `safeColors()`, but the editor's `setConfig()` preserves raw config strings. Always set input
+   `.value` via DOM properties after `innerHTML`, use `esc()` for template metadata, and validate
+   hex strings strictly (`/^#[0-9a-f]{3,6}$/i`) rather than by length alone.
+8. **GitHub releases for HACS:** Always publish a GitHub Release (not just a git tag) for every
+   production version bump so HACS picks up the update.
 
 ## Verify
 
