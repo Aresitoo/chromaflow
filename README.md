@@ -13,7 +13,7 @@ It supports solar panels, grid import and export, home load, home battery storag
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x%2B-blue.svg?logo=home-assistant)
 ![Version](https://img.shields.io/github/v/release/Aresitoo/chromaflow?label=version&color=success)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Marketplace / HACS Compatible](https://img.shields.io/badge/Marketplace%20%2F%20HACS-Custom%20Repo-blue.svg)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/aresitoo)
 
 <p align="center">
@@ -148,26 +148,24 @@ Other keys worth knowing, all optional: `battery_tapped_view` (what the battery 
 
 > 💡 **Note:** This is a **Lovelace Dashboard Card**, not a widget for the built-in Home Assistant Energy panel.
 
-### Step 1: Install via Marketplace (Home Assistant 2026.11+)
-1. Go to **Settings** ➔ **Marketplace** in Home Assistant.
-2. Click the three dots (⋮) in the top right corner and select **Add from link**, which opens the **Add from a GitHub link** dialog.
-3. Paste the repository URL into the **GitHub link** field:
-   ```text
-   https://github.com/Aresitoo/chromaflow
-   ```
-4. Click **Add**. This needs a GitHub account connected to the Marketplace, and it asks you to connect one if you have not.
-5. Open **ChromaFlow**, click **Install**, and reload your browser cache (`Ctrl + F5`).
+### Step 1: Install from HACS
+1. Open **HACS** in Home Assistant (or Settings ➔ Marketplace on Home Assistant 2026.11+).
+2. Search for **ChromaFlow**.
+3. Open it, click Download (or Install), and reload your browser cache (`Ctrl + F5`).
 
-The card installs to `www/community` and the Marketplace registers the dashboard resource for you. If you manage dashboard resources in YAML it cannot, and the install dialog shows the URL to add yourself.
+HACS installs the card to `www/community` and registers the dashboard resource for you. If you manage dashboard resources in YAML, add the resource URL shown in the install dialog yourself.
+
+If ChromaFlow does not appear in the search yet, the store is still holding an older copy of the default list. Refresh it from the store's ⋮ menu, or restart Home Assistant, and search again.
 
 <details>
-<summary>Using Legacy HACS? (Home Assistant &lt; 2026.11)</summary>
+<summary>Fallback: Add by GitHub link or custom repository</summary>
 
-1. Open **HACS** in your sidebar.
-2. Click the **three dots (⋮)** ➔ **Custom repositories**.
-3. Paste `https://github.com/Aresitoo/chromaflow`.
-4. Set the category to **Dashboard / Lovelace** and click **Add**.
-5. Find **ChromaFlow**, click **Download**, and reload your browser.
+If ChromaFlow does not appear in search yet, you can still add the repository directly:
+
+- **Marketplace (Home Assistant 2026.11+):** Go to Settings ➔ Marketplace, click the three dots (⋮) in the top right, choose Add from link, paste `https://github.com/Aresitoo/chromaflow`, and click Add.
+- **Legacy HACS:** Open HACS, click the three dots (⋮) ➔ Custom repositories, paste `https://github.com/Aresitoo/chromaflow`, set the category to Dashboard, and click Add.
+
+Then open **ChromaFlow**, install it, and reload your browser.
 </details>
 
 ---
@@ -191,7 +189,7 @@ The card installs to `www/community` and the Marketplace registers the dashboard
 1. Download `ares-energy-flow-card.js` from the latest release.
 2. Copy the file into your Home Assistant `<config>/www/` directory.
 3. Add the resource reference in **Settings ➔ Dashboards ➔ Resources**:
-   - **URL**: `/local/ares-energy-flow-card.js?v=v2.5.4` (any tag works, e.g. the latest release)
+   - **URL**: `/local/ares-energy-flow-card.js?v=v2.6.2` (any tag works, e.g. the latest release)
    - **Resource Type**: `JavaScript Module`
 
 ### Dev-lab build
@@ -225,7 +223,7 @@ type: custom:ares-energy-flow-card
 show_battery: true
 show_ev: true
 battery_position: left # 'left' (under Solar) or 'right' (between Home and Grid Out)
-solar_priority: home # 'home', 'battery' or 'ev' — which load gets surplus solar first
+solar_priority: home # 'home', 'battery' or 'ev': which load gets surplus solar first
 allow_battery_to_ev: false # allow home battery to discharge into EV
 contract_power_limit_kw: 4.2
 contract_warning_pct: 0.85 # Alert when grid import reaches 85% of limit
